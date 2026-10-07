@@ -47,7 +47,8 @@ export function Booking() {
     const data = new FormData(e.currentTarget)
     const name = String(data.get("name") ?? "").trim()
     const phone = String(data.get("phone") ?? "").trim()
-    const service = SERVICES.find((s) => s.id === data.get("service"))
+    const waterId = data.get("noWater") ? "agua-propia" : "agua-domicilio"
+    const service = SERVICES.find((s) => s.id === waterId)
     const address = String(data.get("address") ?? "").trim()
     const date = String(data.get("date") ?? "")
     const time = String(data.get("time") ?? "")
@@ -160,20 +161,13 @@ export function Booking() {
               </div>
             </fieldset>
 
-            <Field label="Servicio" htmlFor="service">
-              <SelectWrap>
-                <select id="service" name="service" defaultValue="" className={cn(fieldClass, "appearance-none pr-10")} required>
-                  <option value="" disabled>
-                    Elegí una opción
-                  </option>
-                  {SERVICES.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </SelectWrap>
-            </Field>
+            <label className="flex cursor-pointer items-start gap-3 px-1">
+              <input type="checkbox" name="noWater" className="mt-0.5 size-4 accent-primary" />
+              <span className="flex flex-col">
+                <span className="text-sm text-muted-foreground">No tengo acceso a agua en el domicilio</span>
+                <span className="text-xs text-muted-foreground/80">MK puede llevarte agua.</span>
+              </span>
+            </label>
 
             <fieldset className="flex flex-col gap-2">
               <legend className="mb-2 text-sm text-muted-foreground">Adicionales (opcional)</legend>
