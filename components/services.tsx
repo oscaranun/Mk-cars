@@ -1,10 +1,11 @@
-import { ArrowUpRight, Car, CarFront, Droplets, House, Sparkles, Truck } from "lucide-react"
+import { ArrowUpRight, Car, Droplets, House, Sparkles } from "lucide-react"
+import { PickupIcon, SuvIcon } from "@/components/vehicle-icons"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
 import { EXTRAS, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
-const ICONS = { auto: Car, suv: CarFront, pickup: Truck } as const
+const ICONS = { auto: Car, suv: SuvIcon, pickup: PickupIcon } as const
 
 const WATER_OPTIONS = [
   { icon: Droplets, title: "Agua propia", text: "Llevamos nuestra reserva" },
