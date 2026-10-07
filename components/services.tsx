@@ -17,7 +17,7 @@ function VehicleLineIcon({ id }: { id: keyof typeof ICONS }) {
   return (
     <span
       aria-hidden="true"
-      className="block w-10 bg-current"
+      className="block w-[120px] bg-current"
       style={{ aspectRatio: ratio, mask, WebkitMask: mask } as CSSProperties}
     />
   )
@@ -46,12 +46,7 @@ export function Services() {
                         Más elegido
                       </span>
                     )}
-                    <span
-                      className={cn(
-                        "flex size-12 items-center justify-center rounded-2xl",
-                        featured ? "bg-white/10 text-white" : "bg-sky text-primary",
-                      )}
-                    >
+                    <span className={cn("flex h-12 items-center", featured ? "text-white" : "text-primary")}>
                       <VehicleLineIcon id={v.id} />
                     </span>
                     <div>
