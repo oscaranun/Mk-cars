@@ -1,11 +1,27 @@
-import { ArrowUpRight, Car, Droplets, Sparkles } from "lucide-react"
-import { PickupIcon, SuvIcon } from "@/components/vehicle-icons"
+import { ArrowUpRight, Droplets, Sparkles } from "lucide-react"
+import type { CSSProperties } from "react"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
 import { EXTRAS, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
-const ICONS = { auto: Car, suv: SuvIcon, pickup: PickupIcon } as const
+const ICONS = {
+  auto: { src: "/images/icons/auto.png", ratio: 568 / 243 },
+  suv: { src: "/images/icons/suv.png", ratio: 1027 / 414 },
+  pickup: { src: "/images/icons/pickup.png", ratio: 1015 / 386 },
+} as const
+
+function VehicleLineIcon({ id }: { id: keyof typeof ICONS }) {
+  const { src, ratio } = ICONS[id]
+  const mask = `url(${src}) center / contain no-repeat`
+  return (
+    <span
+      aria-hidden="true"
+      className="block w-10 bg-current"
+      style={{ aspectRatio: ratio, mask, WebkitMask: mask } as CSSProperties}
+    />
+  )
+}
 
 export function Services() {
   return (
@@ -15,7 +31,6 @@ export function Services() {
 
         <ul className="mt-10 grid gap-4 md:mt-14 md:grid-cols-3 md:gap-5">
           {VEHICLES.map((v, i) => {
-            const Icon = ICONS[v.id]
             const featured = v.id === "suv"
             return (
               <li key={v.id}>
@@ -37,7 +52,7 @@ export function Services() {
                         featured ? "bg-white/10 text-white" : "bg-sky text-primary",
                       )}
                     >
-                      <Icon className="size-6" aria-hidden="true" />
+                      <VehicleLineIcon id={v.id} />
                     </span>
                     <div>
                       <h3 className="text-2xl font-semibold tracking-tight">{v.name}</h3>
