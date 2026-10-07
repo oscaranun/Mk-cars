@@ -1,4 +1,4 @@
-import { ArrowUpRight, Car, Droplets, House, Sparkles } from "lucide-react"
+import { ArrowUpRight, Car, Droplets, Sparkles } from "lucide-react"
 import { PickupIcon, SuvIcon } from "@/components/vehicle-icons"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
@@ -6,11 +6,6 @@ import { EXTRAS, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
 const ICONS = { auto: Car, suv: SuvIcon, pickup: PickupIcon } as const
-
-const WATER_OPTIONS = [
-  { icon: Droplets, title: "Agua propia", text: "Llevamos nuestra reserva" },
-  { icon: House, title: "Agua del domicilio", text: "Usamos tu canilla" },
-]
 
 export function Services() {
   return (
@@ -80,20 +75,12 @@ export function Services() {
         </ul>
 
         <Reveal className="mt-6">
-          <p className="mb-3 text-sm font-medium text-muted-foreground">Con o sin agua en tu casa</p>
-          <ul className="grid grid-cols-2 gap-3 md:max-w-xl">
-            {WATER_OPTIONS.map((o) => (
-              <li key={o.title} className="flex flex-col gap-3 rounded-2xl border border-border bg-white p-4 sm:flex-row sm:items-center">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky text-primary">
-                  <o.icon className="size-5" aria-hidden="true" />
-                </span>
-                <span className="flex flex-col">
-                  <span className="text-sm font-semibold">{o.title}</span>
-                  <span className="text-xs text-muted-foreground">{o.text}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
+          <p className="flex items-start gap-2 text-sm text-muted-foreground md:max-w-xl">
+            <Droplets className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+            <span>
+              Usamos el agua de tu domicilio. ¿No tenés acceso a agua? MK puede llevarte agua.
+            </span>
+          </p>
         </Reveal>
 
         <Reveal className="mt-6">
