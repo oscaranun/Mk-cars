@@ -1,59 +1,49 @@
-import Image from "next/image"
-import { SectionHeading } from "./section-heading"
+import { CalendarCheck, Car, Sparkles } from "lucide-react"
+import { Reveal } from "@/components/reveal"
+import { SectionHeading } from "@/components/section-heading"
+import { SERVICE_DAYS, SERVICE_HOURS } from "@/lib/site"
 
 const STEPS = [
   {
-    title: "Escribinos por WhatsApp",
-    body: "Contanos tu vehículo, tu zona y el horario que te queda cómodo.",
+    icon: CalendarCheck,
+    title: "Reservás",
+    text: `Elegís día y horario. ${SERVICE_DAYS.full} de ${SERVICE_HOURS.open} a ${SERVICE_HOURS.close}.`,
   },
-  {
-    title: "Confirmamos el turno",
-    body: "Te respondemos con día y hora, de lunes a sábado entre las 9:00 y las 18:00. Elegís agua propia o la tuya.",
-  },
-  {
-    title: "Vamos a donde estés",
-    body: "Llegamos a tu casa u oficina con todo el equipo. No tenés que mover el auto.",
-  },
-  {
-    title: "Listo, impecable",
-    body: "Revisamos el resultado juntos. Tu auto queda brillante, sin que hayas movido un dedo.",
-  },
+  { icon: Car, title: "Vamos a tu ubicación", text: "Llegamos a tu casa o trabajo con todo el equipo." },
+  { icon: Sparkles, title: "Tu auto, impecable", text: "Lo dejamos listo sin que tengas que moverte." },
 ]
 
 export function HowItWorks() {
   return (
-    <section aria-labelledby="como-funciona-title" id="como-funciona" className="bg-inverse py-20 text-inverse-foreground md:py-32">
-      <div className="mx-auto max-w-6xl px-5">
-        <SectionHeading
-          id="como-funciona-title"
-          eyebrow="02 — Cómo funciona"
-          title="Cuatro pasos. Cero vueltas."
-          inverse
-        />
+    <section id="como-funciona" className="mx-auto max-w-6xl px-5 py-24 md:px-8 md:py-36">
+      <SectionHeading index="01" eyebrow="Cómo funciona" title="Tres pasos. Cero traslados." />
 
-        <div className="mt-12 flex flex-col gap-10 md:flex-row md:gap-16">
-          <ol className="flex flex-1 flex-col">
-            {STEPS.map((step, index) => (
-              <li key={step.title} className="flex gap-5 border-t border-inverse-border py-6 last:border-b">
-                <span className="font-mono text-sm text-inverse-muted">{String(index + 1).padStart(2, "0")}</span>
-                <div>
-                  <h3 className="text-xl font-semibold tracking-tight">{step.title}</h3>
-                  <p className="mt-2 text-pretty leading-relaxed text-inverse-muted">{step.body}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <div className="relative aspect-[4/5] overflow-hidden rounded-3xl md:w-5/12">
-            <Image
-              src="/images/detail.png"
-              alt="Secado a mano con microfibra sobre el capot de un auto"
-              fill
-              sizes="(min-width: 768px) 40vw, 100vw"
-              className="object-cover"
-            />
-          </div>
-        </div>
-      </div>
+      <ol className="mt-14 flex flex-col md:mt-20 md:flex-row md:gap-6">
+        {STEPS.map((step, i) => (
+          <li key={step.title} className="relative flex-1">
+            <Reveal delay={i * 120} className="flex gap-5 pb-10 md:flex-col md:pb-0">
+              <div className="flex flex-col items-center md:flex-row">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-full border border-border bg-surface">
+                  <step.icon className="size-5 text-silver" aria-hidden="true" />
+                </span>
+                {i < STEPS.length - 1 && (
+                  <span
+                    className="mt-3 w-px flex-1 bg-gradient-to-b from-border to-transparent md:ml-4 md:mt-0 md:h-px md:w-auto md:bg-gradient-to-r"
+                    aria-hidden="true"
+                  />
+                )}
+              </div>
+              <div className="flex flex-col gap-2 pt-2.5 md:pt-6">
+                <span className="font-mono text-[0.7rem] tracking-[0.2em] text-muted-foreground">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <h3 className="text-2xl font-medium tracking-tight">{step.title}</h3>
+                <p className="max-w-xs text-pretty leading-relaxed text-muted-foreground">{step.text}</p>
+              </div>
+            </Reveal>
+          </li>
+        ))}
+      </ol>
     </section>
   )
 }

@@ -11,11 +11,11 @@ export const metadata: Metadata = {
     "Lavado premium a domicilio en Capital, Godoy Cruz, Guaymallén, Las Heras, Luján de Cuyo y Maipú. Desde $25.000. Lunes a sábado de 9:00 a 18:00. Reservá por WhatsApp.",
   keywords: ["lavado de autos a domicilio", "lavadero móvil Mendoza", "MK Cars", "Gran Mendoza", "car wash Mendoza"],
   openGraph: {
-    title: "MK Cars — Lavado de autos a domicilio",
-    description: "Tu auto impecable, sin moverte de casa. Gran Mendoza.",
+    title: "MK Cars — Lavado premium. Donde estés.",
+    description: "Lavado profesional a domicilio en Gran Mendoza.",
     locale: "es_AR",
     type: "website",
-    images: ["/images/hero.png"],
+    images: ["/images/hero-premium.png"],
   },
 }
 
@@ -23,7 +23,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#0a0a0a",
+  themeColor: "#09090a",
+  viewportFit: "cover",
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

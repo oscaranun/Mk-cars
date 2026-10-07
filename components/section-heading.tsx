@@ -1,29 +1,29 @@
+import { Reveal } from "@/components/reveal"
+
 export function SectionHeading({
+  index,
   eyebrow,
   title,
   description,
-  id,
-  inverse = false,
 }: {
+  index: string
   eyebrow: string
   title: string
   description?: string
-  id: string
-  inverse?: boolean
 }) {
   return (
-    <div className="max-w-2xl">
-      <p className={`font-mono text-xs uppercase tracking-[0.25em] ${inverse ? "text-inverse-muted" : "text-muted-foreground"}`}>
+    <Reveal className="flex flex-col gap-5">
+      <p className="flex items-center gap-3 font-mono text-[0.7rem] uppercase tracking-[0.3em] text-muted-foreground">
+        <span className="text-foreground">{index}</span>
+        <span className="h-px w-8 bg-border" aria-hidden="true" />
         {eyebrow}
       </p>
-      <h2 id={id} className="mt-4 text-balance text-4xl font-semibold leading-[1.02] tracking-tight md:text-6xl">
+      <h2 className="text-balance text-[2.25rem] font-medium leading-[1.02] tracking-[-0.04em] sm:text-5xl md:text-6xl">
         {title}
       </h2>
-      {description ? (
-        <p className={`mt-5 text-pretty text-base leading-relaxed md:text-lg ${inverse ? "text-inverse-muted" : "text-muted-foreground"}`}>
-          {description}
-        </p>
-      ) : null}
-    </div>
+      {description && (
+        <p className="max-w-md text-pretty text-base leading-relaxed text-muted-foreground">{description}</p>
+      )}
+    </Reveal>
   )
 }

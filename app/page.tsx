@@ -1,12 +1,12 @@
-import { Benefits } from "@/components/benefits"
 import { Booking } from "@/components/booking"
 import { Coverage } from "@/components/coverage"
 import { Hero } from "@/components/hero"
 import { HowItWorks } from "@/components/how-it-works"
-import { MobileCta } from "@/components/mobile-cta"
 import { Services } from "@/components/services"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
+import { Water } from "@/components/water"
+import { WhatsAppFloat } from "@/components/whatsapp-float"
 
 export default function Page() {
   return (
@@ -14,14 +14,14 @@ export default function Page() {
       <SiteHeader />
       <main>
         <Hero />
-        <Services />
         <HowItWorks />
+        <Services />
+        <Water />
         <Coverage />
-        <Benefits />
         <Booking />
       </main>
       <SiteFooter />
-      <MobileCta />
+      <WhatsAppFloat />
     </>
   )
 }

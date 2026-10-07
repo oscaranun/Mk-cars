@@ -1,37 +1,58 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafafa;
-  --foreground: #0a0a0a;
-  --muted: #f0f0f0;
-  --muted-foreground: #6b6b6b;
-  --border: #e3e3e3;
-  --inverse: #0a0a0a;
-  --inverse-foreground: #fafafa;
-  --inverse-muted: #a3a3a3;
-  --inverse-border: #262626;
-  --accent: #25d366;
+  --background: #09090a;
+  --surface: #121214;
+  --surface-2: #1a1a1d;
+  --foreground: #f4f4f2;
+  --muted-foreground: #8b8b90;
+  --border: #26262a;
+  --silver: #c9c9cc;
+  --whatsapp: #25d366;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
-  --color-inverse: var(--inverse);
-  --color-inverse-foreground: var(--inverse-foreground);
-  --color-inverse-muted: var(--inverse-muted);
-  --color-inverse-border: var(--inverse-border);
-  --color-accent: var(--accent);
+  --color-silver: var(--silver);
+  --color-whatsapp: var(--whatsapp);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --animate-hero-zoom: hero-zoom 2.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-up: fade-up 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes hero-zoom {
+    from {
+      transform: scale(1.12);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  @keyframes fade-up {
+    from {
+      transform: translateY(24px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
 }
 
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 4.5rem;
   -webkit-text-size-adjust: 100%;
+  color-scheme: dark;
 }
 
 body {
@@ -41,8 +62,35 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.6;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
   }
 }

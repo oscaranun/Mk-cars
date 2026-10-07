@@ -1,39 +1,51 @@
-import { DEFAULT_WHATSAPP_MESSAGE, whatsappUrl } from "@/lib/site"
-import { WhatsAppIcon } from "./whatsapp-icon"
+"use client"
+
+import { useEffect, useState } from "react"
+import { Logo } from "@/components/logo"
+import { cn } from "@/lib/utils"
 
 const NAV = [
-  { href: "#servicios", label: "Servicios" },
   { href: "#como-funciona", label: "Cómo funciona" },
+  { href: "#servicios", label: "Precios" },
   { href: "#cobertura", label: "Cobertura" },
-  { href: "#reservar", label: "Reservar" },
 ]
 
 export function SiteHeader() {
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24)
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-inverse/80 text-inverse-foreground backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
-        <a href="#inicio" className="flex min-h-11 items-center gap-2" aria-label="MK Cars, inicio">
-          <span className="text-lg font-semibold tracking-tight">MK</span>
-          <span className="font-mono text-xs uppercase tracking-[0.3em] text-inverse-muted">Cars</span>
+    <header
+      className={cn(
+        "fixed inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)] transition-colors duration-500",
+        scrolled ? "border-b border-border/60 bg-background/75 backdrop-blur-xl" : "border-b border-transparent",
+      )}
+    >
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 md:px-8">
+        <a href="#inicio" aria-label="MK Cars, ir al inicio" className="flex min-h-11 items-center">
+          <Logo />
         </a>
-        <nav aria-label="Principal" className="hidden md:block">
-          <ul className="flex items-center gap-8 text-sm text-inverse-muted">
-            {NAV.map((item) => (
-              <li key={item.href}>
-                <a href={item.href} className="transition-colors hover:text-inverse-foreground">
-                  {item.label}
-                </a>
-              </li>
-            ))}
-          </ul>
+        <nav aria-label="Principal" className="hidden items-center gap-8 md:flex">
+          {NAV.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {item.label}
+            </a>
+          ))}
         </nav>
         <a
-          href={whatsappUrl(DEFAULT_WHATSAPP_MESSAGE)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex min-h-11 items-center gap-2 rounded-full bg-inverse-foreground px-4 text-sm font-medium text-inverse transition-opacity hover:opacity-90"
+          href="#reservar"
+          className="inline-flex min-h-11 items-center rounded-full border border-foreground/25 px-5 text-sm font-medium transition-colors hover:bg-foreground hover:text-background"
         >
-          <WhatsAppIcon className="size-4" />
           Reservar
         </a>
       </div>
