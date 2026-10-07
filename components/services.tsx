@@ -1,27 +1,9 @@
 import { ArrowUpRight, Droplets, Sparkles } from "lucide-react"
-import type { CSSProperties } from "react"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
+import { VehicleLineIcon } from "@/components/vehicle-line-icon"
 import { EXTRAS, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
-
-const ICONS = {
-  auto: { src: "/images/icons/auto.png?v=4", ratio: 1103 / 461, width: 120 },
-  suv: { src: "/images/icons/suv.png?v=4", ratio: 1027 / 414, width: 120 },
-  pickup: { src: "/images/icons/pickup.png?v=4", ratio: 1011 / 384, width: 168 },
-} as const
-
-function VehicleLineIcon({ id }: { id: keyof typeof ICONS }) {
-  const { src, ratio, width } = ICONS[id]
-  const mask = `url(${src}) center / contain no-repeat`
-  return (
-    <span
-      aria-hidden="true"
-      className="block bg-current"
-      style={{ width, aspectRatio: ratio, mask, WebkitMask: mask } as CSSProperties}
-    />
-  )
-}
 
 export function Services() {
   return (
