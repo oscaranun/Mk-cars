@@ -1,8 +1,4 @@
-"use client"
-
-import { useEffect, useState } from "react"
 import { Logo } from "@/components/logo"
-import { cn } from "@/lib/utils"
 
 const NAV = [
   { href: "#como-funciona", label: "Cómo funciona" },
@@ -12,22 +8,8 @@ const NAV = [
 ]
 
 export function SiteHeader() {
-  const [scrolled, setScrolled] = useState(false)
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 16)
-    onScroll()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
-  }, [])
-
   return (
-    <header
-      className={cn(
-        "fixed inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)] transition-all duration-300",
-        scrolled ? "border-b border-border bg-deep/85 backdrop-blur-xl" : "border-b border-transparent",
-      )}
-    >
+    <header className="absolute inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-[0.65cm] md:px-8">
         <a href="#inicio" aria-label="MK Car Wash, ir al inicio" className="flex min-h-11 items-center">
           <Logo />
@@ -37,10 +19,7 @@ export function SiteHeader() {
             <a
               key={item.href}
               href={item.href}
-              className={cn(
-                "text-base transition-colors lg:text-[21px]",
-                scrolled ? "text-muted-foreground hover:text-white" : "text-white/70 hover:text-white",
-              )}
+              className="text-base text-white/70 transition-colors hover:text-white lg:text-[21px]"
             >
               {item.label}
             </a>
