@@ -8,13 +8,14 @@ const NAV = [
   { href: "#como-funciona", label: "Cómo funciona" },
   { href: "#servicios", label: "Precios" },
   { href: "#cobertura", label: "Cobertura" },
+  { href: "#antes-despues", label: "Resultados" },
 ]
 
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24)
+    const onScroll = () => setScrolled(window.scrollY > 16)
     onScroll()
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
@@ -23,8 +24,8 @@ export function SiteHeader() {
   return (
     <header
       className={cn(
-        "fixed inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)] transition-colors duration-500",
-        scrolled ? "border-b border-border/60 bg-background/75 backdrop-blur-xl" : "border-b border-transparent",
+        "fixed inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)] transition-all duration-300",
+        scrolled ? "border-b border-border bg-white/80 backdrop-blur-xl" : "border-b border-transparent",
       )}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 md:px-8">
@@ -36,7 +37,7 @@ export function SiteHeader() {
             <a
               key={item.href}
               href={item.href}
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="text-sm text-muted-foreground transition-colors hover:text-primary"
             >
               {item.label}
             </a>
@@ -44,7 +45,7 @@ export function SiteHeader() {
         </nav>
         <a
           href="#reservar"
-          className="inline-flex min-h-11 items-center rounded-full border border-foreground/25 px-5 text-sm font-medium transition-colors hover:bg-foreground hover:text-background"
+          className="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform active:scale-95"
         >
           Reservar
         </a>

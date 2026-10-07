@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils"
 
 const fieldClass =
-  "min-h-14 w-full rounded-2xl border border-border bg-background px-4 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-foreground/50"
+  "min-h-14 w-full rounded-2xl border border-border bg-surface px-4 text-base text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10"
 
 function todayISO() {
   const d = new Date()
@@ -77,17 +77,16 @@ export function Booking() {
   }
 
   return (
-    <section id="reservar" className="mx-auto max-w-6xl px-5 py-24 md:px-8 md:py-36">
+    <section id="reservar" className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-28">
       <div className="grid gap-12 md:grid-cols-[1fr_1.2fr] md:gap-16">
         <div className="flex flex-col gap-8">
           <SectionHeading
-            index="05"
-            eyebrow="Reservar turno"
+            eyebrow="Reserva"
             title="Reservá en un minuto."
-            description="Completá tus datos y te confirmamos el turno por WhatsApp."
+            description="Te confirmamos por WhatsApp."
           />
           <Reveal>
-            <dl className="flex flex-col divide-y divide-border rounded-2xl border border-border">
+            <dl className="flex flex-col divide-y divide-border rounded-3xl border border-border bg-white shadow-soft">
               <div className="flex items-center justify-between gap-4 p-5">
                 <dt className="text-sm text-muted-foreground">Días</dt>
                 <dd className="font-medium">{SERVICE_DAYS.full}</dd>
@@ -106,7 +105,7 @@ export function Booking() {
           <form
             onSubmit={handleSubmit}
             noValidate
-            className="flex flex-col gap-5 rounded-3xl border border-border bg-surface p-5 sm:p-8"
+            className="flex flex-col gap-5 rounded-[2rem] border border-border bg-white p-5 shadow-soft sm:p-8"
           >
             <Field label="Nombre" htmlFor="name">
               <input id="name" name="name" type="text" autoComplete="name" placeholder="Tu nombre" className={fieldClass} required />
@@ -132,10 +131,10 @@ export function Booking() {
                   <label
                     key={v.id}
                     className={cn(
-                      "flex min-h-16 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl border px-2 text-center transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-foreground/40",
+                      "flex min-h-16 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl border px-2 text-center transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40",
                       vehicle === v.id
-                        ? "border-foreground bg-foreground text-background"
-                        : "border-border bg-background text-foreground",
+                        ? "border-primary bg-primary text-primary-foreground shadow-glow"
+                        : "border-border bg-surface text-foreground",
                     )}
                   >
                     <input
@@ -147,7 +146,7 @@ export function Booking() {
                       className="sr-only"
                     />
                     <span className="text-sm font-medium">{v.name}</span>
-                    <span className={cn("text-xs tabular-nums", vehicle === v.id ? "text-background/70" : "text-muted-foreground")}>
+                    <span className={cn("text-xs tabular-nums", vehicle === v.id ? "text-white/75" : "text-muted-foreground")}>
                       {formatARS(v.price)}
                     </span>
                   </label>
@@ -207,14 +206,14 @@ export function Booking() {
             </p>
 
             {error && (
-              <p role="alert" className="rounded-xl border border-border bg-background px-4 py-3 text-sm">
+              <p role="alert" className="rounded-xl bg-sky px-4 py-3 text-sm text-deep">
                 {error}
               </p>
             )}
 
             <button
               type="submit"
-              className="group mt-1 inline-flex min-h-14 items-center justify-center gap-3 rounded-full bg-foreground px-6 text-base font-medium text-background transition-transform active:scale-[0.98]"
+              className="group mt-1 inline-flex min-h-14 items-center justify-center gap-3 rounded-full bg-primary px-6 text-base font-medium text-primary-foreground shadow-glow transition-transform active:scale-[0.98]"
             >
               <WhatsAppIcon className="size-5" />
               Reservar por WhatsApp

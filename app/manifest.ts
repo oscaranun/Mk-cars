@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Lavado de autos a domicilio en Gran Mendoza. Reservá por WhatsApp.",
     start_url: "/",
     display: "standalone",
-    background_color: "#0a0a0a",
-    theme_color: "#0a0a0a",
+    background_color: "#ffffff",
+    theme_color: "#1f5eff",
     lang: "es-AR",
     icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
   }

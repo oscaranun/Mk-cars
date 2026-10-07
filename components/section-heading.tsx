@@ -1,28 +1,28 @@
 import { Reveal } from "@/components/reveal"
+import { cn } from "@/lib/utils"
 
 export function SectionHeading({
-  index,
   eyebrow,
   title,
   description,
+  align = "left",
 }: {
-  index: string
   eyebrow: string
   title: string
   description?: string
+  align?: "left" | "center"
 }) {
   return (
-    <Reveal className="flex flex-col gap-5">
-      <p className="flex items-center gap-3 font-mono text-[0.7rem] uppercase tracking-[0.3em] text-muted-foreground">
-        <span className="text-foreground">{index}</span>
-        <span className="h-px w-8 bg-border" aria-hidden="true" />
+    <Reveal className={cn("flex flex-col gap-3", align === "center" && "items-center text-center")}>
+      <p className="inline-flex w-fit items-center gap-2 rounded-full bg-sky px-3 py-1 text-xs font-medium text-primary">
+        <span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />
         {eyebrow}
       </p>
-      <h2 className="text-balance text-[2.25rem] font-medium leading-[1.02] tracking-[-0.04em] sm:text-5xl md:text-6xl">
+      <h2 className="text-balance text-[1.875rem] font-semibold leading-[1.1] tracking-[-0.035em] sm:text-4xl md:text-5xl">
         {title}
       </h2>
       {description && (
-        <p className="max-w-md text-pretty text-base leading-relaxed text-muted-foreground">{description}</p>
+        <p className="max-w-md text-pretty text-[0.95rem] leading-relaxed text-muted-foreground">{description}</p>
       )}
     </Reveal>
   )

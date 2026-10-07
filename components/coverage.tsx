@@ -59,25 +59,20 @@ export function Coverage() {
   }
 
   return (
-    <section id="cobertura" className="relative overflow-hidden border-t border-border bg-surface/40 py-24 md:py-36">
-      <div
-        className="pointer-events-none absolute -right-40 top-10 size-[28rem] rounded-full bg-silver/5 blur-3xl"
-        aria-hidden="true"
-      />
-      <div className="relative mx-auto max-w-6xl px-5 md:px-8">
+    <section id="cobertura" className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-28">
+      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-sky to-sky-strong/70 px-5 py-10 md:px-12 md:py-16">
         <SectionHeading
-          index="04"
           eyebrow="Cobertura"
           title="Todo Gran Mendoza."
-          description="Ingresá tu dirección y confirmá que llegamos hasta vos."
+          description="Consultá si llegamos a tu zona."
         />
 
-        <Reveal className="mt-12 max-w-2xl">
+        <Reveal className="mt-8 max-w-2xl">
           <form onSubmit={checkAddress} className="flex flex-col gap-3" noValidate>
             <label htmlFor="coverage-address" className="sr-only">
               Dirección o barrio
             </label>
-            <div className="flex items-center gap-2 rounded-full border border-border bg-background p-1.5 pl-5 transition-colors focus-within:border-foreground/40">
+            <div className="flex items-center gap-2 rounded-full bg-white p-1.5 pl-4 shadow-soft ring-1 ring-transparent transition focus-within:ring-primary/40">
               <Search className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
               <input
                 id="coverage-address"
@@ -94,7 +89,7 @@ export function Coverage() {
               />
               <button
                 type="submit"
-                className="min-h-12 shrink-0 rounded-full bg-foreground px-5 text-sm font-medium text-background transition-transform active:scale-95"
+                className="min-h-12 shrink-0 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform active:scale-95"
               >
                 Consultar
               </button>
@@ -103,7 +98,7 @@ export function Coverage() {
               type="button"
               onClick={useLocation}
               disabled={status.kind === "locating"}
-              className="inline-flex min-h-11 items-center gap-2 self-start rounded-full px-2 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
+              className="inline-flex min-h-11 items-center gap-2 self-start rounded-full px-2 text-sm font-medium text-primary transition-opacity hover:opacity-80 disabled:opacity-60"
             >
               {status.kind === "locating" ? (
                 <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -119,7 +114,7 @@ export function Coverage() {
               <ResultCard tone="ok" title={`Sí, llegamos a ${status.label}.`}>
                 <a
                   href="#reservar"
-                  className="mt-4 inline-flex min-h-11 items-center rounded-full bg-foreground px-5 text-sm font-medium text-background"
+                  className="mt-4 inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground"
                 >
                   Reservar turno
                 </a>
@@ -132,7 +127,7 @@ export function Coverage() {
                   href={whatsappUrl(`Hola MK Cars, ¿llegan a ${status.label}?`)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-4 inline-flex min-h-11 items-center rounded-full border border-foreground/25 px-5 text-sm font-medium"
+                  className="mt-4 inline-flex min-h-11 items-center rounded-full bg-whatsapp px-5 text-sm font-medium text-white"
                 >
                   Consultar por WhatsApp
                 </a>
@@ -142,12 +137,12 @@ export function Coverage() {
           </div>
         </Reveal>
 
-        <Reveal className="mt-14">
+        <Reveal className="mt-8">
           <ul className="flex flex-wrap gap-2" aria-label="Departamentos con cobertura">
             {COVERAGE_ZONES.map((zone) => (
               <li
                 key={zone}
-                className="rounded-full border border-border bg-background/60 px-4 py-2 text-sm text-foreground/80"
+                className="rounded-full bg-white/80 px-4 py-2 text-sm text-deep"
               >
                 {zone}
               </li>
@@ -169,11 +164,11 @@ function ResultCard({
   children: React.ReactNode
 }) {
   return (
-    <div className="animate-fade-up mt-4 flex gap-4 rounded-2xl border border-border bg-background p-5">
+    <div className="animate-fade-up mt-4 flex gap-4 rounded-2xl bg-white p-5 shadow-soft">
       <span
         className={cn(
           "flex size-10 shrink-0 items-center justify-center rounded-full",
-          tone === "ok" ? "bg-foreground text-background" : "border border-border text-muted-foreground",
+          tone === "ok" ? "bg-primary text-primary-foreground" : "bg-sky text-muted-foreground",
         )}
       >
         {tone === "ok" ? <Check className="size-5" aria-hidden="true" /> : <X className="size-5" aria-hidden="true" />}

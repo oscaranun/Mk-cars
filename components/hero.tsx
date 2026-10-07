@@ -1,81 +1,97 @@
 import Image from "next/image"
-import { ArrowRight, MapPin } from "lucide-react"
-import { VEHICLES, formatARS } from "@/lib/site"
+import { ArrowRight, Clock, MapPin, Sparkles } from "lucide-react"
+import { SERVICE_DAYS, SERVICE_HOURS, VEHICLES, formatARS } from "@/lib/site"
 
 export function Hero() {
   return (
-    <section id="inicio" className="relative isolate flex min-h-svh flex-col overflow-hidden">
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <Image
-          src="/images/hero-premium.png"
-          alt="Auto negro de alta gama siendo lavado a domicilio al atardecer"
-          fill
-          priority
-          sizes="100vw"
-          className="animate-hero-zoom object-cover object-center"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/20 to-background" />
-        <div className="absolute inset-0 bg-gradient-to-r from-background/60 to-transparent" />
-      </div>
+    <section id="inicio" className="relative isolate overflow-hidden pb-16 pt-24 md:pb-24 md:pt-32">
+      <div
+        className="absolute inset-x-0 top-0 -z-10 h-[34rem] bg-gradient-to-b from-sky via-sky/50 to-transparent"
+        aria-hidden="true"
+      />
 
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-end px-5 pb-10 pt-28 md:px-8 md:pb-16">
-        <p
-          className="animate-fade-up mb-6 flex items-center gap-3 font-mono text-[0.7rem] uppercase tracking-[0.3em] text-silver"
-          style={{ animationDelay: "200ms" }}
-        >
-          <span className="h-px w-8 bg-silver/60" aria-hidden="true" />
-          Lavado a domicilio · Gran Mendoza
-        </p>
-
-        <h1
-          className="animate-fade-up text-balance text-[3.25rem] font-medium leading-[0.95] tracking-[-0.055em] sm:text-7xl md:text-8xl"
-          style={{ animationDelay: "350ms" }}
-        >
-          Lavado premium.
-          <span className="block text-silver/70">Donde estés.</span>
-        </h1>
-
-        <p
-          className="animate-fade-up mt-6 max-w-sm text-pretty text-base leading-relaxed text-foreground/75 md:max-w-md md:text-lg"
-          style={{ animationDelay: "500ms" }}
-        >
-          Llevamos el lavado profesional hasta tu casa o tu trabajo. Vos seguís con tu día, nosotros nos ocupamos de tu
-          auto.
-        </p>
-
-        <div
-          className="animate-fade-up mt-8 flex flex-col gap-3 sm:flex-row"
-          style={{ animationDelay: "650ms" }}
-        >
-          <a
-            href="#reservar"
-            className="group inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-foreground px-7 text-base font-medium text-background transition-transform active:scale-[0.98]"
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 md:grid-cols-[1.05fr_1fr] md:items-center md:gap-14 md:px-8">
+        <div className="flex flex-col items-start">
+          <p
+            className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-sky-strong bg-white px-3 py-1.5 text-xs font-medium text-primary"
+            style={{ animationDelay: "100ms" }}
           >
-            Reservar lavado
-            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-          </a>
-          <a
-            href="#cobertura"
-            className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-foreground/25 bg-background/30 px-7 text-base font-medium backdrop-blur-md transition-colors hover:bg-foreground/10"
+            <MapPin className="size-3.5" aria-hidden="true" />
+            Lavado a domicilio · Gran Mendoza
+          </p>
+
+          <h1
+            className="animate-fade-up mt-5 text-balance text-[2.6rem] font-semibold leading-[1.02] tracking-[-0.045em] sm:text-6xl md:text-7xl"
+            style={{ animationDelay: "200ms" }}
           >
-            <MapPin className="size-4" aria-hidden="true" />
-            Consultar cobertura
-          </a>
+            Tu auto impecable.
+            <span className="block text-primary">Sin moverte de donde estás.</span>
+          </h1>
+
+          <p
+            className="animate-fade-up mt-5 max-w-sm text-pretty leading-relaxed text-muted-foreground md:text-lg"
+            style={{ animationDelay: "300ms" }}
+          >
+            Vamos a tu casa o trabajo con todo el equipo.
+          </p>
+
+          <div
+            className="animate-fade-up mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row"
+            style={{ animationDelay: "400ms" }}
+          >
+            <a
+              href="#reservar"
+              className="group inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-primary px-8 text-base font-medium text-primary-foreground shadow-glow transition-transform active:scale-[0.98]"
+            >
+              Reservar lavado
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+            </a>
+            <a
+              href="#servicios"
+              className="inline-flex min-h-14 items-center justify-center rounded-full border border-border bg-white px-8 text-base font-medium text-deep transition-colors hover:border-sky-strong hover:bg-sky"
+            >
+              Ver precios
+            </a>
+          </div>
         </div>
 
-        <ul
-          className="animate-fade-up mt-10 grid grid-cols-3 divide-x divide-border overflow-hidden rounded-2xl border border-border bg-surface/60 backdrop-blur-xl"
-          style={{ animationDelay: "800ms" }}
-          aria-label="Precios"
-        >
-          {VEHICLES.map((v) => (
-            <li key={v.id} className="flex flex-col gap-1 px-3 py-4 sm:px-6 sm:py-5">
-              <span className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">{v.name}</span>
-              <span className="text-[0.65rem] text-muted-foreground/80">desde</span>
-              <span className="text-lg font-medium tracking-tight tabular-nums sm:text-2xl">{formatARS(v.price)}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="animate-fade-up relative" style={{ animationDelay: "350ms" }}>
+          <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-sky shadow-soft md:aspect-[4/5]">
+            <Image
+              src="/images/hero-light.png"
+              alt="SUV blanca recién lavada a domicilio, con gotas de agua sobre la carrocería"
+              fill
+              priority
+              sizes="(min-width: 768px) 50vw, 100vw"
+              className="animate-hero-zoom object-cover object-[center_70%]"
+            />
+          </div>
+
+          <div className="animate-float absolute -left-2 top-6 flex items-center gap-3 rounded-2xl bg-white/95 p-3 pr-4 shadow-soft backdrop-blur sm:-left-6">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-sky text-primary">
+              <Sparkles className="size-4" aria-hidden="true" />
+            </span>
+            <span className="flex flex-col">
+              <span className="text-[0.7rem] text-muted-foreground">Desde</span>
+              <span className="text-sm font-semibold tabular-nums">{formatARS(VEHICLES[0].price)}</span>
+            </span>
+          </div>
+
+          <div
+            className="animate-float absolute -right-2 bottom-6 flex items-center gap-3 rounded-2xl bg-white/95 p-3 pr-4 shadow-soft backdrop-blur sm:-right-6"
+            style={{ animationDelay: "1.5s" }}
+          >
+            <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <Clock className="size-4" aria-hidden="true" />
+            </span>
+            <span className="flex flex-col">
+              <span className="text-[0.7rem] text-muted-foreground">{SERVICE_DAYS.short}</span>
+              <span className="text-sm font-semibold tabular-nums">
+                {SERVICE_HOURS.open} – {SERVICE_HOURS.close}
+              </span>
+            </span>
+          </div>
+        </div>
       </div>
     </section>
   )

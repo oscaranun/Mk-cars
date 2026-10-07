@@ -1,62 +1,99 @@
-import Image from "next/image"
-import { ArrowUpRight } from "lucide-react"
+import { ArrowUpRight, Car, CarFront, Droplets, House, Truck } from "lucide-react"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
 import { VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
+import { cn } from "@/lib/utils"
+
+const ICONS = { auto: Car, suv: CarFront, pickup: Truck } as const
+
+const WATER_OPTIONS = [
+  { icon: Droplets, title: "Agua propia", text: "Llevamos nuestra reserva" },
+  { icon: House, title: "Agua del domicilio", text: "Usamos tu canilla" },
+]
 
 export function Services() {
   return (
-    <section id="servicios" className="border-t border-border bg-surface/40 py-24 md:py-36">
+    <section id="servicios" className="bg-surface py-16 md:py-28">
       <div className="mx-auto max-w-6xl px-5 md:px-8">
-        <SectionHeading
-          index="02"
-          eyebrow="Servicios y precios"
-          title="Un precio claro para cada vehículo."
-          description="Lavado profesional a domicilio. El valor depende del tamaño de tu vehículo."
-        />
+        <SectionHeading eyebrow="Servicios y precios" title="Un precio claro para cada vehículo." />
 
-        <ul className="mt-14 grid gap-4 md:mt-20 md:grid-cols-3 md:gap-5">
-          {VEHICLES.map((v, i) => (
-            <li key={v.id}>
-              <Reveal delay={i * 120}>
-                <article className="group relative flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-3xl border border-border">
-                  <Image
-                    src={v.image}
-                    alt={`${v.name} lavado por MK Cars`}
-                    fill
-                    sizes="(min-width: 768px) 33vw, 100vw"
-                    className="-z-10 object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
-                  />
-                  <div
-                    className="absolute inset-0 -z-10 bg-gradient-to-t from-background via-background/40 to-transparent"
-                    aria-hidden="true"
-                  />
-                  <div className="flex flex-col gap-5 p-6">
+        <ul className="mt-10 grid gap-4 md:mt-14 md:grid-cols-3 md:gap-5">
+          {VEHICLES.map((v, i) => {
+            const Icon = ICONS[v.id]
+            const featured = v.id === "suv"
+            return (
+              <li key={v.id}>
+                <Reveal delay={i * 100}>
+                  <article
+                    className={cn(
+                      "group relative flex flex-col gap-6 rounded-3xl p-6 transition-transform duration-300 hover:-translate-y-1 md:p-7",
+                      featured ? "bg-deep text-white shadow-glow" : "border border-border bg-white shadow-soft",
+                    )}
+                  >
+                    {featured && (
+                      <span className="absolute right-5 top-5 rounded-full bg-primary px-3 py-1 text-[0.7rem] font-medium text-white">
+                        Más elegido
+                      </span>
+                    )}
+                    <span
+                      className={cn(
+                        "flex size-12 items-center justify-center rounded-2xl",
+                        featured ? "bg-white/10 text-white" : "bg-sky text-primary",
+                      )}
+                    >
+                      <Icon className="size-6" aria-hidden="true" />
+                    </span>
                     <div>
-                      <p className="text-[0.7rem] uppercase tracking-[0.25em] text-silver">{v.detail}</p>
-                      <h3 className="mt-2 text-4xl font-medium tracking-[-0.04em]">{v.name}</h3>
+                      <h3 className="text-2xl font-semibold tracking-tight">{v.name}</h3>
+                      <p className={cn("mt-1 text-sm", featured ? "text-white/60" : "text-muted-foreground")}>
+                        {v.detail}
+                      </p>
                     </div>
-                    <div className="flex items-end justify-between gap-4 border-t border-foreground/15 pt-5">
+                    <div className="flex items-end justify-between gap-4">
                       <p className="flex flex-col">
-                        <span className="text-xs text-muted-foreground">desde</span>
-                        <span className="text-3xl font-medium tracking-tight tabular-nums">{formatARS(v.price)}</span>
+                        <span className={cn("text-xs", featured ? "text-white/60" : "text-muted-foreground")}>
+                          desde
+                        </span>
+                        <span className="text-4xl font-semibold tracking-[-0.04em] tabular-nums">
+                          {formatARS(v.price)}
+                        </span>
                       </p>
                       <a
                         href={whatsappUrl(`Hola MK Cars, quiero reservar un lavado para mi ${v.name}.`)}
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={`Reservar lavado para ${v.name} por WhatsApp`}
-                        className="flex size-12 items-center justify-center rounded-full bg-foreground text-background transition-transform group-hover:rotate-45"
+                        className={cn(
+                          "flex size-12 shrink-0 items-center justify-center rounded-full transition-transform group-hover:rotate-45",
+                          featured ? "bg-white text-deep" : "bg-primary text-primary-foreground",
+                        )}
                       >
                         <ArrowUpRight className="size-5" aria-hidden="true" />
                       </a>
                     </div>
-                  </div>
-                </article>
-              </Reveal>
-            </li>
-          ))}
+                  </article>
+                </Reveal>
+              </li>
+            )
+          })}
         </ul>
+
+        <Reveal className="mt-6">
+          <p className="mb-3 text-sm font-medium text-muted-foreground">Con o sin agua en tu casa</p>
+          <ul className="grid grid-cols-2 gap-3 md:max-w-xl">
+            {WATER_OPTIONS.map((o) => (
+              <li key={o.title} className="flex flex-col gap-3 rounded-2xl border border-border bg-white p-4 sm:flex-row sm:items-center">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky text-primary">
+                  <o.icon className="size-5" aria-hidden="true" />
+                </span>
+                <span className="flex flex-col">
+                  <span className="text-sm font-semibold">{o.title}</span>
+                  <span className="text-xs text-muted-foreground">{o.text}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
       </div>
     </section>
   )

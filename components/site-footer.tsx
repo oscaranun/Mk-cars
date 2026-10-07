@@ -13,11 +13,11 @@ import {
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border pb-28 pt-16 md:pb-16">
+    <footer className="bg-deep pb-32 pt-14 text-white md:pb-14">
       <div className="mx-auto flex max-w-6xl flex-col gap-10 px-5 md:flex-row md:items-end md:justify-between md:px-8">
         <div className="flex flex-col gap-4">
-          <Logo className="[&>span:first-child]:text-3xl" />
-          <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
+          <Logo inverted />
+          <p className="max-w-xs text-sm leading-relaxed text-white/60">
             Lavado premium a domicilio en Gran Mendoza. {SERVICE_DAYS.full}, {SERVICE_HOURS.open} a{" "}
             {SERVICE_HOURS.close}.
           </p>
@@ -28,7 +28,7 @@ export function SiteFooter() {
               href={whatsappUrl(DEFAULT_WHATSAPP_MESSAGE)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex min-h-11 items-center gap-3 text-sm transition-colors hover:text-silver"
+              className="flex min-h-11 items-center gap-3 text-sm text-white/85 transition-colors hover:text-white"
             >
               <WhatsAppIcon className="size-4" />
               {WHATSAPP_DISPLAY}
@@ -39,14 +39,14 @@ export function SiteFooter() {
               href={INSTAGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex min-h-11 items-center gap-3 text-sm transition-colors hover:text-silver"
+              className="flex min-h-11 items-center gap-3 text-sm text-white/85 transition-colors hover:text-white"
             >
               <InstagramIcon className="size-4" />@{INSTAGRAM_HANDLE}
             </a>
           </li>
         </ul>
       </div>
-      <p className="mx-auto mt-12 max-w-6xl px-5 font-mono text-[0.65rem] uppercase tracking-[0.25em] text-muted-foreground md:px-8">
+      <p className="mx-auto mt-10 max-w-6xl px-5 text-xs text-white/40 md:px-8">
         © {new Date().getFullYear()} MK Cars · Mendoza, Argentina
       </p>
     </footer>

@@ -1,34 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --background: #09090a;
-  --surface: #121214;
-  --surface-2: #1a1a1d;
-  --foreground: #f4f4f2;
-  --muted-foreground: #8b8b90;
-  --border: #26262a;
-  --silver: #c9c9cc;
+  --background: #ffffff;
+  --foreground: #0b1f4d;
+  --muted-foreground: #5d6b88;
+  --border: #e4eaf5;
+  --surface: #f6f9ff;
+  --sky: #eaf3ff;
+  --sky-strong: #d6e7ff;
+  --primary: #1f5eff;
+  --primary-foreground: #ffffff;
+  --deep: #0b1f4d;
   --whatsapp: #25d366;
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
   --color-foreground: var(--foreground);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
-  --color-silver: var(--silver);
+  --color-surface: var(--surface);
+  --color-sky: var(--sky);
+  --color-sky-strong: var(--sky-strong);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-deep: var(--deep);
   --color-whatsapp: var(--whatsapp);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  --animate-hero-zoom: hero-zoom 2.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  --animate-fade-up: fade-up 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-hero-zoom: hero-zoom 1.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-up: fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-float: float 6s ease-in-out infinite;
 
   @keyframes hero-zoom {
     from {
-      transform: scale(1.12);
+      transform: scale(1.08);
       opacity: 0;
     }
     to {
@@ -38,7 +45,7 @@
   }
   @keyframes fade-up {
     from {
-      transform: translateY(24px);
+      transform: translateY(20px);
       opacity: 0;
     }
     to {
@@ -46,13 +53,32 @@
       opacity: 1;
     }
   }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+}
+
+@utility shadow-soft {
+  box-shadow:
+    0 1px 2px rgb(11 31 77 / 0.04),
+    0 16px 40px -18px rgb(11 31 77 / 0.16);
+}
+
+@utility shadow-glow {
+  box-shadow: 0 14px 32px -12px rgb(31 94 255 / 0.55);
 }
 
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 4.5rem;
   -webkit-text-size-adjust: 100%;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
@@ -64,19 +90,14 @@ body {
 
 .reveal {
   opacity: 0;
-  transform: translateY(28px);
+  transform: translateY(24px);
   transition:
-    opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .reveal.is-visible {
   opacity: 1;
   transform: none;
-}
-
-input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-  opacity: 0.6;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -92,5 +113,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
