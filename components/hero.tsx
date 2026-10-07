@@ -6,7 +6,7 @@ export function Hero() {
   return (
     <section
       id="inicio"
-      className="relative isolate overflow-hidden rounded-b-[2.5rem] bg-deep pb-14 pt-24 text-white md:rounded-b-[3.5rem] md:pb-24 md:pt-32"
+      className="relative isolate overflow-hidden rounded-b-[2.5rem] bg-deep pb-14 pt-[19rem] text-white md:rounded-b-[3.5rem] md:pb-24 md:pt-[26rem]"
     >
       <div
         className="absolute -top-32 left-1/2 -z-10 size-[38rem] -translate-x-1/2 rounded-full bg-primary/30 blur-[120px]"

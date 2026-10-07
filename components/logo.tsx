@@ -1,23 +1,32 @@
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
-export function Logo({ className }: { className?: string; inverted?: boolean }) {
+export function Logo({ className, compact = false }: { className?: string; compact?: boolean; inverted?: boolean }) {
   return (
-    <span className={cn("relative inline-flex w-fit shrink-0 self-start items-center leading-none", className)}>
-      {/* Soft white glow behind the dark lettering that fades out into the navy background */}
+    <span
+      className={cn(
+        "relative inline-flex aspect-square shrink-0 items-center justify-center leading-none transition-[width,height] duration-300",
+        compact ? "size-[104px] md:size-[120px]" : "size-[210px] md:size-[320px]",
+        className,
+      )}
+    >
+      {/* Perfect white circle that fades softly into the navy background at its edge */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute -inset-x-[22%] -inset-y-[42%] rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,0.96)_52%,rgba(255,255,255,0.7)_64%,rgba(255,255,255,0.3)_80%,rgba(255,255,255,0)_100%)] blur-md"
+        className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,1)_84%,rgba(255,255,255,0.55)_93%,rgba(255,255,255,0)_100%)]"
       />
       <Image
         src="/images/mk-logo-hd2.png"
         alt="MK Car Wash Premium a domicilio"
         width={1074}
         height={467}
-        sizes="(min-width: 768px) 129px, 113px"
-        className="relative h-12 w-auto md:h-14"
+        sizes="(min-width: 768px) 258px, 184px"
+        className={cn(
+          "relative w-auto transition-[height] duration-300",
+          compact ? "h-10 md:h-11" : "h-20 md:h-28",
+        )}
         priority
-        quality={95}
+        quality={100}
       />
     </span>
   )
