@@ -5,7 +5,7 @@ import { SectionHeading } from "@/components/section-heading"
 
 export function BeforeAfter() {
   return (
-    <section id="antes-despues" className="bg-surface py-16 md:py-28">
+    <section id="antes-despues" className="bg-celeste py-16 md:py-28">
       <div className="mx-auto max-w-6xl px-5 md:px-8">
         <SectionHeading
           eyebrow="Antes / Después"

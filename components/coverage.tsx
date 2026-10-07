@@ -60,7 +60,7 @@ export function Coverage() {
 
   return (
     <section id="cobertura" className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-28">
-      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-sky to-sky-strong/70 px-5 py-10 md:px-12 md:py-16">
+      <div className="relative overflow-hidden rounded-[2rem] bg-celeste px-5 py-10 md:px-12 md:py-16">
         <SectionHeading
           eyebrow="Cobertura"
           title="Todo Gran Mendoza."

@@ -5,14 +5,19 @@
   --foreground: #0a1626;
   --muted-foreground: #5a6b80;
   --border: #e3ebf5;
-  --surface: #f5f9fe;
+  --surface: #e8f4ff;
   --sky: #e8f4ff;
   --sky-strong: #cfe6ff;
+  --celeste-end: #ddeeff;
   --primary: #0b78e3;
   --primary-foreground: #ffffff;
   --electric: #35a4ff;
   --deep: #061a33;
   --whatsapp: #25d366;
+}
+
+@utility bg-celeste {
+  background-image: linear-gradient(to bottom right, var(--sky), var(--celeste-end));
 }
 
 @theme inline {
