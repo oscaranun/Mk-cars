@@ -6,7 +6,7 @@ export function Hero() {
   return (
     <section
       id="inicio"
-      className="relative isolate overflow-hidden rounded-b-[2.5rem] bg-deep pb-14 pt-[19rem] text-white md:rounded-b-[3.5rem] md:pb-24 md:pt-[26rem]"
+      className="relative isolate overflow-hidden rounded-b-[2.5rem] bg-deep pb-14 pt-[12.75rem] text-white md:rounded-b-[3.5rem] md:pb-24 md:pt-[17.5rem]"
     >
       <div
         className="absolute -top-32 left-1/2 -z-10 size-[38rem] -translate-x-1/2 rounded-full bg-primary/30 blur-[120px]"
@@ -20,10 +20,10 @@ export function Hero() {
       <div className="mx-auto grid max-w-6xl gap-10 px-5 md:grid-cols-[1fr_1.1fr] md:items-center md:gap-14 md:px-8">
         <div className="flex flex-col items-center text-center md:items-start md:text-left">
           <p
-            className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-white/80 backdrop-blur"
+            className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2 text-base font-medium text-white/80 backdrop-blur lg:text-[21px]"
             style={{ animationDelay: "100ms" }}
           >
-            <Droplets className="size-3.5 text-electric" aria-hidden="true" />
+            <Droplets className="size-5 text-electric" aria-hidden="true" />
             Lavado premium a domicilio
           </p>
 

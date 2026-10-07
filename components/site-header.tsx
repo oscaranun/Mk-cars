@@ -28,7 +28,7 @@ export function SiteHeader() {
         scrolled ? "border-b border-border bg-deep/85 backdrop-blur-xl" : "border-b border-transparent",
       )}
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-[1cm] md:px-8">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-[0.65cm] md:px-8">
         <a href="#inicio" aria-label="MK Car Wash, ir al inicio" className="flex min-h-11 items-center">
           <Logo />
         </a>
@@ -38,7 +38,7 @@ export function SiteHeader() {
               key={item.href}
               href={item.href}
               className={cn(
-                "text-sm transition-colors",
+                "text-base transition-colors lg:text-[21px]",
                 scrolled ? "text-muted-foreground hover:text-white" : "text-white/70 hover:text-white",
               )}
             >
@@ -48,7 +48,7 @@ export function SiteHeader() {
         </nav>
         <a
           href="#reservar"
-          className="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform active:scale-95"
+          className="inline-flex min-h-12 items-center rounded-full bg-primary px-6 text-[21px] font-medium text-primary-foreground transition-transform active:scale-95"
         >
           Reservar
         </a>
