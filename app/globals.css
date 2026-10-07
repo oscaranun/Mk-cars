@@ -66,6 +66,32 @@
   }
 }
 
+@keyframes wash-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes wash-line {
+  from {
+    left: 0%;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+.wash-reveal {
+  animation: wash-reveal 5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.wash-line {
+  animation: wash-line 5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
 @utility shadow-soft {
   box-shadow:
     0 1px 2px rgb(11 31 77 / 0.04),
