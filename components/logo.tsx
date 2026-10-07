@@ -4,7 +4,7 @@ export function Logo({ className }: { className?: string; compact?: boolean; inv
   return (
     <span
       className={cn(
-        "relative inline-flex size-[210px] shrink-0 items-center justify-center leading-none md:size-[320px]",
+        "relative inline-flex size-[137px] shrink-0 items-center justify-center leading-none md:size-[208px]",
         className,
       )}
     >
@@ -22,22 +22,22 @@ export function Logo({ className }: { className?: string; compact?: boolean; inv
           aria-hidden="true"
           width={1160}
           height={544}
-          className="h-auto w-[132px] md:w-[200px]"
+          className="h-auto w-[86px] md:w-[130px]"
           draggable={false}
         />
         <span
           aria-hidden="true"
-          className="mt-1 whitespace-nowrap text-[15px] font-black uppercase italic leading-none tracking-tight md:text-[23px]"
+          className="mt-0.5 whitespace-nowrap text-[10px] font-black uppercase italic leading-none tracking-tight md:mt-1 md:text-[15px]"
         >
           <span className="text-[#0B0F14]">Car Wash </span>
           <span className="text-[#1477E6]">Premium</span>
         </span>
-        <span aria-hidden="true" className="mt-1.5 flex items-center gap-2 md:mt-2 md:gap-3">
-          <span className="h-px w-4 bg-[#1477E6] md:w-7" />
-          <span className="text-[9px] font-medium uppercase leading-none tracking-[0.35em] text-[#2A3240] md:text-[13px]">
+        <span aria-hidden="true" className="mt-1 flex items-center gap-1.5 md:mt-1.5 md:gap-2">
+          <span className="h-px w-2.5 bg-[#1477E6] md:w-[18px]" />
+          <span className="text-[6px] font-medium uppercase leading-none tracking-[0.35em] text-[#2A3240] md:text-[8.5px]">
             A Domicilio
           </span>
-          <span className="h-px w-4 bg-[#1477E6] md:w-7" />
+          <span className="h-px w-2.5 bg-[#1477E6] md:w-[18px]" />
         </span>
       </span>
     </span>
