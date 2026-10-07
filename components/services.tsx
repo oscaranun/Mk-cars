@@ -1,11 +1,27 @@
-import { ArrowUpRight, Car, Droplets, Sparkles } from "lucide-react"
-import { PickupIcon, SuvIcon } from "@/components/vehicle-icons"
+import { ArrowUpRight, Droplets, Sparkles } from "lucide-react"
+import type { CSSProperties } from "react"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
 import { EXTRAS, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
-const ICONS = { auto: Car, suv: SuvIcon, pickup: PickupIcon } as const
+const ICONS = {
+  auto: { src: "/images/icons/auto.png?v=4", ratio: 1103 / 461, width: 120 },
+  suv: { src: "/images/icons/suv.png?v=4", ratio: 1027 / 414, width: 120 },
+  pickup: { src: "/images/icons/pickup.png?v=4", ratio: 1011 / 384, width: 168 },
+} as const
+
+function VehicleLineIcon({ id }: { id: keyof typeof ICONS }) {
+  const { src, ratio, width } = ICONS[id]
+  const mask = `url(${src}) center / contain no-repeat`
+  return (
+    <span
+      aria-hidden="true"
+      className="block bg-current"
+      style={{ width, aspectRatio: ratio, mask, WebkitMask: mask } as CSSProperties}
+    />
+  )
+}
 
 export function Services() {
   return (
@@ -15,7 +31,6 @@ export function Services() {
 
         <ul className="mt-10 grid gap-4 md:mt-14 md:grid-cols-3 md:gap-5">
           {VEHICLES.map((v, i) => {
-            const Icon = ICONS[v.id]
             const featured = v.id === "suv"
             return (
               <li key={v.id}>
@@ -31,13 +46,8 @@ export function Services() {
                         Más elegido
                       </span>
                     )}
-                    <span
-                      className={cn(
-                        "flex size-12 items-center justify-center rounded-2xl",
-                        featured ? "bg-white/10 text-white" : "bg-sky text-primary",
-                      )}
-                    >
-                      <Icon className="size-6" aria-hidden="true" />
+                    <span className="flex h-16 items-end text-white">
+                      <VehicleLineIcon id={v.id} />
                     </span>
                     <div>
                       <h3 className="text-2xl font-semibold tracking-tight">{v.name}</h3>
