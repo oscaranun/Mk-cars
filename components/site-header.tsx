@@ -28,14 +28,9 @@ export function SiteHeader() {
         scrolled ? "border-b border-border bg-deep/85 backdrop-blur-xl" : "border-b border-transparent",
       )}
     >
-      <div
-        className={cn(
-          "mx-auto flex max-w-6xl items-center justify-between px-5 transition-[padding] duration-300 md:px-8",
-          scrolled ? "py-2" : "py-[1cm]",
-        )}
-      >
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-[1cm] md:px-8">
         <a href="#inicio" aria-label="MK Car Wash, ir al inicio" className="flex min-h-11 items-center">
-          <Logo compact={scrolled} />
+          <Logo />
         </a>
         <nav aria-label="Principal" className="hidden items-center gap-8 md:flex">
           {NAV.map((item) => (
