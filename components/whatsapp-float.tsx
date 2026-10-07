@@ -4,7 +4,7 @@ import { DEFAULT_WHATSAPP_MESSAGE, whatsappUrl } from "@/lib/site"
 export function WhatsAppFloat() {
   return (
     <>
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white/90 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl md:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-deep/90 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl md:hidden">
         <div className="flex items-center gap-3">
           <a
             href="#reservar"

@@ -23,7 +23,7 @@ export function Services() {
                   <article
                     className={cn(
                       "group relative flex flex-col gap-6 rounded-3xl p-6 transition-transform duration-300 hover:-translate-y-1 md:p-7",
-                      featured ? "bg-deep text-white shadow-glow" : "border border-border bg-white shadow-soft",
+                      featured ? "bg-deep text-white shadow-glow" : "border border-border bg-card shadow-soft",
                     )}
                   >
                     {featured && (
@@ -85,7 +85,7 @@ export function Services() {
 
         <Reveal className="mt-6">
           <p className="mb-3 text-sm font-medium text-muted-foreground">Servicios adicionales</p>
-          <ul className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-white md:max-w-xl">
+          <ul className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-card md:max-w-xl">
             {EXTRAS.map((extra) => (
               <li key={extra.id} className="flex min-h-14 items-center justify-between gap-4 px-4">
                 <span className="flex items-center gap-3 text-sm font-medium">

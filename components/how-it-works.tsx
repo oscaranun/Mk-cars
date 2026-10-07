@@ -18,7 +18,7 @@ export function HowItWorks() {
         {STEPS.map((step, i) => (
           <li key={step.title}>
             <Reveal delay={i * 100}>
-              <div className="flex items-center gap-4 rounded-3xl border border-border bg-white p-5 shadow-soft md:flex-col md:items-start md:gap-6 md:p-7">
+              <div className="flex items-center gap-4 rounded-3xl border border-border bg-card p-5 shadow-soft md:flex-col md:items-start md:gap-6 md:p-7">
                 <span className="relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-sky text-primary">
                   <step.icon className="size-5" aria-hidden="true" />
                   <span className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-[0.65rem] font-semibold text-primary-foreground">

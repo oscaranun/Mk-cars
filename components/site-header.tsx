@@ -25,12 +25,12 @@ export function SiteHeader() {
     <header
       className={cn(
         "fixed inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)] transition-all duration-300",
-        scrolled ? "border-b border-border bg-white/80 backdrop-blur-xl" : "border-b border-transparent",
+        scrolled ? "border-b border-border bg-deep/85 backdrop-blur-xl" : "border-b border-transparent",
       )}
     >
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 md:px-8">
-        <a href="#inicio" aria-label="MK Cars, ir al inicio" className="flex min-h-11 items-center">
-          <Logo inverted={!scrolled} />
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-5 md:px-8">
+        <a href="#inicio" aria-label="MK Car Wash, ir al inicio" className="flex min-h-11 items-center">
+          <Logo />
         </a>
         <nav aria-label="Principal" className="hidden items-center gap-8 md:flex">
           {NAV.map((item) => (
@@ -39,7 +39,7 @@ export function SiteHeader() {
               href={item.href}
               className={cn(
                 "text-sm transition-colors",
-                scrolled ? "text-muted-foreground hover:text-primary" : "text-white/70 hover:text-white",
+                scrolled ? "text-muted-foreground hover:text-white" : "text-white/70 hover:text-white",
               )}
             >
               {item.label}

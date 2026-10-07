@@ -88,12 +88,12 @@ export function Hero() {
             />
           </div>
 
-          <div className="animate-float absolute -bottom-5 left-4 flex items-center gap-3 rounded-2xl bg-white p-3 pr-4 text-foreground shadow-soft">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-sky text-primary">
+          <div className="animate-float absolute -bottom-5 left-4 flex items-center gap-3 rounded-2xl bg-white p-3 pr-4 text-deep shadow-soft">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-[#e8f4ff] text-primary">
               <Droplets className="size-4" aria-hidden="true" />
             </span>
             <span className="flex flex-col">
-              <span className="text-[0.7rem] text-muted-foreground">Desde</span>
+              <span className="text-[0.7rem] text-slate-500">Desde</span>
               <span className="text-sm font-bold tabular-nums">{formatARS(VEHICLES[0].price)}</span>
             </span>
           </div>

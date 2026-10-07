@@ -72,7 +72,7 @@ export function Coverage() {
             <label htmlFor="coverage-address" className="sr-only">
               Dirección o barrio
             </label>
-            <div className="flex items-center gap-2 rounded-full bg-white p-1.5 pl-4 shadow-soft ring-1 ring-transparent transition focus-within:ring-primary/40">
+            <div className="flex items-center gap-2 rounded-full bg-card p-1.5 pl-4 shadow-soft ring-1 ring-transparent transition focus-within:ring-primary/40">
               <Search className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
               <input
                 id="coverage-address"
@@ -142,7 +142,7 @@ export function Coverage() {
             {COVERAGE_ZONES.map((zone) => (
               <li
                 key={zone}
-                className="rounded-full bg-white/80 px-4 py-2 text-sm text-deep"
+                className="rounded-full bg-white/10 px-4 py-2 text-sm text-white/85"
               >
                 {zone}
               </li>
@@ -164,7 +164,7 @@ function ResultCard({
   children: React.ReactNode
 }) {
   return (
-    <div className="animate-fade-up mt-4 flex gap-4 rounded-2xl bg-white p-5 shadow-soft">
+    <div className="animate-fade-up mt-4 flex gap-4 rounded-2xl bg-card p-5 shadow-soft">
       <span
         className={cn(
           "flex size-10 shrink-0 items-center justify-center rounded-full",
