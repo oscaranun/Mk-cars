@@ -8,7 +8,7 @@ const STEPS = [
   },
   {
     title: "Confirmamos el turno",
-    body: "Te respondemos con día y hora entre las 9:00 y las 18:00. Elegís agua propia o la tuya.",
+    body: "Te respondemos con día y hora, de lunes a sábado entre las 9:00 y las 18:00. Elegís agua propia o la tuya.",
   },
   {
     title: "Vamos a donde estés",

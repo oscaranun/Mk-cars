@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { DEPARTMENTS, SERVICE_HOURS, VEHICLES, type VehicleId, formatARS, whatsappUrl } from "@/lib/site"
+import { DEPARTMENTS, SERVICE_DAYS, SERVICE_HOURS, VEHICLES, type VehicleId, formatARS, whatsappUrl } from "@/lib/site"
 import { SectionHeading } from "./section-heading"
 import { WhatsAppIcon } from "./whatsapp-icon"
 
@@ -82,7 +82,7 @@ export function Booking() {
               id="reservar-title"
               eyebrow="05 — Reservar"
               title="Reservá en un minuto."
-              description={`Elegí las opciones y te abrimos WhatsApp con el mensaje listo. Atendemos de ${SERVICE_HOURS.open} a ${SERVICE_HOURS.close}.`}
+              description={`Elegí las opciones y te abrimos WhatsApp con el mensaje listo. Atendemos de ${SERVICE_DAYS.full.toLowerCase()}, de ${SERVICE_HOURS.open} a ${SERVICE_HOURS.close}.`}
               inverse
             />
           </div>

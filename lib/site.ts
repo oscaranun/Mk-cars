@@ -1,5 +1,7 @@
-export const WHATSAPP_NUMBER = "5492610000000"
+export const WHATSAPP_NUMBER = "5492615099230"
+export const WHATSAPP_DISPLAY = "+54 9 2615 09-9230"
 
+export const SERVICE_DAYS = { full: "Lunes a sábado", short: "Lun a Sáb" }
 export const SERVICE_HOURS = { open: "9:00", close: "18:00" }
 
 export function whatsappUrl(message: string) {

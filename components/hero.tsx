@@ -1,6 +1,6 @@
 import Image from "next/image"
 import { ArrowDown, Clock, MapPin } from "lucide-react"
-import { DEFAULT_WHATSAPP_MESSAGE, SERVICE_HOURS, whatsappUrl } from "@/lib/site"
+import { DEFAULT_WHATSAPP_MESSAGE, SERVICE_DAYS, SERVICE_HOURS, whatsappUrl } from "@/lib/site"
 import { WhatsAppIcon } from "./whatsapp-icon"
 
 export function Hero() {
@@ -53,7 +53,7 @@ export function Hero() {
             <dd className="mt-1 text-lg font-semibold tracking-tight md:text-2xl">$25.000</dd>
           </div>
           <div>
-            <dt className="font-mono text-[10px] uppercase tracking-[0.2em] text-inverse-muted">Horario</dt>
+            <dt className="font-mono text-[10px] uppercase tracking-[0.2em] text-inverse-muted">{SERVICE_DAYS.short}</dt>
             <dd className="mt-1 flex items-center gap-1.5 text-lg font-semibold tracking-tight md:text-2xl">
               <Clock className="hidden size-4 sm:block" aria-hidden="true" />
               {SERVICE_HOURS.open}–{SERVICE_HOURS.close}

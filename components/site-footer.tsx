@@ -1,4 +1,4 @@
-import { DEFAULT_WHATSAPP_MESSAGE, SERVICE_HOURS, whatsappUrl } from "@/lib/site"
+import { DEFAULT_WHATSAPP_MESSAGE, SERVICE_DAYS, SERVICE_HOURS, WHATSAPP_DISPLAY, whatsappUrl } from "@/lib/site"
 
 export function SiteFooter() {
   return (
@@ -12,6 +12,8 @@ export function SiteFooter() {
           <div>
             <dt className="font-mono text-xs uppercase tracking-[0.2em] text-inverse-muted">Horario</dt>
             <dd className="mt-1">
+              {SERVICE_DAYS.full}
+              <br />
               {SERVICE_HOURS.open} a {SERVICE_HOURS.close} hs
             </dd>
           </div>
@@ -24,7 +26,8 @@ export function SiteFooter() {
                 rel="noopener noreferrer"
                 className="underline underline-offset-4 hover:no-underline"
               >
-                WhatsApp
+                <span className="sr-only">WhatsApp </span>
+                {WHATSAPP_DISPLAY}
               </a>
             </dd>
           </div>
