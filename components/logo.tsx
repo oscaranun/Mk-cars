@@ -1,22 +1,24 @@
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
-export function Logo({ className }: { className?: string }) {
+export function Logo({ className }: { className?: string; inverted?: boolean }) {
   return (
-    <span className={cn("inline-flex items-center gap-3 leading-none", className)}>
-      <Image
-        src="/images/mk-logo-clean.png"
-        alt="MK"
-        width={138}
-        height={56}
-        className="h-12 w-auto md:h-[3.75rem]"
-        priority
-        unoptimized
+    <span className={cn("relative inline-flex w-fit shrink-0 self-start items-center leading-none", className)}>
+      {/* Soft white glow behind the dark lettering that fades out into the navy background */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-x-[22%] -inset-y-[42%] rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,0.96)_52%,rgba(255,255,255,0.7)_64%,rgba(255,255,255,0.3)_80%,rgba(255,255,255,0)_100%)] blur-md"
       />
-      <span className="flex flex-col gap-1">
-        <span className="text-[1.05rem] font-extrabold italic tracking-[-0.03em] text-electric">Car Wash</span>
-        <span className="text-[0.6rem] font-semibold uppercase tracking-[0.22em] text-white/60">A domicilio</span>
-      </span>
+      <Image
+        src="/images/mk-logo-hd2.png"
+        alt="MK Car Wash Premium a domicilio"
+        width={1074}
+        height={467}
+        sizes="(min-width: 768px) 129px, 113px"
+        className="relative h-12 w-auto md:h-14"
+        priority
+        quality={95}
+      />
     </span>
   )
 }
