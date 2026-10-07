@@ -18,7 +18,7 @@ export function Benefits() {
         {BENEFITS.map((b, i) => (
           <li key={b.title}>
             <Reveal delay={i * 80} className="h-full">
-              <div className="flex h-full flex-col gap-4 rounded-3xl border border-border bg-white p-5 shadow-soft md:p-6">
+              <div className="flex h-full flex-col gap-4 rounded-3xl border border-border bg-card p-5 shadow-soft md:p-6">
                 <span className="flex size-11 items-center justify-center rounded-2xl bg-sky text-primary">
                   <b.icon className="size-5" aria-hidden="true" />
                 </span>

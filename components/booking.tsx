@@ -19,7 +19,7 @@ import {
 import { cn } from "@/lib/utils"
 
 const fieldClass =
-  "min-h-14 w-full rounded-2xl border border-border bg-surface px-4 text-base text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10"
+  "min-h-14 w-full rounded-2xl border border-border bg-surface px-4 text-base text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-primary focus:bg-card focus:ring-4 focus:ring-primary/10"
 
 function todayISO() {
   const d = new Date()
@@ -93,7 +93,7 @@ export function Booking() {
             description="Te confirmamos por WhatsApp."
           />
           <Reveal>
-            <dl className="flex flex-col divide-y divide-border rounded-3xl border border-border bg-white shadow-soft">
+            <dl className="flex flex-col divide-y divide-border rounded-3xl border border-border bg-card shadow-soft">
               <div className="flex items-center justify-between gap-4 p-5">
                 <dt className="text-sm text-muted-foreground">Días</dt>
                 <dd className="font-medium">{SERVICE_DAYS.full}</dd>
@@ -112,7 +112,7 @@ export function Booking() {
           <form
             onSubmit={handleSubmit}
             noValidate
-            className="flex flex-col gap-5 rounded-[2rem] border border-border bg-white p-5 shadow-soft sm:p-8"
+            className="flex flex-col gap-5 rounded-[2rem] border border-border bg-card p-5 shadow-soft sm:p-8"
           >
             <Field label="Nombre" htmlFor="name">
               <input id="name" name="name" type="text" autoComplete="name" placeholder="Tu nombre" className={fieldClass} required />
@@ -222,7 +222,7 @@ export function Booking() {
             </p>
 
             {error && (
-              <p role="alert" className="rounded-xl bg-sky px-4 py-3 text-sm text-deep">
+              <p role="alert" className="rounded-xl bg-sky px-4 py-3 text-sm text-white">
                 {error}
               </p>
             )}

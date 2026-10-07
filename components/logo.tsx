@@ -1,33 +1,43 @@
-import Image from "next/image"
 import { cn } from "@/lib/utils"
 
-export function Logo({ className, inverted = false }: { className?: string; inverted?: boolean }) {
+export function Logo({ className }: { className?: string; compact?: boolean; inverted?: boolean }) {
   return (
-    <span className={cn("inline-flex items-center gap-2.5 leading-none", className)}>
-      <Image
-        src="/images/mk-logo.png"
-        alt=""
-        width={40}
-        height={40}
-        className="size-10 rounded-full ring-1 ring-white/20"
-        priority
+    <span
+      className={cn(
+        "relative inline-flex size-[210px] shrink-0 items-center justify-center leading-none md:size-[320px]",
+        className,
+      )}
+    >
+      {/* Perfect white circle that fades softly into the navy background at its edge */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,1)_84%,rgba(255,255,255,0.55)_93%,rgba(255,255,255,0)_100%)]"
       />
-      <span className="flex flex-col gap-1">
+      <span className="relative flex flex-col items-center">
+        <span className="sr-only">MK Car Wash Premium a domicilio</span>
+        {/* eslint-disable-next-line @next/next/no-img-element -- vector wordmark, no optimization needed */}
+        <img
+          src="/images/mk-wordmark.svg"
+          alt=""
+          aria-hidden="true"
+          width={1160}
+          height={544}
+          className="h-auto w-[132px] md:w-[200px]"
+          draggable={false}
+        />
         <span
-          className={cn(
-            "text-[1.05rem] font-extrabold italic tracking-[-0.03em]",
-            inverted ? "text-white" : "text-foreground",
-          )}
+          aria-hidden="true"
+          className="mt-1 whitespace-nowrap text-[15px] font-black uppercase italic leading-none tracking-tight md:text-[23px]"
         >
-          MK <span className={inverted ? "text-electric" : "text-primary"}>Car Wash</span>
+          <span className="text-[#0B0F14]">Car Wash </span>
+          <span className="text-[#1477E6]">Premium</span>
         </span>
-        <span
-          className={cn(
-            "text-[0.6rem] font-semibold uppercase tracking-[0.22em]",
-            inverted ? "text-white/60" : "text-muted-foreground",
-          )}
-        >
-          A domicilio
+        <span aria-hidden="true" className="mt-1.5 flex items-center gap-2 md:mt-2 md:gap-3">
+          <span className="h-px w-4 bg-[#1477E6] md:w-7" />
+          <span className="text-[9px] font-medium uppercase leading-none tracking-[0.35em] text-[#2A3240] md:text-[13px]">
+            A Domicilio
+          </span>
+          <span className="h-px w-4 bg-[#1477E6] md:w-7" />
         </span>
       </span>
     </span>

@@ -1,23 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0a1626;
-  --muted-foreground: #5a6b80;
-  --border: #e3ebf5;
-  --surface: #e8f4ff;
-  --sky: #e8f4ff;
-  --sky-strong: #cfe6ff;
-  --celeste-end: #ddeeff;
+  --background: #061a33;
+  --foreground: #ffffff;
+  --muted-foreground: #a3b5c9;
+  --border: #1d3a5f;
+  --card: #0c2648;
+  --surface: #0a2140;
+  --sky: #12325a;
+  --sky-strong: #184170;
+  --celeste-start: #082142;
+  --celeste-end: #0b2c55;
   --primary: #0b78e3;
   --primary-foreground: #ffffff;
   --electric: #35a4ff;
-  --deep: #061a33;
+  --deep: #04142a;
   --whatsapp: #25d366;
 }
 
 @utility bg-celeste {
-  background-image: linear-gradient(to bottom right, var(--sky), var(--celeste-end));
+  background-image: linear-gradient(to bottom right, var(--celeste-start), var(--celeste-end));
 }
 
 @theme inline {
@@ -26,6 +28,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-surface: var(--surface);
+  --color-card: var(--card);
   --color-sky: var(--sky);
   --color-sky-strong: var(--sky-strong);
   --color-primary: var(--primary);
@@ -116,9 +119,9 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 4.5rem;
+  scroll-padding-top: 5.5rem;
   -webkit-text-size-adjust: 100%;
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 body {
