@@ -6,9 +6,9 @@ import { EXTRAS, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
 const ICONS = {
-  auto: { src: "/images/icons/auto.png", ratio: 568 / 243 },
-  suv: { src: "/images/icons/suv.png", ratio: 1027 / 414 },
-  pickup: { src: "/images/icons/pickup.png", ratio: 1015 / 386 },
+  auto: { src: "/images/icons/auto.png?v=3", ratio: 568 / 243 },
+  suv: { src: "/images/icons/suv.png?v=3", ratio: 1027 / 414 },
+  pickup: { src: "/images/icons/pickup.png?v=3", ratio: 1015 / 386 },
 } as const
 
 function VehicleLineIcon({ id }: { id: keyof typeof ICONS }) {
@@ -46,7 +46,7 @@ export function Services() {
                         Más elegido
                       </span>
                     )}
-                    <span className={cn("flex h-12 items-center", featured ? "text-white" : "text-primary")}>
+                    <span className="flex h-12 items-center text-white">
                       <VehicleLineIcon id={v.id} />
                     </span>
                     <div>
