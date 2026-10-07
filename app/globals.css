@@ -2,15 +2,16 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #0b1f4d;
-  --muted-foreground: #5d6b88;
-  --border: #e4eaf5;
-  --surface: #f6f9ff;
-  --sky: #eaf3ff;
-  --sky-strong: #d6e7ff;
-  --primary: #1f5eff;
+  --foreground: #0a1626;
+  --muted-foreground: #5a6b80;
+  --border: #e3ebf5;
+  --surface: #f5f9fe;
+  --sky: #e8f4ff;
+  --sky-strong: #cfe6ff;
+  --primary: #0b78e3;
   --primary-foreground: #ffffff;
-  --deep: #0b1f4d;
+  --electric: #35a4ff;
+  --deep: #061a33;
   --whatsapp: #25d366;
 }
 
@@ -25,6 +26,7 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-deep: var(--deep);
+  --color-electric: var(--electric);
   --color-whatsapp: var(--whatsapp);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -67,11 +69,18 @@
 @utility shadow-soft {
   box-shadow:
     0 1px 2px rgb(11 31 77 / 0.04),
-    0 16px 40px -18px rgb(11 31 77 / 0.16);
+    0 16px 40px -18px rgb(6 26 51 / 0.16);
 }
 
 @utility shadow-glow {
-  box-shadow: 0 14px 32px -12px rgb(31 94 255 / 0.55);
+  box-shadow: 0 14px 32px -12px rgb(11 120 227 / 0.55);
+}
+
+@utility text-gradient-water {
+  background: linear-gradient(100deg, #9fd6ff 0%, #35a4ff 55%, #0b78e3 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 html {

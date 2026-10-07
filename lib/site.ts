@@ -4,6 +4,13 @@ export const WHATSAPP_DISPLAY = "+54 9 2615 09-9230"
 export const INSTAGRAM_HANDLE = "mkcars.mza"
 export const INSTAGRAM_URL = `https://www.instagram.com/${INSTAGRAM_HANDLE}/`
 
+export const EMAIL = "mkcarsadomiciliomzalavadero@gmail.com"
+
+export const EXTRAS = [
+  { id: "tapizados", name: "Lavado de tapizados" },
+  { id: "motor", name: "Limpieza de motor" },
+] as const
+
 export const SERVICE_DAYS = { full: "Lunes a sábado", short: "Lun a Sáb" }
 export const SERVICE_HOURS = { open: "9:00", close: "18:00" }
 

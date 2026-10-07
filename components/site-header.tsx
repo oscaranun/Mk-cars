@@ -30,14 +30,17 @@ export function SiteHeader() {
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 md:px-8">
         <a href="#inicio" aria-label="MK Cars, ir al inicio" className="flex min-h-11 items-center">
-          <Logo />
+          <Logo inverted={!scrolled} />
         </a>
         <nav aria-label="Principal" className="hidden items-center gap-8 md:flex">
           {NAV.map((item) => (
             <a
               key={item.href}
               href={item.href}
-              className="text-sm text-muted-foreground transition-colors hover:text-primary"
+              className={cn(
+                "text-sm transition-colors",
+                scrolled ? "text-muted-foreground hover:text-primary" : "text-white/70 hover:text-white",
+              )}
             >
               {item.label}
             </a>

@@ -1,8 +1,10 @@
+import { Mail } from "lucide-react"
 import { InstagramIcon } from "@/components/instagram-icon"
 import { Logo } from "@/components/logo"
 import { WhatsAppIcon } from "@/components/whatsapp-icon"
 import {
   DEFAULT_WHATSAPP_MESSAGE,
+  EMAIL,
   INSTAGRAM_HANDLE,
   INSTAGRAM_URL,
   SERVICE_DAYS,
@@ -42,6 +44,15 @@ export function SiteFooter() {
               className="flex min-h-11 items-center gap-3 text-sm text-white/85 transition-colors hover:text-white"
             >
               <InstagramIcon className="size-4" />@{INSTAGRAM_HANDLE}
+            </a>
+          </li>
+          <li>
+            <a
+              href={`mailto:${EMAIL}`}
+              className="flex min-h-11 items-center gap-3 break-all text-sm text-white/85 transition-colors hover:text-white"
+            >
+              <Mail className="size-4 shrink-0" aria-hidden="true" />
+              {EMAIL}
             </a>
           </li>
         </ul>

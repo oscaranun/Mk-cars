@@ -6,6 +6,7 @@ import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
 import { WhatsAppIcon } from "@/components/whatsapp-icon"
 import {
+  EXTRAS,
   SERVICES,
   SERVICE_DAYS,
   SERVICE_HOURS,
@@ -50,6 +51,10 @@ export function Booking() {
     const address = String(data.get("address") ?? "").trim()
     const date = String(data.get("date") ?? "")
     const time = String(data.get("time") ?? "")
+    const extras = data
+      .getAll("extras")
+      .map((id) => EXTRAS.find((e) => e.id === id)?.name)
+      .filter(Boolean)
 
     if (!name || !phone || !service || !address || !date || !time) {
       setError("Completá todos los campos para reservar.")
@@ -68,6 +73,7 @@ export function Booking() {
       `WhatsApp: ${phone}`,
       `Vehículo: ${selected.name} (desde ${formatARS(selected.price)})`,
       `Servicio: ${service.name}`,
+      ...(extras.length ? [`Adicionales: ${extras.join(", ")} (consultar precio)`] : []),
       `Dirección: ${address}`,
       `Fecha: ${formatDate(date)}`,
       `Horario: ${time} hs`,
@@ -168,6 +174,22 @@ export function Booking() {
                 </select>
               </SelectWrap>
             </Field>
+
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-2 text-sm text-muted-foreground">Adicionales (opcional)</legend>
+              <div className="flex flex-col gap-2">
+                {EXTRAS.map((extra) => (
+                  <label
+                    key={extra.id}
+                    className="flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 transition-colors has-[:checked]:border-primary has-[:checked]:bg-sky has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40"
+                  >
+                    <input type="checkbox" name="extras" value={extra.id} className="size-5 accent-primary" />
+                    <span className="flex-1 text-sm font-medium">{extra.name}</span>
+                    <span className="text-xs text-muted-foreground">Consultar</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
 
             <Field label="Dirección" htmlFor="address">
               <input

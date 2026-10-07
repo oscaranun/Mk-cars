@@ -1,7 +1,7 @@
-import { ArrowUpRight, Car, CarFront, Droplets, House, Truck } from "lucide-react"
+import { ArrowUpRight, Car, CarFront, Droplets, House, Sparkles, Truck } from "lucide-react"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
-import { VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
+import { EXTRAS, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
 const ICONS = { auto: Car, suv: CarFront, pickup: Truck } as const
@@ -90,6 +90,21 @@ export function Services() {
                   <span className="text-sm font-semibold">{o.title}</span>
                   <span className="text-xs text-muted-foreground">{o.text}</span>
                 </span>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+
+        <Reveal className="mt-6">
+          <p className="mb-3 text-sm font-medium text-muted-foreground">Servicios adicionales</p>
+          <ul className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-white md:max-w-xl">
+            {EXTRAS.map((extra) => (
+              <li key={extra.id} className="flex min-h-14 items-center justify-between gap-4 px-4">
+                <span className="flex items-center gap-3 text-sm font-medium">
+                  <Sparkles className="size-4 text-primary" aria-hidden="true" />
+                  {extra.name}
+                </span>
+                <span className="text-xs text-muted-foreground">Consultar precio</span>
               </li>
             ))}
           </ul>
