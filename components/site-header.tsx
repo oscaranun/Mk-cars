@@ -10,7 +10,7 @@ const NAV = [
 export function SiteHeader() {
   return (
     <header className="absolute inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)]">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-[0.65cm] md:px-8">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-5 py-[0.65cm] md:px-8">
         <a href="#inicio" aria-label="MK Car Wash, ir al inicio" className="flex min-h-11 items-center">
           <Logo />
         </a>
@@ -19,7 +19,7 @@ export function SiteHeader() {
             <a
               key={item.href}
               href={item.href}
-              className="text-base text-white/70 transition-colors hover:text-white lg:text-[21px]"
+              className="whitespace-nowrap text-base text-white/70 transition-colors hover:text-white lg:text-[21px]"
             >
               {item.label}
             </a>
