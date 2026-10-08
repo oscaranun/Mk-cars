@@ -1,21 +1,13 @@
 "use client"
 
-import { useState, type FormEvent, type ReactNode } from "react"
-import { ArrowRight, ChevronDown } from "lucide-react"
+import Link from "next/link"
+import { useRef, useState, useTransition, type FormEvent, type ReactNode } from "react"
+import { ArrowRight, CheckCircle2, ChevronDown, Loader2 } from "lucide-react"
+import { submitBooking } from "@/app/actions/booking"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
 import { WhatsAppIcon } from "@/components/whatsapp-icon"
-import {
-  EXTRAS,
-  SERVICES,
-  SERVICE_DAYS,
-  SERVICE_HOURS,
-  TIME_SLOTS,
-  VEHICLES,
-  formatARS,
-  whatsappUrl,
-  type VehicleId,
-} from "@/lib/site"
+import { EXTRAS, SERVICE_DAYS, SERVICE_HOURS, TIME_SLOTS, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
 const fieldClass =
@@ -38,49 +30,78 @@ function isSunday(iso: string) {
 }
 
 export function Booking() {
-  const [vehicle, setVehicle] = useState<VehicleId>("auto")
+  const [vehicle, setVehicle] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const selected = VEHICLES.find((v) => v.id === vehicle)!
+  const [whatsappMessage, setWhatsappMessage] = useState<string | null>(null)
+  const [pending, startTransition] = useTransition()
+  const startedAt = useRef(0)
+  const selected = VEHICLES.find((v) => v.id === vehicle)
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const data = new FormData(e.currentTarget)
+    const form = e.currentTarget
+    const data = new FormData(form)
     const name = String(data.get("name") ?? "").trim()
     const phone = String(data.get("phone") ?? "").trim()
-    const waterId = data.get("noWater") ? "agua-propia" : "agua-domicilio"
-    const service = SERVICES.find((s) => s.id === waterId)
+    const email = String(data.get("email") ?? "").trim()
     const address = String(data.get("address") ?? "").trim()
     const date = String(data.get("date") ?? "")
     const time = String(data.get("time") ?? "")
+    const brand = String(data.get("brand") ?? "").trim()
+    const model = String(data.get("model") ?? "").trim()
+    const notes = String(data.get("notes") ?? "").trim()
+    const noWater = Boolean(data.get("noWater"))
     const extras = data
       .getAll("extras")
-      .map((id) => EXTRAS.find((e) => e.id === id)?.name)
+      .map((id) => EXTRAS.find((x) => x.id === id)?.name)
       .filter(Boolean)
 
-    if (!name || !phone || !service || !address || !date || !time) {
-      setError("Completá todos los campos para reservar.")
+    if (!name || !phone || !email || !selected || !address || !date || !time) {
+      setError("Completá todos los campos obligatorios para reservar.")
       return
     }
     if (isSunday(date)) {
       setError(`Trabajamos de ${SERVICE_DAYS.full.toLowerCase()}. Elegí otro día.`)
       return
     }
+    if (!data.get("privacy")) {
+      setError("Necesitamos tu consentimiento para gestionar la reserva.")
+      return
+    }
     setError(null)
 
+    const params = new URLSearchParams(window.location.search)
+    data.set("startedAt", String(startedAt.current))
+    data.set("utmSource", params.get("utm_source") ?? "")
+    data.set("ref", params.get("ref") ?? "")
+    data.set("referrer", document.referrer)
+
     const message = [
-      "Hola MK Cars, quiero reservar un lavado a domicilio.",
+      "Hola MK Cars, envié una solicitud de turno desde la web.",
       "",
       `Nombre: ${name}`,
-      `WhatsApp: ${phone}`,
-      `Vehículo: ${selected.name} (desde ${formatARS(selected.price)})`,
-      `Servicio: ${service.name}`,
-      ...(extras.length ? [`Adicionales: ${extras.join(", ")} (consultar precio)`] : []),
+      `Vehículo: ${selected.name}${brand || model ? ` (${[brand, model].filter(Boolean).join(" ")})` : ""}`,
+      `Agua: ${noWater ? "Sin agua en el domicilio" : "Agua del domicilio"}`,
+      ...(extras.length ? [`Adicionales: ${extras.join(", ")}`] : []),
       `Dirección: ${address}`,
-      `Fecha: ${formatDate(date)}`,
-      `Horario: ${time} hs`,
+      `Fecha preferida: ${formatDate(date)} · ${time} hs`,
+      ...(notes ? [`Observaciones: ${notes}`] : []),
     ].join("\n")
 
-    window.open(whatsappUrl(message), "_blank", "noopener,noreferrer")
+    startTransition(async () => {
+      try {
+        const result = await submitBooking(data)
+        if (!result.ok) {
+          setError(result.error)
+          return
+        }
+        setWhatsappMessage(message)
+        form.reset()
+        setVehicle("")
+      } catch {
+        setError("No pudimos guardar tu solicitud. Revisá tu conexión y volvé a intentar.")
+      }
+    })
   }
 
   return (
@@ -109,133 +130,239 @@ export function Booking() {
         </div>
 
         <Reveal>
-          <form
-            onSubmit={handleSubmit}
-            noValidate
-            className="flex flex-col gap-5 rounded-[2rem] border border-border bg-card p-5 shadow-soft sm:p-8"
-          >
-            <Field label="Nombre" htmlFor="name">
-              <input id="name" name="name" type="text" autoComplete="name" placeholder="Tu nombre" className={fieldClass} required />
-            </Field>
-
-            <Field label="WhatsApp" htmlFor="phone">
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                placeholder="261 000-0000"
-                className={fieldClass}
-                required
-              />
-            </Field>
-
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-2 text-sm text-muted-foreground">Tipo de vehículo</legend>
-              <div className="grid grid-cols-3 gap-2">
-                {VEHICLES.map((v) => (
-                  <label
-                    key={v.id}
-                    className={cn(
-                      "flex min-h-16 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl border px-2 text-center transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40",
-                      vehicle === v.id
-                        ? "border-primary bg-primary text-primary-foreground shadow-glow"
-                        : "border-border bg-surface text-foreground",
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="vehicle"
-                      value={v.id}
-                      checked={vehicle === v.id}
-                      onChange={() => setVehicle(v.id)}
-                      className="sr-only"
-                    />
-                    <span className="text-sm font-medium">{v.name}</span>
-                    <span className={cn("text-xs tabular-nums", vehicle === v.id ? "text-white/75" : "text-muted-foreground")}>
-                      {formatARS(v.price)}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-
-            <label className="flex cursor-pointer items-start gap-3 px-1">
-              <input type="checkbox" name="noWater" className="mt-0.5 size-4 accent-primary" />
-              <span className="flex flex-col">
-                <span className="text-sm text-muted-foreground">No tengo acceso a agua en el domicilio</span>
-                <span className="text-xs text-muted-foreground/80">MK puede llevarte agua.</span>
-              </span>
-            </label>
-
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-2 text-sm text-muted-foreground">Adicionales (opcional)</legend>
+          {whatsappMessage ? (
+            <div
+              role="status"
+              className="flex flex-col gap-5 rounded-[2rem] border border-border bg-card p-6 shadow-soft sm:p-8"
+            >
+              <CheckCircle2 className="size-10 text-primary" aria-hidden="true" />
               <div className="flex flex-col gap-2">
-                {EXTRAS.map((extra) => (
-                  <label
-                    key={extra.id}
-                    className="flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 transition-colors has-[:checked]:border-primary has-[:checked]:bg-sky has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40"
-                  >
-                    <input type="checkbox" name="extras" value={extra.id} className="size-5 accent-primary" />
-                    <span className="flex-1 text-sm font-medium">{extra.name}</span>
-                    <span className="text-xs text-muted-foreground">Consultar</span>
-                  </label>
-                ))}
+                <h3 className="text-xl font-semibold tracking-tight">Solicitud recibida</h3>
+                <p className="leading-relaxed text-muted-foreground">
+                  Recibimos tu solicitud de turno. MK Cars verificará la disponibilidad y te confirmará por WhatsApp.
+                </p>
               </div>
-            </fieldset>
+              <a
+                href={whatsappUrl(whatsappMessage)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex min-h-14 items-center justify-center gap-3 rounded-full bg-primary px-6 text-base font-medium text-primary-foreground shadow-glow transition-transform active:scale-[0.98]"
+              >
+                <WhatsAppIcon className="size-5" />
+                Continuar por WhatsApp
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+              </a>
+              <button
+                type="button"
+                onClick={() => setWhatsappMessage(null)}
+                className="min-h-11 text-sm text-muted-foreground underline-offset-4 hover:underline"
+              >
+                Enviar otra solicitud
+              </button>
+            </div>
+          ) : (
+            <form
+              onSubmit={handleSubmit}
+              onFocusCapture={() => {
+                if (!startedAt.current) startedAt.current = Date.now()
+              }}
+              noValidate
+              className="flex flex-col gap-5 rounded-[2rem] border border-border bg-card p-5 shadow-soft sm:p-8"
+            >
+              <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+                <label htmlFor="website">No completar</label>
+                <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+              </div>
 
-            <Field label="Dirección" htmlFor="address">
-              <input
-                id="address"
-                name="address"
-                type="text"
-                autoComplete="street-address"
-                placeholder="Calle, número y departamento"
-                className={fieldClass}
-                required
-              />
-            </Field>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Fecha" htmlFor="date">
-                <input id="date" name="date" type="date" min={todayISO()} className={cn(fieldClass, "pr-2")} required />
+              <Field label="Nombre y apellido" htmlFor="name">
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Tu nombre y apellido"
+                  className={fieldClass}
+                  required
+                />
               </Field>
-              <Field label="Horario" htmlFor="time">
+
+              <Field label="WhatsApp" htmlFor="phone">
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="261 000-0000"
+                  className={fieldClass}
+                  required
+                />
+              </Field>
+
+              <Field label="Correo electrónico" htmlFor="email">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  placeholder="tu@correo.com"
+                  className={fieldClass}
+                  required
+                />
+              </Field>
+
+              <Field label="Tipo de vehículo" htmlFor="vehicle">
                 <SelectWrap>
-                  <select id="time" name="time" defaultValue="" className={cn(fieldClass, "appearance-none pr-10")} required>
+                  <select
+                    id="vehicle"
+                    name="vehicle"
+                    value={vehicle}
+                    onChange={(e) => setVehicle(e.target.value)}
+                    className={cn(fieldClass, "appearance-none pr-10", !vehicle && "text-muted-foreground/60")}
+                    required
+                  >
                     <option value="" disabled>
-                      Hora
+                      Elegí una opción
                     </option>
-                    {TIME_SLOTS.map((t) => (
-                      <option key={t} value={t}>
-                        {t} hs
+                    {VEHICLES.map((v) => (
+                      <option key={v.id} value={v.id} className="text-foreground">
+                        {v.name}
                       </option>
                     ))}
                   </select>
                 </SelectWrap>
+                {selected && (
+                  <span className="px-1 text-xs text-muted-foreground tabular-nums">
+                    {selected.detail} · desde {formatARS(selected.price)}
+                  </span>
+                )}
               </Field>
-            </div>
 
-            <p className="text-xs text-muted-foreground">
-              {SERVICE_DAYS.full} de {SERVICE_HOURS.open} a {SERVICE_HOURS.close}.
-            </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Marca (opcional)" htmlFor="brand">
+                  <input id="brand" name="brand" type="text" placeholder="Ej: Toyota" className={fieldClass} />
+                </Field>
+                <Field label="Modelo (opcional)" htmlFor="model">
+                  <input id="model" name="model" type="text" placeholder="Ej: Hilux" className={fieldClass} />
+                </Field>
+              </div>
 
-            {error && (
-              <p role="alert" className="rounded-xl bg-sky px-4 py-3 text-sm text-white">
-                {error}
+              <label className="flex cursor-pointer items-start gap-3 px-1">
+                <input type="checkbox" name="noWater" className="mt-0.5 size-4 accent-primary" />
+                <span className="flex flex-col">
+                  <span className="text-sm text-muted-foreground">No tengo agua en el domicilio</span>
+                  <span className="text-xs text-muted-foreground/80">MK puede llevarte agua.</span>
+                </span>
+              </label>
+
+              <fieldset className="flex flex-col gap-2">
+                <legend className="mb-2 text-sm text-muted-foreground">Adicionales (opcional)</legend>
+                <div className="flex flex-col gap-2">
+                  {EXTRAS.map((extra) => (
+                    <label
+                      key={extra.id}
+                      className="flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 transition-colors has-[:checked]:border-primary has-[:checked]:bg-sky has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40"
+                    >
+                      <input type="checkbox" name="extras" value={extra.id} className="size-5 accent-primary" />
+                      <span className="flex-1 text-sm font-medium">{extra.name}</span>
+                      <span className="text-xs text-muted-foreground">Consultar</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              <Field label="Dirección" htmlFor="address">
+                <input
+                  id="address"
+                  name="address"
+                  type="text"
+                  autoComplete="street-address"
+                  placeholder="Calle, número y departamento"
+                  className={fieldClass}
+                  required
+                />
+              </Field>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Fecha" htmlFor="date">
+                  <input id="date" name="date" type="date" min={todayISO()} className={cn(fieldClass, "pr-2")} required />
+                </Field>
+                <Field label="Horario" htmlFor="time">
+                  <SelectWrap>
+                    <select id="time" name="time" defaultValue="" className={cn(fieldClass, "appearance-none pr-10")} required>
+                      <option value="" disabled>
+                        Hora
+                      </option>
+                      {TIME_SLOTS.map((t) => (
+                        <option key={t} value={t}>
+                          {t} hs
+                        </option>
+                      ))}
+                    </select>
+                  </SelectWrap>
+                </Field>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                {SERVICE_DAYS.full} de {SERVICE_HOURS.open} a {SERVICE_HOURS.close}.
               </p>
-            )}
 
-            <button
-              type="submit"
-              className="group mt-1 inline-flex min-h-14 items-center justify-center gap-3 rounded-full bg-primary px-6 text-base font-medium text-primary-foreground shadow-glow transition-transform active:scale-[0.98]"
-            >
-              <WhatsAppIcon className="size-5" />
-              Reservar por WhatsApp
-              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-            </button>
-          </form>
+              <Field label="Observaciones (opcional)" htmlFor="notes">
+                <textarea
+                  id="notes"
+                  name="notes"
+                  rows={3}
+                  maxLength={1000}
+                  placeholder="Indicaciones de acceso, estado del vehículo, etc."
+                  className={cn(fieldClass, "min-h-24 resize-y py-3")}
+                />
+              </Field>
+
+              <div className="flex flex-col gap-3 px-1">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input type="checkbox" name="privacy" required className="mt-0.5 size-4 shrink-0 accent-primary" />
+                  <span className="text-sm text-muted-foreground">
+                    Acepto que MK Cars use mis datos para gestionar esta reserva, según la{" "}
+                    <Link href="/privacidad" className="text-foreground underline underline-offset-2">
+                      política de privacidad
+                    </Link>
+                    .
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input type="checkbox" name="marketing" className="mt-0.5 size-4 shrink-0 accent-primary" />
+                  <span className="text-sm text-muted-foreground">
+                    Quiero recibir promociones y recordatorios (opcional).
+                  </span>
+                </label>
+              </div>
+
+              {error && (
+                <p role="alert" className="rounded-xl bg-sky px-4 py-3 text-sm text-white">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={pending}
+                className="group mt-1 inline-flex min-h-14 items-center justify-center gap-3 rounded-full bg-primary px-6 text-base font-medium text-primary-foreground shadow-glow transition-transform active:scale-[0.98] disabled:opacity-70"
+              >
+                {pending ? (
+                  <>
+                    <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+                    Enviando solicitud
+                  </>
+                ) : (
+                  <>
+                    Solicitar turno
+                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
         </Reveal>
       </div>
     </section>
