@@ -32,11 +32,7 @@ export default async function PanelLayout({ children }: { children: ReactNode })
     <div className="min-h-dvh bg-background lg:flex">
       <aside className="flex flex-col gap-4 border-b border-border bg-deep/60 px-4 pb-3 pt-4 lg:sticky lg:top-0 lg:h-dvh lg:w-64 lg:shrink-0 lg:gap-6 lg:border-b-0 lg:border-r lg:px-4 lg:py-6">
         <div className="flex items-center justify-between gap-4 lg:flex-col lg:items-center">
-          <div className="size-[82px] lg:size-[150px]">
-            <div className="origin-top-left scale-[0.6] md:scale-[0.395] lg:scale-[0.72]">
-              <Logo />
-            </div>
-          </div>
+          <Logo className="w-[110px] md:w-[110px] lg:w-[170px]" />
           <div className="lg:hidden">
             <LogoutButton />
           </div>
