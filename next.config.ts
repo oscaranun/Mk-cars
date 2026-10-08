@@ -1,6 +1,13 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      { source: "/mkbasedatos", destination: "/admin", permanent: false },
+      { source: "/MKbasedatos", destination: "/admin", permanent: false },
+      { source: "/MKBASEDATOS", destination: "/admin", permanent: false },
+    ]
+  },
   async headers() {
     return [
       {

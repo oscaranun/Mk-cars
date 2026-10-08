@@ -106,20 +106,21 @@ export function Booking() {
 
   return (
     <section id="reservar" className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-28">
-      <div className="grid gap-12 md:grid-cols-[1fr_1.2fr] md:gap-16">
-        <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-8 md:gap-10">
+        <div className="flex flex-col gap-5">
           <SectionHeading
             eyebrow="Reserva"
             title="Reservá en un minuto."
             description="Te confirmamos por WhatsApp."
           />
           <Reveal>
-            <dl className="flex flex-col divide-y divide-border rounded-3xl border border-border bg-card shadow-soft">
-              <div className="flex items-center justify-between gap-4 p-5">
+            <dl className="inline-flex flex-wrap items-center gap-x-6 gap-y-2 rounded-full border border-border bg-card px-5 py-3 shadow-soft">
+              <div className="flex items-center gap-2">
                 <dt className="text-sm text-muted-foreground">Días</dt>
                 <dd className="font-medium">{SERVICE_DAYS.full}</dd>
               </div>
-              <div className="flex items-center justify-between gap-4 p-5">
+              <span className="hidden h-4 w-px bg-border sm:block" aria-hidden="true" />
+              <div className="flex items-center gap-2">
                 <dt className="text-sm text-muted-foreground">Horario</dt>
                 <dd className="font-medium tabular-nums">
                   {SERVICE_HOURS.open} – {SERVICE_HOURS.close}
@@ -174,150 +175,158 @@ export function Booking() {
                 <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
               </div>
 
-              <Field label="Nombre y apellido" htmlFor="name">
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  autoComplete="name"
-                  placeholder="Tu nombre y apellido"
-                  className={fieldClass}
-                  required
-                />
-              </Field>
-
-              <Field label="WhatsApp" htmlFor="phone">
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  placeholder="261 000-0000"
-                  className={fieldClass}
-                  required
-                />
-              </Field>
-
-              <Field label="Correo electrónico" htmlFor="email">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  placeholder="tu@correo.com"
-                  className={fieldClass}
-                  required
-                />
-              </Field>
-
-              <Field label="Tipo de vehículo" htmlFor="vehicle">
-                <SelectWrap>
-                  <select
-                    id="vehicle"
-                    name="vehicle"
-                    value={vehicle}
-                    onChange={(e) => setVehicle(e.target.value)}
-                    className={cn(fieldClass, "appearance-none pr-10", !vehicle && "text-muted-foreground/60")}
+              <div className="grid gap-5 md:grid-cols-2 md:gap-x-8">
+                <div className="flex flex-col gap-5">
+                  <p className="text-xs font-medium uppercase tracking-wider text-primary">Tus datos</p>
+                <Field label="Nombre y apellido" htmlFor="name">
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    autoComplete="name"
+                    placeholder="Tu nombre y apellido"
+                    className={fieldClass}
                     required
-                  >
-                    <option value="" disabled>
-                      Elegí una opción
-                    </option>
-                    {VEHICLES.map((v) => (
-                      <option key={v.id} value={v.id} className="text-foreground">
-                        {v.name}
-                      </option>
-                    ))}
-                  </select>
-                </SelectWrap>
-                {selected && (
-                  <span className="px-1 text-xs text-muted-foreground tabular-nums">
-                    {selected.detail} · desde {formatARS(selected.price)}
+                  />
+                </Field>
+
+                <Field label="WhatsApp" htmlFor="phone">
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="261 000-0000"
+                    className={fieldClass}
+                    required
+                  />
+                </Field>
+
+                <Field label="Correo electrónico" htmlFor="email">
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    placeholder="tu@correo.com"
+                    className={fieldClass}
+                    required
+                  />
+                </Field>
+
+                <Field label="Dirección" htmlFor="address">
+                  <input
+                    id="address"
+                    name="address"
+                    type="text"
+                    autoComplete="street-address"
+                    placeholder="Calle, número y departamento"
+                    className={fieldClass}
+                    required
+                  />
+                </Field>
+
+                <label className="flex cursor-pointer items-start gap-3 px-1">
+                  <input type="checkbox" name="noWater" className="mt-0.5 size-4 accent-primary" />
+                  <span className="flex flex-col">
+                    <span className="text-sm text-muted-foreground">No tengo agua en el domicilio</span>
+                    <span className="text-xs text-muted-foreground/80">MK puede llevarte agua.</span>
                   </span>
-                )}
-              </Field>
+                </label>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Marca (opcional)" htmlFor="brand">
-                  <input id="brand" name="brand" type="text" placeholder="Ej: Toyota" className={fieldClass} />
-                </Field>
-                <Field label="Modelo (opcional)" htmlFor="model">
-                  <input id="model" name="model" type="text" placeholder="Ej: Hilux" className={fieldClass} />
-                </Field>
-              </div>
-
-              <label className="flex cursor-pointer items-start gap-3 px-1">
-                <input type="checkbox" name="noWater" className="mt-0.5 size-4 accent-primary" />
-                <span className="flex flex-col">
-                  <span className="text-sm text-muted-foreground">No tengo agua en el domicilio</span>
-                  <span className="text-xs text-muted-foreground/80">MK puede llevarte agua.</span>
-                </span>
-              </label>
-
-              <fieldset className="flex flex-col gap-2">
-                <legend className="mb-2 text-sm text-muted-foreground">Adicionales (opcional)</legend>
-                <div className="flex flex-col gap-2">
-                  {EXTRAS.map((extra) => (
-                    <label
-                      key={extra.id}
-                      className="flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 transition-colors has-[:checked]:border-primary has-[:checked]:bg-sky has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40"
-                    >
-                      <input type="checkbox" name="extras" value={extra.id} className="size-5 accent-primary" />
-                      <span className="flex-1 text-sm font-medium">{extra.name}</span>
-                      <span className="text-xs text-muted-foreground">Consultar</span>
-                    </label>
-                  ))}
+                <fieldset className="flex flex-col gap-2">
+                  <legend className="mb-2 text-sm text-muted-foreground">Adicionales (opcional)</legend>
+                  <div className="flex flex-col gap-2">
+                    {EXTRAS.map((extra) => (
+                      <label
+                        key={extra.id}
+                        className="flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 transition-colors has-[:checked]:border-primary has-[:checked]:bg-sky has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40"
+                      >
+                        <input type="checkbox" name="extras" value={extra.id} className="size-5 accent-primary" />
+                        <span className="flex-1 text-sm font-medium">{extra.name}</span>
+                        <span className="text-xs text-muted-foreground">Consultar</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
                 </div>
-              </fieldset>
 
-              <Field label="Dirección" htmlFor="address">
-                <input
-                  id="address"
-                  name="address"
-                  type="text"
-                  autoComplete="street-address"
-                  placeholder="Calle, número y departamento"
-                  className={fieldClass}
-                  required
-                />
-              </Field>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Fecha" htmlFor="date">
-                  <input id="date" name="date" type="date" min={todayISO()} className={cn(fieldClass, "pr-2")} required />
-                </Field>
-                <Field label="Horario" htmlFor="time">
+                <div className="flex flex-col gap-5">
+                  <p className="text-xs font-medium uppercase tracking-wider text-primary">Vehículo y turno</p>
+                <Field label="Tipo de vehículo" htmlFor="vehicle">
                   <SelectWrap>
-                    <select id="time" name="time" defaultValue="" className={cn(fieldClass, "appearance-none pr-10")} required>
+                    <select
+                      id="vehicle"
+                      name="vehicle"
+                      value={vehicle}
+                      onChange={(e) => setVehicle(e.target.value)}
+                      className={cn(fieldClass, "appearance-none pr-10", !vehicle && "text-muted-foreground/60")}
+                      required
+                    >
                       <option value="" disabled>
-                        Hora
+                        Elegí una opción
                       </option>
-                      {TIME_SLOTS.map((t) => (
-                        <option key={t} value={t}>
-                          {t} hs
+                      {VEHICLES.map((v) => (
+                        <option key={v.id} value={v.id} className="text-foreground">
+                          {v.name}
                         </option>
                       ))}
                     </select>
                   </SelectWrap>
+                  {selected && (
+                    <span className="px-1 text-xs text-muted-foreground tabular-nums">
+                      {selected.detail} · desde {formatARS(selected.price)}
+                    </span>
+                  )}
                 </Field>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Marca (opcional)" htmlFor="brand">
+                    <input id="brand" name="brand" type="text" placeholder="Ej: Toyota" className={fieldClass} />
+                  </Field>
+                  <Field label="Modelo (opcional)" htmlFor="model">
+                    <input id="model" name="model" type="text" placeholder="Ej: Hilux" className={fieldClass} />
+                  </Field>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Fecha" htmlFor="date">
+                    <input id="date" name="date" type="date" min={todayISO()} className={cn(fieldClass, "pr-2")} required />
+                  </Field>
+                  <Field label="Horario" htmlFor="time">
+                    <SelectWrap>
+                      <select id="time" name="time" defaultValue="" className={cn(fieldClass, "appearance-none pr-10")} required>
+                        <option value="" disabled>
+                          Hora
+                        </option>
+                        {TIME_SLOTS.map((t) => (
+                          <option key={t} value={t}>
+                            {t} hs
+                          </option>
+                        ))}
+                      </select>
+                    </SelectWrap>
+                  </Field>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  {SERVICE_DAYS.full} de {SERVICE_HOURS.open} a {SERVICE_HOURS.close}.
+                </p>
+
+                <Field label="Observaciones (opcional)" htmlFor="notes" className="md:flex-1">
+                  <textarea
+                    id="notes"
+                    name="notes"
+                    rows={3}
+                    maxLength={1000}
+                    placeholder="Indicaciones de acceso, estado del vehículo, etc."
+                    className={cn(fieldClass, "min-h-24 resize-y py-3 md:flex-1")}
+                  />
+                </Field>
+                </div>
               </div>
-
-              <p className="text-xs text-muted-foreground">
-                {SERVICE_DAYS.full} de {SERVICE_HOURS.open} a {SERVICE_HOURS.close}.
-              </p>
-
-              <Field label="Observaciones (opcional)" htmlFor="notes">
-                <textarea
-                  id="notes"
-                  name="notes"
-                  rows={3}
-                  maxLength={1000}
-                  placeholder="Indicaciones de acceso, estado del vehículo, etc."
-                  className={cn(fieldClass, "min-h-24 resize-y py-3")}
-                />
-              </Field>
 
               <div className="flex flex-col gap-3 px-1">
                 <label className="flex cursor-pointer items-start gap-3">
@@ -369,9 +378,19 @@ export function Booking() {
   )
 }
 
-function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
+function Field({
+  label,
+  htmlFor,
+  className,
+  children,
+}: {
+  label: string
+  htmlFor: string
+  className?: string
+  children: ReactNode
+}) {
   return (
-    <div className="flex min-w-0 flex-col gap-2">
+    <div className={cn("flex min-w-0 flex-col gap-2", className)}>
       <label htmlFor={htmlFor} className="text-sm text-muted-foreground">
         {label}
       </label>
