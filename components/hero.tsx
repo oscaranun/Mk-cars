@@ -110,16 +110,6 @@ export function Hero() {
               className="animate-hero-zoom object-cover"
             />
           </div>
-
-          <div className="animate-float absolute -bottom-5 left-4 flex items-center gap-3 rounded-2xl bg-white p-3 pr-4 text-deep shadow-soft">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-[#e8f4ff] text-primary">
-              <Droplets className="size-4" aria-hidden="true" />
-            </span>
-            <span className="flex flex-col">
-              <span className="text-[0.7rem] text-slate-500">Desde</span>
-              <span className="text-sm font-bold tabular-nums">{formatARS(VEHICLES[0].price)}</span>
-            </span>
-          </div>
           </div>
 
           <div className="mt-10">
@@ -127,6 +117,17 @@ export function Hero() {
           </div>
         </div>
       </div>
+
+      <p
+        className="animate-fade-up mx-auto mt-12 flex w-fit items-center gap-4 px-5 text-electric md:mt-16"
+        style={{ animationDelay: "600ms" }}
+      >
+        <Droplets className="size-8" aria-hidden="true" />
+        <span className="flex flex-col leading-tight">
+          <span className="text-lg font-medium">Desde</span>
+          <span className="text-3xl font-bold tabular-nums">{formatARS(VEHICLES[0].price)}</span>
+        </span>
+      </p>
     </section>
   )
 }
