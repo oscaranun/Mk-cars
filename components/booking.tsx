@@ -7,6 +7,7 @@ import { submitBooking } from "@/app/actions/booking"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
 import { BookingVehicles, type BookingVehicle } from "@/components/booking-vehicles"
+import { ServiceIncludes } from "@/components/service-includes"
 import { WhatsAppIcon } from "@/components/whatsapp-icon"
 import { EXTRAS, SERVICE_DAYS, TIME_SLOTS, VEHICLES, whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
@@ -261,6 +262,7 @@ export function Booking() {
                   </p>
                 </div>
                 <BookingVehicles vehicles={vehicles} onChange={setVehicles} onAdd={addVehicle} />
+            <ServiceIncludes />
               </div>
 
               <fieldset className="flex flex-col gap-3">
