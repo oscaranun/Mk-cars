@@ -115,6 +115,34 @@ export async function updateInquiryStatus(_prev: ActionState, data: FormData): P
   return done("Estado actualizado.")
 }
 
+export async function deleteInquiry(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const id = text(data, "id", 36)
+  if (!UUID_RE.test(id)) return fail("Consulta inválida.")
+
+  // appointments.inquiry_id is ON DELETE SET NULL: deleting would silently alter the linked turno.
+  const { count, error: refError } = await supabase
+    .from("appointments")
+    .select("id", { count: "exact", head: true })
+    .eq("inquiry_id", id)
+  if (refError) return dbError(refError, "No se pudo verificar la consulta.")
+  if (count) {
+    return fail(
+      `No se puede eliminar: la consulta tiene ${count === 1 ? "un turno vinculado" : `${count} turnos vinculados`}. Gestioná el turno desde Turnos.`,
+    )
+  }
+
+  const { data: deleted, error } = await supabase.from("inquiries").delete().eq("id", id).select("id")
+  if (error) {
+    if (error.code === "23503") return fail("No se puede eliminar: hay registros vinculados a esta consulta.")
+    return dbError(error, "No se pudo eliminar la consulta.")
+  }
+  if (!deleted?.length) return fail("La consulta no existe o no tenés permisos para eliminarla.")
+  return done("Consulta eliminada.")
+}
+
 export async function manageAppointment(_prev: ActionState, data: FormData): Promise<ActionState> {
   const supabase = await admin()
   if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
