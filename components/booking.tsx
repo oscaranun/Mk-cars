@@ -6,9 +6,9 @@ import { ArrowRight, CheckCircle2, ChevronDown, Loader2 } from "lucide-react"
 import { submitBooking } from "@/app/actions/booking"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
-import { VehicleLineIcon } from "@/components/vehicle-line-icon"
+import { BookingVehicles, type BookingVehicle } from "@/components/booking-vehicles"
 import { WhatsAppIcon } from "@/components/whatsapp-icon"
-import { EXTRAS, SERVICE_DAYS, TIME_SLOTS, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
+import { EXTRAS, SERVICE_DAYS, TIME_SLOTS, VEHICLES, whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
 const fieldClass =
@@ -30,13 +30,20 @@ function isSunday(iso: string) {
   return new Date(y, m - 1, d).getDay() === 0
 }
 
+const emptyVehicle = (key: number): BookingVehicle => ({ key, category: "", brand: "", model: "" })
+
 export function Booking() {
-  const [vehicle, setVehicle] = useState("")
+  const [vehicles, setVehicles] = useState<BookingVehicle[]>([emptyVehicle(0)])
   const [error, setError] = useState<string | null>(null)
   const [whatsappMessage, setWhatsappMessage] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const startedAt = useRef(0)
-  const selected = VEHICLES.find((v) => v.id === vehicle)
+  const nextKey = useRef(1)
+
+  function addVehicle() {
+    const last = vehicles[vehicles.length - 1]
+    setVehicles([...vehicles, { ...emptyVehicle(nextKey.current++), category: last?.category ?? "" }])
+  }
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -47,8 +54,6 @@ export function Booking() {
     const address = String(data.get("address") ?? "").trim()
     const date = String(data.get("date") ?? "")
     const time = String(data.get("time") ?? "")
-    const brand = String(data.get("brand") ?? "").trim()
-    const model = String(data.get("model") ?? "").trim()
     const notes = String(data.get("notes") ?? "").trim()
     const noWater = Boolean(data.get("noWater"))
     const extras = data
@@ -56,8 +61,12 @@ export function Booking() {
       .map((id) => EXTRAS.find((x) => x.id === id)?.name)
       .filter(Boolean)
 
-    if (!name || !selected || !address || !phone || !date || !time) {
+    if (!name || !address || !phone || !date || !time) {
       setError("Completá todos los campos obligatorios para reservar.")
+      return
+    }
+    if (vehicles.some((v) => !v.category)) {
+      setError("Elegí el tipo de cada vehículo.")
       return
     }
     if (isSunday(date)) {
@@ -75,12 +84,22 @@ export function Booking() {
     data.set("utmSource", params.get("utm_source") ?? "")
     data.set("ref", params.get("ref") ?? "")
     data.set("referrer", document.referrer)
+    data.set(
+      "vehicles",
+      JSON.stringify(vehicles.map(({ category, brand, model }) => ({ category, brand: brand.trim(), model: model.trim() }))),
+    )
+
+    const vehicleLines = vehicles.map((v, i) => {
+      const type = VEHICLES.find((x) => x.id === v.category)?.name ?? v.category
+      const detail = [v.brand.trim(), v.model.trim()].filter(Boolean).join(" ")
+      return `${vehicles.length > 1 ? `${i + 1}. ` : ""}${type}${detail ? ` (${detail})` : ""}`
+    })
 
     const message = [
       "Hola MK Cars, envié una solicitud de turno desde la web.",
       "",
       `Nombre: ${name}`,
-      `Vehículo: ${selected.name}${brand || model ? ` (${[brand, model].filter(Boolean).join(" ")})` : ""}`,
+      ...(vehicles.length > 1 ? [`Vehículos (${vehicles.length}):`, ...vehicleLines] : [`Vehículo: ${vehicleLines[0]}`]),
       `Agua: ${noWater ? "Sin agua en el domicilio" : "Agua del domicilio"}`,
       ...(extras.length ? [`Lavado en detalle: ${extras.join(", ")}`] : []),
       `Dirección: ${address}`,
@@ -97,7 +116,7 @@ export function Booking() {
         }
         setWhatsappMessage(message)
         form.reset()
-        setVehicle("")
+        setVehicles([emptyVehicle(nextKey.current++)])
       } catch {
         setError("No pudimos guardar tu solicitud. Revisá tu conexión y volvé a intentar.")
       }
@@ -173,73 +192,6 @@ export function Booking() {
                     />
                   </Field>
 
-                  <fieldset className="flex min-w-0 flex-col gap-2 md:row-span-1">
-                    <legend className="mb-2 text-sm font-medium text-white">
-                      Tipo de vehículo
-                      <span className="text-primary" aria-hidden="true">
-                        {" *"}
-                      </span>
-                    </legend>
-                    <div className="grid grid-cols-3 gap-2">
-                      {VEHICLES.map((v) => {
-                        const checked = vehicle === v.id
-                        return (
-                          <label
-                            key={v.id}
-                            className={cn(
-                              "flex min-h-14 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border px-2 py-2.5 transition has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-primary/20",
-                              checked
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "border-border bg-surface text-white/80 hover:border-white/30",
-                            )}
-                          >
-                            <input
-                              type="radio"
-                              name="vehicle"
-                              value={v.id}
-                              checked={checked}
-                              onChange={() => setVehicle(v.id)}
-                              className="sr-only"
-                              required
-                            />
-                            <span className="flex h-6 items-center">
-                              <VehicleLineIcon id={v.id} width={v.id === "pickup" ? 64 : 52} />
-                            </span>
-                            <span className="sr-only">desde</span>
-                            <span
-                              className={cn(
-                                "text-sm font-semibold tabular-nums",
-                                checked ? "text-primary" : "text-white",
-                              )}
-                            >
-                              {formatARS(v.price)}
-                            </span>
-                            <span
-                              className={cn(
-                                "-mt-1 text-xs font-medium",
-                                checked ? "text-primary" : "text-white/70",
-                              )}
-                            >
-                              {v.id === "pickup" ? "Pick Up" : v.name}
-                            </span>
-                          </label>
-                        )
-                      })}
-                    </div>
-                  </fieldset>
-
-                  <Field label="Dirección" htmlFor="address" required>
-                    <input
-                      id="address"
-                      name="address"
-                      type="text"
-                      autoComplete="street-address"
-                      placeholder="Calle, número y departamento"
-                      className={fieldClass}
-                      required
-                    />
-                  </Field>
-
                   <Field label="WhatsApp" htmlFor="phone" required>
                     <input
                       id="phone"
@@ -253,6 +205,19 @@ export function Booking() {
                     />
                   </Field>
 
+                  <Field label="Dirección" htmlFor="address" required>
+                    <input
+                      id="address"
+                      name="address"
+                      type="text"
+                      autoComplete="street-address"
+                      placeholder="Calle, número y departamento"
+                      className={fieldClass}
+                      required
+                    />
+                  </Field>
+
+                  <div className="grid grid-cols-2 gap-3">
                   <Field label="Fecha" htmlFor="date" required>
                     <input
                       id="date"
@@ -284,7 +249,18 @@ export function Booking() {
                       </select>
                     </SelectWrap>
                   </Field>
+                  </div>
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                  <SectionLabel>Vehículos</SectionLabel>
+                  <p className="text-sm text-muted-foreground">
+                    Agregá todos los autos que quieras lavar en el mismo turno.
+                  </p>
+                </div>
+                <BookingVehicles vehicles={vehicles} onChange={setVehicles} onAdd={addVehicle} />
               </div>
 
               <fieldset className="flex flex-col gap-3">
@@ -312,7 +288,7 @@ export function Booking() {
 
               <div className="flex flex-col gap-5 border-t border-border pt-6">
                 <SectionLabel muted>Datos opcionales</SectionLabel>
-                <div className="grid gap-5 md:grid-cols-3 md:gap-x-6">
+                <div className="grid gap-5 md:grid-cols-2 md:gap-x-6">
                   <Field label="Correo electrónico" htmlFor="email">
                     <input
                       id="email"
@@ -324,23 +300,17 @@ export function Booking() {
                       className={fieldClass}
                     />
                   </Field>
-                  <Field label="Marca del vehículo" htmlFor="brand">
-                    <input id="brand" name="brand" type="text" placeholder="Ej: Toyota" className={fieldClass} />
-                  </Field>
-                  <Field label="Modelo del vehículo" htmlFor="model">
-                    <input id="model" name="model" type="text" placeholder="Ej: Hilux" className={fieldClass} />
+                  <Field label="Observaciones" htmlFor="notes">
+                    <textarea
+                      id="notes"
+                      name="notes"
+                      rows={1}
+                      maxLength={1000}
+                      placeholder="Indicaciones de acceso, estado del vehículo, etc."
+                      className={cn(fieldClass, "min-h-14 resize-y py-3.5")}
+                    />
                   </Field>
                 </div>
-                <Field label="Observaciones" htmlFor="notes">
-                  <textarea
-                    id="notes"
-                    name="notes"
-                    rows={2}
-                    maxLength={1000}
-                    placeholder="Indicaciones de acceso, estado del vehículo, etc."
-                    className={cn(fieldClass, "min-h-20 resize-y py-3")}
-                  />
-                </Field>
               </div>
 
               <div className="flex flex-col gap-3 px-1">
