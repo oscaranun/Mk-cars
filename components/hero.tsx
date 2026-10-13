@@ -1,7 +1,7 @@
 import Image from "next/image"
-import { ArrowRight, Clock, Droplets, MapPin } from "lucide-react"
+import { ArrowRight, Droplets, MapPin, MessageCircle } from "lucide-react"
 import { HowItWorks } from "@/components/how-it-works"
-import { SERVICE_DAYS, SERVICE_HOURS, VEHICLES, formatARS } from "@/lib/site"
+import { COVERAGE_ZONES, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
 
 export function Hero() {
   return (
@@ -62,19 +62,40 @@ export function Hero() {
             </a>
           </div>
 
-          <ul
-            className="animate-fade-up mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-white/60 md:justify-start"
+          <div
+            id="cobertura"
+            className="animate-fade-up mt-7 flex scroll-mt-32 flex-col items-center gap-1.5 md:items-start"
             style={{ animationDelay: "500ms" }}
           >
-            <li className="flex items-center gap-1.5">
-              <MapPin className="size-3.5 text-electric" aria-hidden="true" />
-              Gran Mendoza
-            </li>
-            <li className="flex items-center gap-1.5">
-              <Clock className="size-3.5 text-electric" aria-hidden="true" />
-              {SERVICE_DAYS.short} {SERVICE_HOURS.open} – {SERVICE_HOURS.close}
-            </li>
-          </ul>
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-white/90">
+              <MapPin className="size-4 text-electric" aria-hidden="true" />
+              Lavamos en todo el Gran Mendoza
+            </p>
+            <ul
+              className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-white/60 md:justify-start"
+              aria-label="Departamentos con cobertura"
+            >
+              {COVERAGE_ZONES.map((zone, i) => (
+                <li key={zone} className="flex items-center gap-2">
+                  {i > 0 && (
+                    <span aria-hidden="true" className="text-white/30">
+                      {"·"}
+                    </span>
+                  )}
+                  {zone}
+                </li>
+              ))}
+            </ul>
+            <a
+              href={whatsappUrl("Hola MK Cars, ¿llegan a mi zona?")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-0.5 inline-flex min-h-8 items-center gap-1.5 text-xs font-medium text-electric transition-opacity hover:opacity-80"
+            >
+              <MessageCircle className="size-3.5" aria-hidden="true" />
+              ¿Otra zona? Consultanos
+            </a>
+          </div>
         </div>
 
         <div className="animate-fade-up" style={{ animationDelay: "350ms" }}>

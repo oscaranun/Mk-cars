@@ -1,7 +1,6 @@
 import { BeforeAfter } from "@/components/before-after"
 import { Benefits } from "@/components/benefits"
 import { Booking } from "@/components/booking"
-import { Coverage } from "@/components/coverage"
 import { Hero } from "@/components/hero"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
@@ -13,7 +12,6 @@ export default function Page() {
       <SiteHeader />
       <main>
         <Hero />
-        <Coverage />
         <Benefits />
         <BeforeAfter />
         <Booking />
