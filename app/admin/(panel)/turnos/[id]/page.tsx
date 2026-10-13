@@ -5,6 +5,8 @@ import { ArrowLeft, MessageCircle } from "lucide-react"
 import { completeAppointment, manageAppointment, reviewAppointmentVehicle } from "@/app/admin/(panel)/crm-actions"
 import { findConflicts } from "@/lib/admin/conflicts"
 import { ActionForm } from "@/components/admin/action-form"
+import { TestBookingDelete } from "@/components/admin/test-booking-delete"
+import { isTestClientName } from "@/lib/admin/test-booking"
 import {
   Badge,
   Card,
@@ -401,6 +403,10 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                 </ActionForm>
               )}
             </Card>
+          )}
+
+          {appt.clients && isTestClientName(appt.clients.full_name) && (
+            <TestBookingDelete supabase={supabase} clientId={appt.clients.id} />
           )}
         </div>
       </div>

@@ -7,6 +7,7 @@ import { findConflicts } from "@/lib/admin/conflicts"
 import { formatDateTime, isValidDate, isValidTime } from "@/lib/admin/format"
 import { PRICES_TAG, parsePrices } from "@/lib/prices"
 import { EDITABLE_INQUIRY_STATUSES } from "@/lib/admin/labels"
+import { TEST_CLIENT_PREFIX, getTestBookingSummary } from "@/lib/admin/test-booking"
 import { normalizeWhatsapp, toArgentinaTimestamp } from "@/lib/booking"
 
 export type ActionState = { ok: boolean; message: string | null }
@@ -143,6 +144,43 @@ export async function deleteInquiry(_prev: ActionState, data: FormData): Promise
   }
   if (!deleted?.length) return fail("La consulta no existe o no tenés permisos para eliminarla.")
   return done("Consulta eliminada.")
+}
+
+export async function deleteTestBooking(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const clientId = text(data, "client_id", 36)
+  if (!UUID_RE.test(clientId)) return fail("Cliente inválido.")
+
+  const { summary, error: summaryError } = await getTestBookingSummary(supabase, clientId)
+  if (!summary) return fail(summaryError ?? "No se pudo verificar la reserva de prueba.")
+  if (summary.conflicts.length) return fail(`No se eliminó nada: ${summary.conflicts.join(" ")}`)
+
+  // A single DELETE is atomic: its FK cascades only reach rows of this client, verified above.
+  const { data: deleted, error } = await supabase
+    .from("clients")
+    .delete()
+    .eq("id", clientId)
+    .ilike("full_name", `${TEST_CLIENT_PREFIX}%`)
+    .select("id")
+  if (error) return dbError(error, "No se pudo eliminar la reserva de prueba.")
+  if (!deleted?.length) return fail("La reserva de prueba no existe o no tenés permisos para eliminarla.")
+
+  // status_history has no FK to its entities, so its rows are removed explicitly afterwards.
+  if (summary.historyEntityIds.length) {
+    const { error: historyError } = await supabase
+      .from("status_history")
+      .delete()
+      .in("entity_id", summary.historyEntityIds)
+    if (historyError) {
+      console.error("[admin] test booking history:", historyError.code, historyError.message)
+      revalidatePath("/admin", "layout")
+      return fail("La reserva se eliminó, pero no su historial de estados. Volvé a intentarlo o avisá al soporte.")
+    }
+  }
+
+  return done(`Reserva de prueba ${summary.clientName} eliminada.`)
 }
 
 export async function manageAppointment(_prev: ActionState, data: FormData): Promise<ActionState> {

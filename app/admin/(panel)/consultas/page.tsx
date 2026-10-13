@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { deleteInquiry, updateInquiryStatus } from "@/app/admin/(panel)/crm-actions"
 import { ActionForm } from "@/components/admin/action-form"
+import { ConfirmAction } from "@/components/admin/confirm-action"
 import {
   Badge,
   Card,
@@ -10,7 +11,6 @@ import {
   FilterBar,
   PageHeader,
   TextLink,
-  dangerButtonClass,
   fieldClass,
   secondaryButtonClass,
 } from "@/components/admin/ui"
@@ -128,12 +128,13 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
                       {inq.notes && <p className="text-sm text-muted-foreground">{inq.notes}</p>}
                     </div>
 
+                    <div className="flex flex-col gap-2 md:max-w-sm md:items-end">
                     <ActionForm
                       action={updateInquiryStatus}
                       submitLabel="Guardar"
                       submitClassName={secondaryButtonClass}
                       inline
-                      className="md:max-w-sm md:justify-end"
+                      className="md:justify-end"
                     >
                       <input type="hidden" name="id" value={inq.id} />
                       <label htmlFor={`status-${inq.id}`} className="sr-only">
@@ -158,16 +159,14 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
                         ))}
                       </select>
                     </ActionForm>
-                    <ActionForm
+                    <ConfirmAction
                       action={deleteInquiry}
-                      submitLabel="Eliminar"
-                      submitClassName={dangerButtonClass}
-                      confirmText={`¿Eliminar definitivamente la consulta de ${inq.clients?.full_name ?? "este cliente"}? Esta acción no se puede deshacer.`}
-                      inline
-                      className="md:justify-end"
-                    >
-                      <input type="hidden" name="id" value={inq.id} />
-                    </ActionForm>
+                      fields={{ id: inq.id }}
+                      triggerLabel="Eliminar"
+                      title="Eliminar consulta"
+                      description="¿Está seguro de que desea eliminar esta consulta? Esta acción no se puede deshacer."
+                    />
+                    </div>
                   </div>
 
                   {log.length > 0 && (
