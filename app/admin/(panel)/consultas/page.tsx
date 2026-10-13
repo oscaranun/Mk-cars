@@ -30,6 +30,7 @@ type InquiryRow = {
   notes: string | null
   clients: { id: string; full_name: string; whatsapp: string } | null
   vehicles: { category: string; brand: string | null; model: string | null } | null
+  appointments: { id: string }[] | null
 }
 
 type HistoryRow = { entity_id: string; from_status: string | null; to_status: string; changed_at: string }
@@ -43,7 +44,7 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
 
   let query = supabase
     .from("inquiries")
-    .select("id, created_at, service, extras, source, commercial_status, notes, clients(id, full_name, whatsapp), vehicles(category, brand, model)")
+    .select("id, created_at, service, extras, source, commercial_status, notes, clients(id, full_name, whatsapp), vehicles(category, brand, model), appointments(id)")
     .gte("created_at", range.fromISO)
     .lt("created_at", range.toISO)
     .order("created_at", { ascending: false })
@@ -165,7 +166,23 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
                       triggerLabel="Eliminar"
                       title="Eliminar consulta"
                       description="¿Está seguro de que desea eliminar esta consulta? Esta acción no se puede deshacer."
-                    />
+                    >
+                      {inq.appointments?.length ? (
+                        <label className="flex items-start gap-3 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                          <input
+                            type="checkbox"
+                            name="with_appointments"
+                            required
+                            className="mt-0.5 size-4 shrink-0 accent-red-500"
+                          />
+                          <span>
+                            Esta consulta tiene{" "}
+                            {inq.appointments.length === 1 ? "un turno vinculado" : `${inq.appointments.length} turnos vinculados`}.
+                            Entiendo que también se eliminará{inq.appointments.length === 1 ? "" : "n"} junto con sus vehículos.
+                          </span>
+                        </label>
+                      ) : null}
+                    </ConfirmAction>
                     </div>
                   </div>
 

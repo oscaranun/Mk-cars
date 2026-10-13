@@ -126,15 +126,27 @@ export async function deleteInquiry(_prev: ActionState, data: FormData): Promise
   if (!UUID_RE.test(id)) return fail("Consulta inválida.")
 
   // appointments.inquiry_id is ON DELETE SET NULL: deleting would silently alter the linked turno.
-  const { count, error: refError } = await supabase
-    .from("appointments")
-    .select("id", { count: "exact", head: true })
-    .eq("inquiry_id", id)
+  const { data: linked, error: refError } = await supabase.from("appointments").select("id").eq("inquiry_id", id)
   if (refError) return dbError(refError, "No se pudo verificar la consulta.")
-  if (count) {
-    return fail(
-      `No se puede eliminar: la consulta tiene ${count === 1 ? "un turno vinculado" : `${count} turnos vinculados`}. Gestioná el turno desde Turnos.`,
-    )
+  const appointmentIds = (linked ?? []).map((a) => a.id as string)
+
+  if (appointmentIds.length) {
+    if (data.get("with_appointments") !== "on") {
+      return fail("La consulta tiene un turno vinculado. Marcá la casilla para eliminarlo junto con la consulta.")
+    }
+    // services.appointment_id has no cascade: a turno with registered work must be handled from Turnos.
+    const { count: serviceCount, error: serviceError } = await supabase
+      .from("services")
+      .select("id", { count: "exact", head: true })
+      .in("appointment_id", appointmentIds)
+    if (serviceError) return dbError(serviceError, "No se pudo verificar el turno vinculado.")
+    if (serviceCount) {
+      return fail("No se puede eliminar: el turno vinculado ya tiene un servicio registrado. Gestionalo desde Turnos.")
+    }
+
+    const { error: apptError } = await supabase.from("appointments").delete().in("id", appointmentIds)
+    if (apptError) return dbError(apptError, "No se pudo eliminar el turno vinculado.")
+    await supabase.from("status_history").delete().eq("entity", "appointment").in("entity_id", appointmentIds)
   }
 
   const { data: deleted, error } = await supabase.from("inquiries").delete().eq("id", id).select("id")
@@ -181,6 +193,23 @@ export async function deleteTestBooking(_prev: ActionState, data: FormData): Pro
   }
 
   return done(`Reserva de prueba ${summary.clientName} eliminada.`)
+}
+
+export async function deleteAppointmentPermanently(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const id = text(data, "id", 36)
+  if (!UUID_RE.test(id)) return fail("Turno inválido.")
+
+  // Single RPC = single transaction: everything is deleted or nothing is.
+  const { error } = await supabase.rpc("delete_appointment_permanently", { p_id: id, p_dry_run: false })
+  if (error) {
+    if (error.code === "P0001") return fail(error.message)
+    if (error.code === "42501") return fail("No tenés permisos para eliminar reservas.")
+    return dbError(error, "No se pudo eliminar la reserva. No se borró nada.")
+  }
+  return done("Reserva eliminada definitivamente.")
 }
 
 export async function manageAppointment(_prev: ActionState, data: FormData): Promise<ActionState> {
