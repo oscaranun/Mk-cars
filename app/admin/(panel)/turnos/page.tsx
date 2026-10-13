@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { updatePrices, updateSettings } from "@/app/admin/(panel)/crm-actions"
 import { parsePrices } from "@/lib/prices"
 import { ActionForm } from "@/components/admin/action-form"
+import { DeletedNotice } from "@/components/admin/deleted-notice"
 import {
   Badge,
   Card,
@@ -38,7 +39,7 @@ type ApptRow = {
   clients: { full_name: string; whatsapp: string } | null
 }
 
-type SearchParams = Promise<{ mes?: string; estado?: string }>
+type SearchParams = Promise<{ mes?: string; estado?: string; eliminada?: string }>
 
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/
@@ -108,6 +109,8 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
         description="La confirmación es manual: ningún turno se confirma solo."
         actions={<ExportLink entity="turnos" />}
       />
+
+      {params.eliminada === "1" && <DeletedNotice />}
 
       <Card className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
