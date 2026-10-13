@@ -29,7 +29,7 @@ export function Hero() {
           </p>
 
           <h1
-            className="animate-fade-up mt-5 text-balance text-[2.6rem] font-bold leading-[1.02] tracking-[-0.045em] sm:text-6xl md:text-7xl"
+            className="animate-fade-up mt-5 text-balance text-[1.82rem] font-bold leading-[1.02] tracking-[-0.045em] sm:text-[2.625rem] md:text-[3.15rem]"
             style={{ animationDelay: "200ms" }}
           >
             Tu auto impecable.
