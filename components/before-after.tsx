@@ -14,17 +14,17 @@ export function BeforeAfter() {
         />
 
         <Reveal className="mt-10 md:mt-14">
-          <div className="relative mx-auto aspect-[1312/816] max-w-4xl select-none overflow-hidden rounded-[2rem] bg-sky shadow-soft">
+          <div className="relative mx-auto aspect-[945/310] max-w-4xl select-none overflow-hidden rounded-2xl bg-sky shadow-soft md:rounded-[2rem]">
             <Image
-              src="/images/mercedes-before.jpg"
-              alt="Mercedes-Benz negro antes del lavado, con polvo y llantas sucias"
+              src="/images/suv-before.jpg"
+              alt="SUV negra antes del lavado, cubierta de barro y polvo"
               fill
               sizes="(min-width: 1024px) 896px, 100vw"
               className="object-cover"
             />
             <div className="wash-reveal absolute inset-0" aria-hidden="true">
               <Image
-                src="/images/mercedes-after.jpg"
+                src="/images/suv-after.jpg"
                 alt=""
                 fill
                 sizes="(min-width: 1024px) 896px, 100vw"
