@@ -16,6 +16,32 @@ function text(data: FormData, key: string, max: number) {
     .slice(0, max)
 }
 
+const MAX_VEHICLES = 10
+
+type VehicleInput = { category: string; brand: string; model: string }
+
+function parseVehicles(raw: string): VehicleInput[] | null {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return null
+  }
+  if (!Array.isArray(parsed) || parsed.length < 1 || parsed.length > MAX_VEHICLES) return null
+  const vehicles: VehicleInput[] = []
+  for (const item of parsed) {
+    if (!item || typeof item !== "object") return null
+    const { category, brand, model } = item as Record<string, unknown>
+    if (typeof category !== "string" || !VEHICLES.some((v) => v.id === category)) return null
+    vehicles.push({
+      category,
+      brand: typeof brand === "string" ? brand.trim().slice(0, 60) : "",
+      model: typeof model === "string" ? model.trim().slice(0, 60) : "",
+    })
+  }
+  return vehicles
+}
+
 export async function submitBooking(data: FormData): Promise<BookingResult> {
   if (text(data, "website", 200)) return { ok: true }
   const startedAt = Number(data.get("startedAt"))
@@ -26,9 +52,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
   const fullName = text(data, "name", 120)
   const whatsapp = normalizeWhatsapp(text(data, "phone", 30))
   const email = text(data, "email", 160).toLowerCase()
-  const category = text(data, "vehicle", 20)
-  const brand = text(data, "brand", 60)
-  const model = text(data, "model", 60)
+  const vehicles = parseVehicles(String(data.get("vehicles") ?? ""))
   const address = text(data, "address", 200)
   const date = text(data, "date", 10)
   const time = text(data, "time", 5)
@@ -44,8 +68,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
   }
   if (!whatsapp) return { ok: false, field: "phone", error: "Ingresá un WhatsApp válido con código de área." }
   if (email && !EMAIL_RE.test(email)) return { ok: false, field: "email", error: "Ingresá un correo electrónico válido." }
-  const vehicle = VEHICLES.find((v) => v.id === category)
-  if (!vehicle) return { ok: false, field: "vehicle", error: "Elegí el tipo de vehículo." }
+  if (!vehicles) return { ok: false, field: "vehicle", error: "Elegí el tipo de cada vehículo." }
   if (address.length < 5) return { ok: false, field: "address", error: "Ingresá la dirección del lavado." }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !TIME_SLOTS.includes(time)) {
     return { ok: false, field: "date", error: "Elegí fecha y horario." }
@@ -77,15 +100,16 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
     referrer: text(data, "referrer", 300) || headerList.get("referer"),
   })
 
-  const service = `Lavado a domicilio · ${vehicle.name}`
+  const service =
+    vehicles.length === 1
+      ? `Lavado a domicilio · ${VEHICLES.find((v) => v.id === vehicles[0].category)?.name}`
+      : `Lavado a domicilio · ${vehicles.length} vehículos`
   const { error } = await supabase.rpc("submit_booking", {
     payload: {
       full_name: fullName,
       whatsapp,
       email,
-      category: vehicle.id,
-      brand,
-      model,
+      vehicles,
       address,
       requested_start: requestedStart,
       service,
