@@ -266,19 +266,28 @@ export function Booking() {
               </div>
 
               <fieldset className="flex flex-col gap-3">
-                <legend className="mb-3 text-sm font-medium text-white">Lavado en detalle</legend>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {EXTRAS.map((extra) => (
-                    <label
-                      key={extra.id}
-                      className="flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 transition-colors has-[:checked]:border-primary has-[:checked]:bg-sky has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40"
-                    >
-                      <input type="checkbox" name="extras" value={extra.id} className="size-5 accent-primary" />
-                      <span className="flex-1 text-sm font-medium text-white">{extra.name}</span>
-                      <span className="text-xs text-muted-foreground">Consultar</span>
-                    </label>
-                  ))}
-                </div>
+  <legend className="sr-only">Lavado en detalle</legend>
+  <details className="group rounded-2xl border border-border bg-surface/60 open:bg-surface">
+  <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 text-sm font-medium text-primary transition hover:text-primary/80 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 [&::-webkit-details-marker]:hidden">
+  <span className="flex flex-col py-2">
+  Sumar lavado en detalle
+  <span className="text-xs font-normal text-muted-foreground">Tapizados y motor · Opcional</span>
+  </span>
+  <ChevronDown className="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+  </summary>
+  <div className="grid gap-3 px-4 pb-4 md:grid-cols-2">
+  {EXTRAS.map((extra) => (
+  <label
+  key={extra.id}
+  className="flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background/40 px-4 transition-colors has-[:checked]:border-primary has-[:checked]:bg-sky has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40"
+  >
+  <input type="checkbox" name="extras" value={extra.id} className="size-5 accent-primary" />
+  <span className="flex-1 text-sm font-medium text-white">{extra.name}</span>
+  <span className="text-xs text-muted-foreground">Consultar</span>
+  </label>
+  ))}
+  </div>
+  </details>
                 <label className="mt-1 flex cursor-pointer items-start gap-3 px-1">
                   <input type="checkbox" name="noWater" className="mt-0.5 size-4 accent-primary" />
                   <span className="flex flex-col">
