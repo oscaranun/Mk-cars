@@ -1,8 +1,8 @@
-import { ArrowUpRight, Sparkles } from "lucide-react"
+import { ArrowUpRight } from "lucide-react"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
 import { VehicleLineIcon } from "@/components/vehicle-line-icon"
-import { EXTRAS, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
+import { VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
 export function Services() {
@@ -65,21 +65,6 @@ export function Services() {
             )
           })}
         </ul>
-
-  <Reveal className="mt-6">
-          <p className="mb-3 text-sm font-medium text-muted-foreground">Servicios adicionales</p>
-          <ul className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-card md:max-w-xl">
-            {EXTRAS.map((extra) => (
-              <li key={extra.id} className="flex min-h-14 items-center justify-between gap-4 px-4">
-                <span className="flex items-center gap-3 text-sm font-medium">
-                  <Sparkles className="size-4 text-primary" aria-hidden="true" />
-                  {extra.name}
-                </span>
-                <span className="text-xs text-muted-foreground">Consultar precio</span>
-              </li>
-            ))}
-          </ul>
-        </Reveal>
       </div>
     </section>
   )
