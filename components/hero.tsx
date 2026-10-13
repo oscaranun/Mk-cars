@@ -1,5 +1,6 @@
 import Image from "next/image"
 import { ArrowRight, Clock, Droplets, MapPin } from "lucide-react"
+import { HowItWorks } from "@/components/how-it-works"
 import { SERVICE_DAYS, SERVICE_HOURS, VEHICLES, formatARS } from "@/lib/site"
 
 export function Hero() {
@@ -76,7 +77,8 @@ export function Hero() {
           </ul>
         </div>
 
-        <div className="animate-fade-up relative" style={{ animationDelay: "350ms" }}>
+        <div className="animate-fade-up" style={{ animationDelay: "350ms" }}>
+          <div className="relative">
           <div className="relative aspect-[762/460] overflow-hidden rounded-[1.75rem] bg-white/5 shadow-2xl shadow-black/40 ring-1 ring-white/10">
             <Image
               src="/images/mk-van.webp"
@@ -96,6 +98,11 @@ export function Hero() {
               <span className="text-[0.7rem] text-slate-500">Desde</span>
               <span className="text-sm font-bold tabular-nums">{formatARS(VEHICLES[0].price)}</span>
             </span>
+          </div>
+          </div>
+
+          <div className="mt-10">
+            <HowItWorks />
           </div>
         </div>
       </div>

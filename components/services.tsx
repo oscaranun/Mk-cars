@@ -1,4 +1,4 @@
-import { ArrowUpRight, Droplets, Sparkles } from "lucide-react"
+import { ArrowUpRight, Sparkles } from "lucide-react"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
 import { VehicleLineIcon } from "@/components/vehicle-line-icon"
@@ -66,16 +66,7 @@ export function Services() {
           })}
         </ul>
 
-        <Reveal className="mt-6">
-          <p className="flex items-start gap-2 text-sm text-muted-foreground md:max-w-xl">
-            <Droplets className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-            <span>
-              Usamos el agua de tu domicilio. ¿No tenés acceso a agua? MK puede llevarte agua.
-            </span>
-          </p>
-        </Reveal>
-
-        <Reveal className="mt-6">
+  <Reveal className="mt-6">
           <p className="mb-3 text-sm font-medium text-muted-foreground">Servicios adicionales</p>
           <ul className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-card md:max-w-xl">
             {EXTRAS.map((extra) => (
