@@ -41,6 +41,14 @@ type Appointment = {
   vehicles: { category: string; brand: string | null; model: string | null } | null
   inquiries: { notes: string | null } | null
   services: { id: string; performed_at: string; final_price: number; amount_paid: number }[]
+  appointment_vehicles: {
+    position: number
+    category: string | null
+    price_applied: number | null
+    classification: string | null
+    needs_review: boolean
+    vehicles: { category: string; brand: string | null; model: string | null } | null
+  }[]
 }
 
 type HistoryRow = { from_status: string | null; to_status: string; changed_at: string }
@@ -57,7 +65,8 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
         `id, service, extras, address, requested_start, confirmed_start, confirmed_at, duration_minutes, status, agreed_price,
          operator, water_supply, created_at,
          clients(id, full_name, whatsapp, email), vehicles(category, brand, model), inquiries(notes),
-         services(id, performed_at, final_price, amount_paid)`,
+         services(id, performed_at, final_price, amount_paid),
+         appointment_vehicles(position, category, price_applied, classification, needs_review, vehicles(category, brand, model))`,
       )
       .eq("id", id)
       .maybeSingle()
@@ -83,6 +92,9 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
   const vehicleLabel = appt.vehicles
     ? [VEHICLE_CATEGORY[appt.vehicles.category] ?? appt.vehicles.category, appt.vehicles.brand, appt.vehicles.model].filter(Boolean).join(" ")
     : "—"
+  const lineVehicles = [...(appt.appointment_vehicles ?? [])].sort((a, b) => a.position - b.position)
+  const lineTotal = lineVehicles.reduce((sum, v) => sum + (v.price_applied ?? 0), 0)
+  const reviewCount = lineVehicles.filter((v) => v.needs_review).length
 
   return (
     <>
@@ -140,6 +152,40 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
               <span className="tabular-nums">{formatDateTime(appt.created_at)}</span>
             </DetailRow>
           </dl>
+          {lineVehicles.length > 0 && (
+            <div className="flex flex-col gap-2 border-t border-border pt-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-medium">{`Vehículos (${lineVehicles.length})`}</h3>
+                {reviewCount > 0 && <Badge tone="warning">{`${reviewCount} a revisar`}</Badge>}
+              </div>
+              <ul className="flex flex-col gap-1.5 text-sm">
+                {lineVehicles.map((v) => {
+                  const category = v.category ?? v.vehicles?.category ?? ""
+                  const name = [v.vehicles?.brand, v.vehicles?.model].filter(Boolean).join(" ") || "Sin marca/modelo"
+                  return (
+                    <li key={v.position} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                      <span>
+                        {`${v.position}. ${name} · ${VEHICLE_CATEGORY[category] ?? category}`}
+                        <span className="text-muted-foreground">
+                          {v.classification === "catalogo" ? " · automática" : v.classification === "manual" ? " · manual" : ""}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-2 tabular-nums">
+                        {v.needs_review && <Badge tone="warning">Revisar</Badge>}
+                        {v.price_applied != null ? money(v.price_applied) : "—"}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+              {lineTotal > 0 && (
+                <p className="text-sm text-muted-foreground tabular-nums">
+                  Total estimado <span className="font-medium text-foreground">{money(lineTotal)}</span>
+                </p>
+              )}
+            </div>
+          )}
+
           {appt.inquiries?.notes && (
             <div className="rounded-2xl bg-surface p-4 text-sm">
               <p className="mb-1 text-xs text-muted-foreground">Comentarios del cliente</p>

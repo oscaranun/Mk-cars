@@ -18,7 +18,9 @@ function text(data: FormData, key: string, max: number) {
 
 const MAX_VEHICLES = 10
 
-type VehicleInput = { category: string; brand: string; model: string }
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+type VehicleInput = { category: string; brand: string; model: string; catalog_id: string | null }
 
 function parseVehicles(raw: string): VehicleInput[] | null {
   let parsed: unknown
@@ -31,10 +33,11 @@ function parseVehicles(raw: string): VehicleInput[] | null {
   const vehicles: VehicleInput[] = []
   for (const item of parsed) {
     if (!item || typeof item !== "object") return null
-    const { category, brand, model } = item as Record<string, unknown>
+    const { category, brand, model, catalog_id } = item as Record<string, unknown>
     if (typeof category !== "string" || !VEHICLES.some((v) => v.id === category)) return null
     vehicles.push({
       category,
+      catalog_id: typeof catalog_id === "string" && UUID_RE.test(catalog_id) ? catalog_id : null,
       brand: typeof brand === "string" ? brand.trim().slice(0, 60) : "",
       model: typeof model === "string" ? model.trim().slice(0, 60) : "",
     })
