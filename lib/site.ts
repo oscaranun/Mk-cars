@@ -26,20 +26,17 @@ export const VEHICLES = [
   {
     id: "auto",
     name: "Auto",
-    detail: "Hatchback, sedán y coupé",
-    price: 25000,
+  detail: "Hatchback, sedán y coupé",
   },
   {
     id: "suv",
     name: "SUV",
-    detail: "SUV y crossover",
-    price: 30000,
+  detail: "SUV y crossover",
   },
   {
     id: "pickup",
     name: "Pick-up",
-    detail: "Pick-up y utilitarios",
-    price: 35000,
+  detail: "Pick-up y utilitarios",
   },
 ] as const
 

@@ -10,6 +10,7 @@ import { BookingVehicles, emptyVehicle, type BookingVehicle } from "@/components
 import { ServiceIncludes } from "@/components/service-includes"
 import { WhatsAppIcon } from "@/components/whatsapp-icon"
 import { EXTRAS, SERVICE_DAYS, TIME_SLOTS, VEHICLES, whatsappUrl } from "@/lib/site"
+import type { VehiclePrices } from "@/lib/prices"
 import { cn } from "@/lib/utils"
 
 const fieldClass =
@@ -36,7 +37,7 @@ function vehicleDetail(v: BookingVehicle) {
   return { brand: "", model: v.query.trim() }
 }
 
-export function Booking() {
+export function Booking({ prices }: { prices: VehiclePrices | null }) {
   const [vehicles, setVehicles] = useState<BookingVehicle[]>([emptyVehicle(0)])
   const [error, setError] = useState<string | null>(null)
   const [whatsappMessage, setWhatsappMessage] = useState<string | null>(null)
@@ -268,7 +269,7 @@ export function Booking() {
                     Agregá todos los autos que quieras lavar en el mismo turno.
                   </p>
                 </div>
-                <BookingVehicles vehicles={vehicles} onChange={setVehicles} onAdd={addVehicle} />
+                <BookingVehicles vehicles={vehicles} prices={prices} onChange={setVehicles} onAdd={addVehicle} />
             <ServiceIncludes />
               </div>
 

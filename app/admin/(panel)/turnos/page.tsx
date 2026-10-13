@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { updateSettings } from "@/app/admin/(panel)/crm-actions"
+import { updatePrices, updateSettings } from "@/app/admin/(panel)/crm-actions"
+import { parsePrices } from "@/lib/prices"
 import { ActionForm } from "@/components/admin/action-form"
 import {
   Badge,
@@ -21,7 +22,7 @@ import {
 } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
 import { addDays, argentinaParts, formatDateTime, formatTime, startOfArgentinaDay, todayArgentina } from "@/lib/admin/format"
-import { APPOINTMENT_STATUS, appointmentTone } from "@/lib/admin/labels"
+import { APPOINTMENT_STATUS, VEHICLE_CATEGORY, appointmentTone } from "@/lib/admin/labels"
 import { cn } from "@/lib/utils"
 
 export const metadata: Metadata = { title: "Turnos" }
@@ -78,8 +79,9 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
       )
       .returns<ApptRow[]>(),
     listQuery.returns<ApptRow[]>(),
-    supabase.from("settings").select("operational_capacity, default_duration_minutes").eq("id", 1).maybeSingle(),
+    supabase.from("settings").select("operational_capacity, default_duration_minutes, vehicle_prices").eq("id", 1).maybeSingle(),
   ])
+  const prices = parsePrices(settings.data?.vehicle_prices)
 
   const byDay = new Map<string, ApptRow[]>()
   for (const a of calendar.data ?? []) {
@@ -258,6 +260,34 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
             />
           </Field>
         </ActionForm>
+      </Card>
+
+      <Card className="flex flex-col gap-4">
+        <SectionTitle>Precios por tipo de vehículo</SectionTitle>
+        <p className="text-sm text-muted-foreground text-pretty">
+          Única fuente de precios: la web y las nuevas reservas usan estos valores. Los turnos ya cargados conservan el precio aplicado.
+        </p>
+        {prices ? (
+          <ActionForm action={updatePrices} submitLabel="Guardar precios" inline>
+            {(["auto", "suv", "pickup"] as const).map((key) => (
+              <Field key={key} label={VEHICLE_CATEGORY[key] ?? key} htmlFor={`price_${key}`} className="w-40">
+                <input
+                  id={`price_${key}`}
+                  name={`price_${key}`}
+                  type="number"
+                  min={1}
+                  max={10_000_000}
+                  step={500}
+                  required
+                  defaultValue={prices[key]}
+                  className={`${fieldClass} tabular-nums`}
+                />
+              </Field>
+            ))}
+          </ActionForm>
+        ) : (
+          <p className="text-sm text-destructive">No se pudieron leer los precios configurados.</p>
+        )}
       </Card>
     </>
   )

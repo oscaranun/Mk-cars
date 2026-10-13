@@ -1,9 +1,11 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { revalidatePath, revalidateTag } from "next/cache"
 import type { PostgrestError } from "@supabase/supabase-js"
 import { getAdminClient } from "@/lib/admin/auth"
-import { isValidDate, isValidTime } from "@/lib/admin/format"
+import { findConflicts } from "@/lib/admin/conflicts"
+import { formatDateTime, isValidDate, isValidTime } from "@/lib/admin/format"
+import { PRICES_TAG, parsePrices } from "@/lib/prices"
 import { EDITABLE_INQUIRY_STATUSES } from "@/lib/admin/labels"
 import { normalizeWhatsapp, toArgentinaTimestamp } from "@/lib/booking"
 
@@ -169,6 +171,23 @@ export async function manageAppointment(_prev: ActionState, data: FormData): Pro
     const p = money(data, "agreed_price", false)
     if (p === "invalid") return fail("El precio acordado no es válido.")
     price = p
+
+    let effectiveDuration = duration
+    if (effectiveDuration == null) {
+      const { data: current } = await supabase.from("appointments").select("duration_minutes").eq("id", id).maybeSingle()
+      effectiveDuration = current?.duration_minutes ?? 60
+    }
+    const check = await findConflicts(supabase, { id, start: start!, durationMinutes: effectiveDuration! })
+    if (!check) return fail("No se pudo verificar la disponibilidad. Probá de nuevo.")
+    if (check.conflicts.length >= check.capacity) {
+      const list = check.conflicts
+        .map((c) => `${formatDateTime(c.confirmed_start)} (${c.duration_minutes} min${c.clientName ? `, ${c.clientName}` : ""})`)
+        .join("; ")
+      const travel = check.travelMinutes ? ` más ${check.travelMinutes} min de traslado` : ""
+      return fail(
+        `Horario ocupado: se superpone${travel} con ${list}. No se confirmó. Elegí otro horario o reprogramá la solicitud.`,
+      )
+    }
   }
 
   const { error } = await supabase.rpc("manage_appointment", {
@@ -265,4 +284,63 @@ export async function updateSettings(_prev: ActionState, data: FormData): Promis
     .eq("id", 1)
   if (error) return dbError(error, "No se pudo guardar la configuración.")
   return done("Configuración guardada.")
+}
+
+export async function updatePrices(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const prices = parsePrices({
+    auto: text(data, "price_auto", 9).replace(/\./g, ""),
+    suv: text(data, "price_suv", 9).replace(/\./g, ""),
+    pickup: text(data, "price_pickup", 9).replace(/\./g, ""),
+  })
+  if (!prices) return fail("Los precios deben ser números enteros mayores a cero.")
+
+  const { error } = await supabase
+    .from("settings")
+    .update({ vehicle_prices: prices, updated_at: new Date().toISOString() })
+    .eq("id", 1)
+  if (error) return dbError(error, "No se pudieron guardar los precios.")
+  revalidateTag(PRICES_TAG, "max")
+  revalidatePath("/")
+  return done("Precios guardados. La web los muestra en el próximo minuto.")
+}
+
+/** Operator-verified category: re-prices the line from settings and clears the review flag. */
+export async function reviewAppointmentVehicle(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const appointmentId = text(data, "appointment_id", 36)
+  const position = Number(text(data, "position", 2))
+  const category = text(data, "category", 10)
+  if (!UUID_RE.test(appointmentId)) return fail("Turno inválido.")
+  if (!Number.isInteger(position) || position < 1 || position > 10) return fail("Vehículo inválido.")
+  if (!["auto", "suv", "pickup"].includes(category)) return fail("Elegí el tipo de vehículo.")
+
+  const [{ data: appt }, { data: settings }] = await Promise.all([
+    supabase.from("appointments").select("status").eq("id", appointmentId).maybeSingle(),
+    supabase.from("settings").select("vehicle_prices").eq("id", 1).maybeSingle(),
+  ])
+  if (!appt) return fail("Turno inexistente.")
+  if (!["solicitado", "reprogramado", "confirmado"].includes(appt.status)) {
+    return fail("Este turno ya no admite cambios de vehículo.")
+  }
+  const prices = parsePrices(settings?.vehicle_prices)
+  if (!prices) return fail("No se pudieron leer los precios. No se guardó el cambio.")
+
+  const { data: line, error } = await supabase
+    .from("appointment_vehicles")
+    .update({ category, price_applied: prices[category as keyof typeof prices], needs_review: false })
+    .eq("appointment_id", appointmentId)
+    .eq("position", position)
+    .select("vehicle_id")
+    .maybeSingle()
+  if (error) return dbError(error, "No se pudo guardar la categoría.")
+  if (!line) return fail("Vehículo no encontrado en el turno.")
+
+  const { error: vehicleError } = await supabase.from("vehicles").update({ category }).eq("id", line.vehicle_id)
+  if (vehicleError) return dbError(vehicleError, "Se actualizó el turno pero no la ficha del vehículo.")
+  return done("Categoría verificada.")
 }

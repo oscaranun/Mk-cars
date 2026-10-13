@@ -1,9 +1,9 @@
 import Image from "next/image"
 import { ArrowRight, Droplets, MapPin, MessageCircle } from "lucide-react"
 import { HowItWorks } from "@/components/how-it-works"
-import { COVERAGE_ZONES, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
+import { COVERAGE_ZONES, formatARS, whatsappUrl } from "@/lib/site"
 
-export function Hero() {
+export function Hero({ fromPrice }: { fromPrice: number | null }) {
   return (
     <section
       id="inicio"
@@ -118,6 +118,7 @@ export function Hero() {
         </div>
       </div>
 
+      {fromPrice != null && (
       <p
         className="animate-fade-up mx-auto mt-12 flex w-fit items-center gap-4 px-5 text-electric md:mt-16"
         style={{ animationDelay: "600ms" }}
@@ -125,9 +126,10 @@ export function Hero() {
         <Droplets className="size-8" aria-hidden="true" />
         <span className="flex flex-col leading-tight">
           <span className="text-lg font-medium">Desde</span>
-          <span className="text-3xl font-bold tabular-nums">{formatARS(VEHICLES[0].price)}</span>
+          <span className="text-3xl font-bold tabular-nums">{formatARS(fromPrice)}</span>
         </span>
       </p>
+      )}
     </section>
   )
 }

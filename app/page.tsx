@@ -5,16 +5,20 @@ import { Hero } from "@/components/hero"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { WhatsAppFloat } from "@/components/whatsapp-float"
+import { getVehiclePrices } from "@/lib/prices"
 
-export default function Page() {
+export const revalidate = 60
+
+export default async function Page() {
+  const prices = await getVehiclePrices()
   return (
     <>
       <SiteHeader />
       <main>
-        <Hero />
+        <Hero fromPrice={prices ? Math.min(prices.auto, prices.suv, prices.pickup) : null} />
         <Benefits />
         <BeforeAfter />
-        <Booking />
+        <Booking prices={prices} />
       </main>
       <SiteFooter />
       <WhatsAppFloat />

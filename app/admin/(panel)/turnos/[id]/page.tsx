@@ -2,7 +2,8 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, MessageCircle } from "lucide-react"
-import { completeAppointment, manageAppointment } from "@/app/admin/(panel)/crm-actions"
+import { completeAppointment, manageAppointment, reviewAppointmentVehicle } from "@/app/admin/(panel)/crm-actions"
+import { findConflicts } from "@/lib/admin/conflicts"
 import { ActionForm } from "@/components/admin/action-form"
 import {
   Badge,
@@ -95,6 +96,9 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
   const lineVehicles = [...(appt.appointment_vehicles ?? [])].sort((a, b) => a.position - b.position)
   const lineTotal = lineVehicles.reduce((sum, v) => sum + (v.price_applied ?? 0), 0)
   const reviewCount = lineVehicles.filter((v) => v.needs_review).length
+  const conflictCheck = pending
+    ? await findConflicts(supabase, { id: appt.id, start, durationMinutes: appt.duration_minutes })
+    : null
 
   return (
     <>
@@ -174,6 +178,28 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                         {v.needs_review && <Badge tone="warning">Revisar</Badge>}
                         {v.price_applied != null ? money(v.price_applied) : "—"}
                       </span>
+                      {canReschedule && (
+                        <div className="w-full">
+                          <ActionForm
+                            action={reviewAppointmentVehicle}
+                            submitLabel={v.needs_review ? "Verificar" : "Cambiar"}
+                            submitClassName={secondaryButtonClass}
+                            inline
+                          >
+                            <input type="hidden" name="appointment_id" value={appt.id} />
+                            <input type="hidden" name="position" value={v.position} />
+                            <Field label={`Tipo del vehículo ${v.position}`} htmlFor={`review-${v.position}`} className="w-44">
+                              <select id={`review-${v.position}`} name="category" required defaultValue={category} className={fieldClass}>
+                                {Object.entries(VEHICLE_CATEGORY).map(([value, label]) => (
+                                  <option key={value} value={value}>
+                                    {label}
+                                  </option>
+                                ))}
+                              </select>
+                            </Field>
+                          </ActionForm>
+                        </div>
+                      )}
                     </li>
                   )
                 })}
@@ -219,6 +245,31 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                 Ajustá el horario si lo acordaste distinto con el cliente. Se valida el horario de atención y que no se superponga con otros
                 turnos confirmados.
               </p>
+              {conflictCheck && conflictCheck.conflicts.length > 0 && (
+                <div
+                  role="status"
+                  className={`rounded-2xl p-4 text-sm ${conflictCheck.conflicts.length >= conflictCheck.capacity ? "bg-destructive/10 text-destructive" : "bg-surface"}`}
+                >
+                  <p className="font-medium">
+                    {conflictCheck.conflicts.length >= conflictCheck.capacity
+                      ? "El horario solicitado está ocupado. No se va a poder confirmar así."
+                      : "Hay turnos confirmados en ese horario, pero la capacidad todavía lo permite."}
+                  </p>
+                  <ul className="mt-1 flex flex-col gap-0.5 tabular-nums">
+                    {conflictCheck.conflicts.map((c) => (
+                      <li key={c.id}>
+                        <TextLink href={`/admin/turnos/${c.id}`}>{formatDateTime(c.confirmed_start)}</TextLink>
+                        {` · ${c.duration_minutes} min${c.clientName ? ` · ${c.clientName}` : ""}${c.operator ? ` · ${c.operator}` : ""}`}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {reviewCount > 0 && (
+                <p className="rounded-2xl bg-surface p-4 text-sm">
+                  {`Hay ${reviewCount} vehículo(s) con categoría a revisar. Verificalos antes de confirmar para que el precio sea correcto.`}
+                </p>
+              )}
               <ActionForm action={manageAppointment} submitLabel="Confirmar turno">
                 <input type="hidden" name="id" value={appt.id} />
                 <input type="hidden" name="action" value="confirm" />

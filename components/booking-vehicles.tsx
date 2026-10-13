@@ -7,6 +7,7 @@ import { VehicleLineIcon } from "@/components/vehicle-line-icon"
 import { VehicleSearch } from "@/components/vehicle-search"
 import { VEHICLES, formatARS } from "@/lib/site"
 import type { CatalogEntry } from "@/lib/vehicle-catalog"
+import type { VehiclePrices } from "@/lib/prices"
 import { cn } from "@/lib/utils"
 
 export const MAX_VEHICLES = 10
@@ -51,6 +52,7 @@ function VehicleCard({
   item,
   index,
   removable,
+  prices,
   catalog,
   loading,
   onActivate,
@@ -60,6 +62,7 @@ function VehicleCard({
   item: BookingVehicle
   index: number
   removable: boolean
+  prices: VehiclePrices | null
   catalog: CatalogEntry[] | undefined
   loading: boolean
   onActivate: () => void
@@ -222,10 +225,14 @@ function VehicleCard({
                 <span className="flex h-6 items-center">
                   <VehicleLineIcon id={v.id} width={v.id === "pickup" ? 64 : 52} />
                 </span>
-                <span className="sr-only">desde</span>
-                <span className={cn("text-sm font-semibold tabular-nums", checked ? "text-primary" : "text-white")}>
-                  {formatARS(v.price)}
-                </span>
+                {prices && (
+                  <>
+                    <span className="sr-only">desde</span>
+                    <span className={cn("text-sm font-semibold tabular-nums", checked ? "text-primary" : "text-white")}>
+                      {formatARS(prices[v.id])}
+                    </span>
+                  </>
+                )}
                 <span className={cn("-mt-1 text-xs font-medium", checked ? "text-primary" : "text-white/70")}>
                   {v.id === "pickup" ? "Pick Up" : v.name}
                 </span>
@@ -256,10 +263,12 @@ function VehicleCard({
 
 export function BookingVehicles({
   vehicles,
+  prices,
   onChange,
   onAdd,
 }: {
   vehicles: BookingVehicle[]
+  prices: VehiclePrices | null
   onChange: (vehicles: BookingVehicle[]) => void
   onAdd: () => void
 }) {
@@ -269,7 +278,9 @@ export function BookingVehicles({
     revalidateIfStale: false,
   })
 
-  const total = vehicles.reduce((sum, v) => sum + (VEHICLES.find((x) => x.id === v.category)?.price ?? 0), 0)
+  const total = prices
+    ? vehicles.reduce((sum, v) => sum + (prices[v.category as keyof VehiclePrices] ?? 0), 0)
+    : 0
   const complete = vehicles.every((v) => v.category)
 
   return (
@@ -281,6 +292,7 @@ export function BookingVehicles({
             item={item}
             index={index}
             removable={vehicles.length > 1}
+            prices={prices}
             catalog={catalog}
             loading={loadCatalog && isLoading}
             onActivate={() => setLoadCatalog(true)}
@@ -302,6 +314,11 @@ export function BookingVehicles({
           </button>
         ) : (
           <p className="text-sm text-muted-foreground">{`Máximo ${MAX_VEHICLES} vehículos por reserva.`}</p>
+        )}
+        {!prices && (
+          <p className="text-sm text-muted-foreground">
+            Precios no disponibles en este momento. Te confirmamos el importe por WhatsApp.
+          </p>
         )}
         {total > 0 && (
           <p className="text-sm text-muted-foreground" aria-live="polite">
