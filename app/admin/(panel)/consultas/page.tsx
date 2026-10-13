@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { updateInquiryStatus } from "@/app/admin/(panel)/crm-actions"
+import { deleteInquiry, updateInquiryStatus } from "@/app/admin/(panel)/crm-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import {
   Badge,
@@ -10,6 +10,7 @@ import {
   FilterBar,
   PageHeader,
   TextLink,
+  dangerButtonClass,
   fieldClass,
   secondaryButtonClass,
 } from "@/components/admin/ui"
@@ -156,6 +157,16 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
                           </option>
                         ))}
                       </select>
+                    </ActionForm>
+                    <ActionForm
+                      action={deleteInquiry}
+                      submitLabel="Eliminar"
+                      submitClassName={dangerButtonClass}
+                      confirmText={`¿Eliminar definitivamente la consulta de ${inq.clients?.full_name ?? "este cliente"}? Esta acción no se puede deshacer.`}
+                      inline
+                      className="md:justify-end"
+                    >
+                      <input type="hidden" name="id" value={inq.id} />
                     </ActionForm>
                   </div>
 

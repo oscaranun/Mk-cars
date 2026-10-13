@@ -6,10 +6,11 @@ import { ArrowRight, CheckCircle2, ChevronDown, Loader2 } from "lucide-react"
 import { submitBooking } from "@/app/actions/booking"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
-import { BookingVehicles, type BookingVehicle } from "@/components/booking-vehicles"
+import { BookingVehicles, emptyVehicle, type BookingVehicle } from "@/components/booking-vehicles"
 import { ServiceIncludes } from "@/components/service-includes"
 import { WhatsAppIcon } from "@/components/whatsapp-icon"
 import { EXTRAS, SERVICE_DAYS, TIME_SLOTS, VEHICLES, whatsappUrl } from "@/lib/site"
+import type { VehiclePrices } from "@/lib/prices"
 import { cn } from "@/lib/utils"
 
 const fieldClass =
@@ -31,9 +32,12 @@ function isSunday(iso: string) {
   return new Date(y, m - 1, d).getDay() === 0
 }
 
-const emptyVehicle = (key: number): BookingVehicle => ({ key, category: "", brand: "", model: "" })
+function vehicleDetail(v: BookingVehicle) {
+  if (v.catalogId || v.mode === "manual") return { brand: v.brand.trim(), model: v.model.trim() }
+  return { brand: "", model: v.query.trim() }
+}
 
-export function Booking() {
+export function Booking({ prices }: { prices: VehiclePrices | null }) {
   const [vehicles, setVehicles] = useState<BookingVehicle[]>([emptyVehicle(0)])
   const [error, setError] = useState<string | null>(null)
   const [whatsappMessage, setWhatsappMessage] = useState<string | null>(null)
@@ -43,7 +47,10 @@ export function Booking() {
 
   function addVehicle() {
     const last = vehicles[vehicles.length - 1]
-    setVehicles([...vehicles, { ...emptyVehicle(nextKey.current++), category: last?.category ?? "" }])
+    setVehicles([
+      ...vehicles,
+      { ...emptyVehicle(nextKey.current++), category: last && !last.lockedCategory ? last.category : "" },
+    ])
   }
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -87,12 +94,13 @@ export function Booking() {
     data.set("referrer", document.referrer)
     data.set(
       "vehicles",
-      JSON.stringify(vehicles.map(({ category, brand, model }) => ({ category, brand: brand.trim(), model: model.trim() }))),
+      JSON.stringify(vehicles.map((v) => ({ category: v.category, catalog_id: v.catalogId, ...vehicleDetail(v) }))),
     )
 
     const vehicleLines = vehicles.map((v, i) => {
       const type = VEHICLES.find((x) => x.id === v.category)?.name ?? v.category
-      const detail = [v.brand.trim(), v.model.trim()].filter(Boolean).join(" ")
+      const { brand, model } = vehicleDetail(v)
+      const detail = [brand, model].filter(Boolean).join(" ")
       return `${vehicles.length > 1 ? `${i + 1}. ` : ""}${type}${detail ? ` (${detail})` : ""}`
     })
 
@@ -261,7 +269,7 @@ export function Booking() {
                     Agregá todos los autos que quieras lavar en el mismo turno.
                   </p>
                 </div>
-                <BookingVehicles vehicles={vehicles} onChange={setVehicles} onAdd={addVehicle} />
+                <BookingVehicles vehicles={vehicles} prices={prices} onChange={setVehicles} onAdd={addVehicle} />
             <ServiceIncludes />
               </div>
 

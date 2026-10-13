@@ -2,7 +2,8 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, MessageCircle } from "lucide-react"
-import { completeAppointment, manageAppointment } from "@/app/admin/(panel)/crm-actions"
+import { completeAppointment, manageAppointment, reviewAppointmentVehicle } from "@/app/admin/(panel)/crm-actions"
+import { findConflicts } from "@/lib/admin/conflicts"
 import { ActionForm } from "@/components/admin/action-form"
 import {
   Badge,
@@ -41,6 +42,14 @@ type Appointment = {
   vehicles: { category: string; brand: string | null; model: string | null } | null
   inquiries: { notes: string | null } | null
   services: { id: string; performed_at: string; final_price: number; amount_paid: number }[]
+  appointment_vehicles: {
+    position: number
+    category: string | null
+    price_applied: number | null
+    classification: string | null
+    needs_review: boolean
+    vehicles: { category: string; brand: string | null; model: string | null } | null
+  }[]
 }
 
 type HistoryRow = { from_status: string | null; to_status: string; changed_at: string }
@@ -57,7 +66,8 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
         `id, service, extras, address, requested_start, confirmed_start, confirmed_at, duration_minutes, status, agreed_price,
          operator, water_supply, created_at,
          clients(id, full_name, whatsapp, email), vehicles(category, brand, model), inquiries(notes),
-         services(id, performed_at, final_price, amount_paid)`,
+         services(id, performed_at, final_price, amount_paid),
+         appointment_vehicles(position, category, price_applied, classification, needs_review, vehicles(category, brand, model))`,
       )
       .eq("id", id)
       .maybeSingle()
@@ -83,6 +93,12 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
   const vehicleLabel = appt.vehicles
     ? [VEHICLE_CATEGORY[appt.vehicles.category] ?? appt.vehicles.category, appt.vehicles.brand, appt.vehicles.model].filter(Boolean).join(" ")
     : "—"
+  const lineVehicles = [...(appt.appointment_vehicles ?? [])].sort((a, b) => a.position - b.position)
+  const lineTotal = lineVehicles.reduce((sum, v) => sum + (v.price_applied ?? 0), 0)
+  const reviewCount = lineVehicles.filter((v) => v.needs_review).length
+  const conflictCheck = pending
+    ? await findConflicts(supabase, { id: appt.id, start, durationMinutes: appt.duration_minutes })
+    : null
 
   return (
     <>
@@ -140,6 +156,62 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
               <span className="tabular-nums">{formatDateTime(appt.created_at)}</span>
             </DetailRow>
           </dl>
+          {lineVehicles.length > 0 && (
+            <div className="flex flex-col gap-2 border-t border-border pt-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-medium">{`Vehículos (${lineVehicles.length})`}</h3>
+                {reviewCount > 0 && <Badge tone="warning">{`${reviewCount} a revisar`}</Badge>}
+              </div>
+              <ul className="flex flex-col gap-1.5 text-sm">
+                {lineVehicles.map((v) => {
+                  const category = v.category ?? v.vehicles?.category ?? ""
+                  const name = [v.vehicles?.brand, v.vehicles?.model].filter(Boolean).join(" ") || "Sin marca/modelo"
+                  return (
+                    <li key={v.position} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                      <span>
+                        {`${v.position}. ${name} · ${VEHICLE_CATEGORY[category] ?? category}`}
+                        <span className="text-muted-foreground">
+                          {v.classification === "catalogo" ? " · automática" : v.classification === "manual" ? " · manual" : ""}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-2 tabular-nums">
+                        {v.needs_review && <Badge tone="warning">Revisar</Badge>}
+                        {v.price_applied != null ? money(v.price_applied) : "—"}
+                      </span>
+                      {canReschedule && (
+                        <div className="w-full">
+                          <ActionForm
+                            action={reviewAppointmentVehicle}
+                            submitLabel={v.needs_review ? "Verificar" : "Cambiar"}
+                            submitClassName={secondaryButtonClass}
+                            inline
+                          >
+                            <input type="hidden" name="appointment_id" value={appt.id} />
+                            <input type="hidden" name="position" value={v.position} />
+                            <Field label={`Tipo del vehículo ${v.position}`} htmlFor={`review-${v.position}`} className="w-44">
+                              <select id={`review-${v.position}`} name="category" required defaultValue={category} className={fieldClass}>
+                                {Object.entries(VEHICLE_CATEGORY).map(([value, label]) => (
+                                  <option key={value} value={value}>
+                                    {label}
+                                  </option>
+                                ))}
+                              </select>
+                            </Field>
+                          </ActionForm>
+                        </div>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+              {lineTotal > 0 && (
+                <p className="text-sm text-muted-foreground tabular-nums">
+                  Total estimado <span className="font-medium text-foreground">{money(lineTotal)}</span>
+                </p>
+              )}
+            </div>
+          )}
+
           {appt.inquiries?.notes && (
             <div className="rounded-2xl bg-surface p-4 text-sm">
               <p className="mb-1 text-xs text-muted-foreground">Comentarios del cliente</p>
@@ -173,6 +245,31 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                 Ajustá el horario si lo acordaste distinto con el cliente. Se valida el horario de atención y que no se superponga con otros
                 turnos confirmados.
               </p>
+              {conflictCheck && conflictCheck.conflicts.length > 0 && (
+                <div
+                  role="status"
+                  className={`rounded-2xl p-4 text-sm ${conflictCheck.conflicts.length >= conflictCheck.capacity ? "bg-destructive/10 text-destructive" : "bg-surface"}`}
+                >
+                  <p className="font-medium">
+                    {conflictCheck.conflicts.length >= conflictCheck.capacity
+                      ? "El horario solicitado está ocupado. No se va a poder confirmar así."
+                      : "Hay turnos confirmados en ese horario, pero la capacidad todavía lo permite."}
+                  </p>
+                  <ul className="mt-1 flex flex-col gap-0.5 tabular-nums">
+                    {conflictCheck.conflicts.map((c) => (
+                      <li key={c.id}>
+                        <TextLink href={`/admin/turnos/${c.id}`}>{formatDateTime(c.confirmed_start)}</TextLink>
+                        {` · ${c.duration_minutes} min${c.clientName ? ` · ${c.clientName}` : ""}${c.operator ? ` · ${c.operator}` : ""}`}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {reviewCount > 0 && (
+                <p className="rounded-2xl bg-surface p-4 text-sm">
+                  {`Hay ${reviewCount} vehículo(s) con categoría a revisar. Verificalos antes de confirmar para que el precio sea correcto.`}
+                </p>
+              )}
               <ActionForm action={manageAppointment} submitLabel="Confirmar turno">
                 <input type="hidden" name="id" value={appt.id} />
                 <input type="hidden" name="action" value="confirm" />
