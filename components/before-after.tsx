@@ -14,12 +14,12 @@ export function BeforeAfter() {
         />
 
         <Reveal className="mt-10 md:mt-14">
-          <div className="relative mx-auto aspect-[945/310] max-w-4xl select-none overflow-hidden rounded-2xl bg-sky shadow-soft md:rounded-[2rem]">
+          <div className="relative aspect-[945/310] w-full select-none overflow-hidden rounded-2xl bg-sky shadow-soft md:rounded-[2rem]">
             <Image
               src="/images/suv-before.jpg"
               alt="SUV negra antes del lavado, cubierta de barro y polvo"
               fill
-              sizes="(min-width: 1024px) 896px, 100vw"
+              sizes="(min-width: 1152px) 1088px, 100vw"
               className="object-cover"
             />
             <div className="wash-reveal absolute inset-0" aria-hidden="true">
@@ -27,7 +27,7 @@ export function BeforeAfter() {
                 src="/images/suv-after.jpg"
                 alt=""
                 fill
-                sizes="(min-width: 1024px) 896px, 100vw"
+                sizes="(min-width: 1152px) 1088px, 100vw"
                 className="object-cover"
               />
             </div>
