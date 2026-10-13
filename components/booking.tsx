@@ -205,7 +205,7 @@ export function Booking() {
                             <span className="flex h-6 items-center">
                               <VehicleLineIcon id={v.id} width={v.id === "pickup" ? 64 : 52} />
                             </span>
-                            <span className="sr-only">{v.name}, desde</span>
+                            <span className="sr-only">desde</span>
                             <span
                               className={cn(
                                 "text-sm font-semibold tabular-nums",
@@ -213,6 +213,14 @@ export function Booking() {
                               )}
                             >
                               {formatARS(v.price)}
+                            </span>
+                            <span
+                              className={cn(
+                                "-mt-1 text-xs font-medium",
+                                checked ? "text-primary" : "text-white/70",
+                              )}
+                            >
+                              {v.id === "pickup" ? "Pick Up" : v.name}
                             </span>
                           </label>
                         )
