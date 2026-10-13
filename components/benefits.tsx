@@ -10,9 +10,9 @@ const BENEFITS = [
 
 export function Benefits() {
   return (
-    <section aria-label="Beneficios" className="mx-auto max-w-6xl px-5 pt-4 pb-12 md:px-8 md:pb-20">
-      <Reveal>
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-5 rounded-2xl border border-border bg-card px-5 py-5 md:grid-cols-4 md:gap-0 md:divide-x md:divide-border md:px-0">
+    <section aria-label="Beneficios" className="pt-4 pb-12 md:pb-20">
+      <Reveal className="rounded-[2rem] border border-border bg-card md:rounded-[2.5rem]">
+        <ul className="mx-auto grid max-w-6xl grid-cols-2 gap-x-4 gap-y-5 px-5 py-6 md:grid-cols-4 md:gap-0 md:divide-x md:divide-border md:px-2 md:py-7">
           {BENEFITS.map((b) => (
             <li key={b.title} className="flex items-start gap-3 md:px-6">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sky text-primary">
