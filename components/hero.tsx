@@ -18,7 +18,7 @@ export function Hero() {
         aria-hidden="true"
       />
 
-      <div className="mx-auto grid max-w-6xl gap-10 px-5 md:grid-cols-[1fr_1.1fr] md:items-center md:gap-14 md:px-8">
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 md:grid-cols-[1fr_1.1fr] md:items-stretch md:gap-14 md:px-8">
         <div className="flex flex-col items-center text-center md:items-start md:text-left">
           <p
             className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2 text-base font-medium text-white/80 backdrop-blur lg:text-[21px]"
@@ -98,9 +98,9 @@ export function Hero() {
           </div>
         </div>
 
-        <div className="animate-fade-up" style={{ animationDelay: "350ms" }}>
-          <div className="relative">
-          <div className="relative aspect-[762/460] overflow-hidden rounded-[1.75rem] bg-white/5 shadow-2xl shadow-black/40 ring-1 ring-white/10">
+        <div className="animate-fade-up md:flex md:flex-col" style={{ animationDelay: "350ms" }}>
+          <div className="relative md:flex md:flex-1 md:flex-col">
+          <div className="relative aspect-[762/460] overflow-hidden md:aspect-auto md:min-h-72 md:flex-1 rounded-[1.75rem] bg-white/5 shadow-2xl shadow-black/40 ring-1 ring-white/10">
             <Image
               src="/images/mk-van.webp"
               alt="Camioneta de MK Car Wash ploteada con el logo, WhatsApp e Instagram de la marca"
