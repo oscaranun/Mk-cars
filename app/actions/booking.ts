@@ -43,7 +43,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
     return { ok: false, field: "name", error: "Ingresá tu nombre y apellido." }
   }
   if (!whatsapp) return { ok: false, field: "phone", error: "Ingresá un WhatsApp válido con código de área." }
-  if (!EMAIL_RE.test(email)) return { ok: false, field: "email", error: "Ingresá un correo electrónico válido." }
+  if (email && !EMAIL_RE.test(email)) return { ok: false, field: "email", error: "Ingresá un correo electrónico válido." }
   const vehicle = VEHICLES.find((v) => v.id === category)
   if (!vehicle) return { ok: false, field: "vehicle", error: "Elegí el tipo de vehículo." }
   if (address.length < 5) return { ok: false, field: "address", error: "Ingresá la dirección del lavado." }
