@@ -195,6 +195,23 @@ export async function deleteTestBooking(_prev: ActionState, data: FormData): Pro
   return done(`Reserva de prueba ${summary.clientName} eliminada.`)
 }
 
+export async function deleteAppointmentPermanently(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const id = text(data, "id", 36)
+  if (!UUID_RE.test(id)) return fail("Turno inválido.")
+
+  // Single RPC = single transaction: everything is deleted or nothing is.
+  const { error } = await supabase.rpc("delete_appointment_permanently", { p_id: id, p_dry_run: false })
+  if (error) {
+    if (error.code === "P0001") return fail(error.message)
+    if (error.code === "42501") return fail("No tenés permisos para eliminar reservas.")
+    return dbError(error, "No se pudo eliminar la reserva. No se borró nada.")
+  }
+  return done("Reserva eliminada definitivamente.")
+}
+
 export async function manageAppointment(_prev: ActionState, data: FormData): Promise<ActionState> {
   const supabase = await admin()
   if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")

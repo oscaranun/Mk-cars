@@ -6,6 +6,7 @@ import { completeAppointment, manageAppointment, reviewAppointmentVehicle } from
 import { findConflicts } from "@/lib/admin/conflicts"
 import { ActionForm } from "@/components/admin/action-form"
 import { TestBookingDelete } from "@/components/admin/test-booking-delete"
+import { AppointmentDelete } from "@/components/admin/appointment-delete"
 import { isTestClientName } from "@/lib/admin/test-booking"
 import {
   Badge,
@@ -408,6 +409,8 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
           {appt.clients && isTestClientName(appt.clients.full_name) && (
             <TestBookingDelete supabase={supabase} clientId={appt.clients.id} />
           )}
+
+          <AppointmentDelete supabase={supabase} appointmentId={appt.id} />
         </div>
       </div>
     </>
