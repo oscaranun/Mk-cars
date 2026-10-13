@@ -2,7 +2,6 @@ import { Logo } from "@/components/logo"
 
 const NAV = [
   { href: "#como-funciona", label: "Cómo funciona" },
-  { href: "#servicios", label: "Precios" },
   { href: "#cobertura", label: "Cobertura" },
   { href: "#antes-despues", label: "Resultados" },
 ]

@@ -55,7 +55,7 @@ export function Hero() {
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </a>
             <a
-              href="#servicios"
+              href="#reservar"
               className="inline-flex min-h-14 items-center justify-center rounded-full border border-white/15 bg-white/5 px-8 text-base font-medium text-white transition-colors hover:bg-white/10"
             >
               Ver precios

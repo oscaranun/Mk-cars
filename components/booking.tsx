@@ -6,6 +6,7 @@ import { ArrowRight, CheckCircle2, ChevronDown, Loader2 } from "lucide-react"
 import { submitBooking } from "@/app/actions/booking"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
+import { VehicleLineIcon } from "@/components/vehicle-line-icon"
 import { WhatsAppIcon } from "@/components/whatsapp-icon"
 import { EXTRAS, SERVICE_DAYS, TIME_SLOTS, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
@@ -172,32 +173,52 @@ export function Booking() {
                     />
                   </Field>
 
-                  <Field label="Tipo de vehículo" htmlFor="vehicle" required>
-                    <SelectWrap>
-                      <select
-                        id="vehicle"
-                        name="vehicle"
-                        value={vehicle}
-                        onChange={(e) => setVehicle(e.target.value)}
-                        className={cn(fieldClass, "appearance-none pr-10", !vehicle && "text-muted-foreground/60")}
-                        required
-                      >
-                        <option value="" disabled>
-                          Auto / SUV / Pick Up
-                        </option>
-                        {VEHICLES.map((v) => (
-                          <option key={v.id} value={v.id} className="text-foreground">
-                            {v.name}
-                          </option>
-                        ))}
-                      </select>
-                    </SelectWrap>
-                    {selected && (
-                      <span className="px-1 text-xs text-muted-foreground tabular-nums">
-                        {selected.detail} · desde {formatARS(selected.price)}
+                  <fieldset className="flex min-w-0 flex-col gap-2 md:row-span-1">
+                    <legend className="mb-2 text-sm font-medium text-white">
+                      Tipo de vehículo
+                      <span className="text-primary" aria-hidden="true">
+                        {" *"}
                       </span>
-                    )}
-                  </Field>
+                    </legend>
+                    <div className="grid grid-cols-3 gap-2">
+                      {VEHICLES.map((v) => {
+                        const checked = vehicle === v.id
+                        return (
+                          <label
+                            key={v.id}
+                            className={cn(
+                              "flex min-h-14 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border px-2 py-2.5 transition has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-primary/20",
+                              checked
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border bg-surface text-white/80 hover:border-white/30",
+                            )}
+                          >
+                            <input
+                              type="radio"
+                              name="vehicle"
+                              value={v.id}
+                              checked={checked}
+                              onChange={() => setVehicle(v.id)}
+                              className="sr-only"
+                              required
+                            />
+                            <span className="flex h-6 items-center">
+                              <VehicleLineIcon id={v.id} width={v.id === "pickup" ? 64 : 52} />
+                            </span>
+                            <span className="sr-only">{v.name}, desde</span>
+                            <span
+                              className={cn(
+                                "text-sm font-semibold tabular-nums",
+                                checked ? "text-primary" : "text-white",
+                              )}
+                            >
+                              {formatARS(v.price)}
+                            </span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </fieldset>
 
                   <Field label="Dirección" htmlFor="address" required>
                     <input
