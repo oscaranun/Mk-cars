@@ -1,6 +1,5 @@
 import { Clock, Droplets, MapPin, ShieldCheck } from "lucide-react"
 import { Reveal } from "@/components/reveal"
-import { SectionHeading } from "@/components/section-heading"
 
 const BENEFITS = [
   { icon: Clock, title: "Ahorrás tiempo", text: "Sin filas ni traslados." },
@@ -11,26 +10,22 @@ const BENEFITS = [
 
 export function Benefits() {
   return (
-    <section className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-28">
-      <SectionHeading eyebrow="Beneficios" title="Más cómodo. Más cuidado." />
-
-      <ul className="mt-10 grid grid-cols-2 gap-3 md:mt-14 md:grid-cols-4 md:gap-5">
-        {BENEFITS.map((b, i) => (
-          <li key={b.title}>
-            <Reveal delay={i * 80} className="h-full">
-              <div className="flex h-full flex-col gap-4 rounded-3xl border border-border bg-card p-5 shadow-soft md:p-6">
-                <span className="flex size-11 items-center justify-center rounded-2xl bg-sky text-primary">
-                  <b.icon className="size-5" aria-hidden="true" />
-                </span>
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-semibold tracking-tight">{b.title}</h3>
-                  <p className="text-sm leading-snug text-muted-foreground">{b.text}</p>
-                </div>
+    <section aria-label="Beneficios" className="pt-4 pb-12 md:pb-20">
+      <Reveal className="rounded-[2rem] border border-border bg-card md:rounded-[2.5rem]">
+        <ul className="mx-auto grid max-w-6xl grid-cols-2 gap-x-4 gap-y-5 px-5 py-6 md:grid-cols-4 md:gap-0 md:divide-x md:divide-border md:px-2 md:py-7">
+          {BENEFITS.map((b) => (
+            <li key={b.title} className="flex items-start gap-3 md:px-6">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sky text-primary">
+                <b.icon className="size-4" aria-hidden="true" />
+              </span>
+              <div className="flex flex-col">
+                <h3 className="text-sm font-semibold tracking-tight">{b.title}</h3>
+                <p className="text-xs leading-snug text-muted-foreground md:text-sm">{b.text}</p>
               </div>
-            </Reveal>
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      </Reveal>
     </section>
   )
 }

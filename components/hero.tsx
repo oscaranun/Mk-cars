@@ -1,7 +1,7 @@
 import Image from "next/image"
-import { ArrowRight, Clock, Droplets, MapPin } from "lucide-react"
+import { ArrowRight, Droplets, MapPin, MessageCircle } from "lucide-react"
 import { HowItWorks } from "@/components/how-it-works"
-import { SERVICE_DAYS, SERVICE_HOURS, VEHICLES, formatARS } from "@/lib/site"
+import { COVERAGE_ZONES, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
 
 export function Hero() {
   return (
@@ -18,7 +18,7 @@ export function Hero() {
         aria-hidden="true"
       />
 
-      <div className="mx-auto grid max-w-6xl gap-10 px-5 md:grid-cols-[1fr_1.1fr] md:items-center md:gap-14 md:px-8">
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 md:grid-cols-[1fr_1.1fr] md:items-stretch md:gap-14 md:px-8">
         <div className="flex flex-col items-center text-center md:items-start md:text-left">
           <p
             className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2 text-base font-medium text-white/80 backdrop-blur lg:text-[21px]"
@@ -55,31 +55,52 @@ export function Hero() {
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </a>
             <a
-              href="#servicios"
+              href="#reservar"
               className="inline-flex min-h-14 items-center justify-center rounded-full border border-white/15 bg-white/5 px-8 text-base font-medium text-white transition-colors hover:bg-white/10"
             >
               Ver precios
             </a>
           </div>
 
-          <ul
-            className="animate-fade-up mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-white/60 md:justify-start"
+          <div
+            id="cobertura"
+            className="animate-fade-up mt-7 flex scroll-mt-32 flex-col items-center gap-1.5 md:items-start"
             style={{ animationDelay: "500ms" }}
           >
-            <li className="flex items-center gap-1.5">
-              <MapPin className="size-3.5 text-electric" aria-hidden="true" />
-              Gran Mendoza
-            </li>
-            <li className="flex items-center gap-1.5">
-              <Clock className="size-3.5 text-electric" aria-hidden="true" />
-              {SERVICE_DAYS.short} {SERVICE_HOURS.open} – {SERVICE_HOURS.close}
-            </li>
-          </ul>
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-white/90">
+              <MapPin className="size-4 text-electric" aria-hidden="true" />
+              Lavamos en todo el Gran Mendoza
+            </p>
+            <ul
+              className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-white/60 md:justify-start"
+              aria-label="Departamentos con cobertura"
+            >
+              {COVERAGE_ZONES.map((zone, i) => (
+                <li key={zone} className="flex items-center gap-2">
+                  {i > 0 && (
+                    <span aria-hidden="true" className="text-white/30">
+                      {"·"}
+                    </span>
+                  )}
+                  {zone}
+                </li>
+              ))}
+            </ul>
+            <a
+              href={whatsappUrl("Hola MK Cars, ¿llegan a mi zona?")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-0.5 inline-flex min-h-8 items-center gap-1.5 text-xs font-medium text-electric transition-opacity hover:opacity-80"
+            >
+              <MessageCircle className="size-3.5" aria-hidden="true" />
+              ¿Otra zona? Consultanos
+            </a>
+          </div>
         </div>
 
-        <div className="animate-fade-up" style={{ animationDelay: "350ms" }}>
-          <div className="relative">
-          <div className="relative aspect-[762/460] overflow-hidden rounded-[1.75rem] bg-white/5 shadow-2xl shadow-black/40 ring-1 ring-white/10">
+        <div className="animate-fade-up md:flex md:flex-col" style={{ animationDelay: "350ms" }}>
+          <div className="relative md:flex md:flex-1 md:flex-col">
+          <div className="relative aspect-[762/460] overflow-hidden md:aspect-auto md:min-h-72 md:flex-1 rounded-[1.75rem] bg-white/5 shadow-2xl shadow-black/40 ring-1 ring-white/10">
             <Image
               src="/images/mk-van.webp"
               alt="Camioneta de MK Car Wash ploteada con el logo, WhatsApp e Instagram de la marca"
@@ -89,16 +110,6 @@ export function Hero() {
               className="animate-hero-zoom object-cover"
             />
           </div>
-
-          <div className="animate-float absolute -bottom-5 left-4 flex items-center gap-3 rounded-2xl bg-white p-3 pr-4 text-deep shadow-soft">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-[#e8f4ff] text-primary">
-              <Droplets className="size-4" aria-hidden="true" />
-            </span>
-            <span className="flex flex-col">
-              <span className="text-[0.7rem] text-slate-500">Desde</span>
-              <span className="text-sm font-bold tabular-nums">{formatARS(VEHICLES[0].price)}</span>
-            </span>
-          </div>
           </div>
 
           <div className="mt-10">
@@ -106,6 +117,17 @@ export function Hero() {
           </div>
         </div>
       </div>
+
+      <p
+        className="animate-fade-up mx-auto mt-12 flex w-fit items-center gap-4 px-5 text-electric md:mt-16"
+        style={{ animationDelay: "600ms" }}
+      >
+        <Droplets className="size-8" aria-hidden="true" />
+        <span className="flex flex-col leading-tight">
+          <span className="text-lg font-medium">Desde</span>
+          <span className="text-3xl font-bold tabular-nums">{formatARS(VEHICLES[0].price)}</span>
+        </span>
+      </p>
     </section>
   )
 }
