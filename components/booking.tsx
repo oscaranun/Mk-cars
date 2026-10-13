@@ -7,7 +7,7 @@ import { submitBooking } from "@/app/actions/booking"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
 import { WhatsAppIcon } from "@/components/whatsapp-icon"
-import { EXTRAS, SERVICE_DAYS, SERVICE_HOURS, TIME_SLOTS, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
+import { EXTRAS, SERVICE_DAYS, TIME_SLOTS, VEHICLES, formatARS, whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
 const fieldClass =
@@ -106,28 +106,11 @@ export function Booking() {
   return (
     <section id="reservar" className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-28">
       <div className="flex flex-col gap-8 md:gap-10">
-        <div className="flex flex-col gap-5">
-          <SectionHeading
-            eyebrow="Reserva"
-            title="Reservá en un minuto."
-            description="Te confirmamos por WhatsApp."
-          />
-          <Reveal>
-            <dl className="inline-flex flex-wrap items-center gap-x-6 gap-y-2 rounded-full border border-border bg-card px-5 py-3 shadow-soft">
-              <div className="flex items-center gap-2">
-                <dt className="text-sm text-muted-foreground">Días</dt>
-                <dd className="font-medium">{SERVICE_DAYS.full}</dd>
-              </div>
-              <span className="hidden h-4 w-px bg-border sm:block" aria-hidden="true" />
-              <div className="flex items-center gap-2">
-                <dt className="text-sm text-muted-foreground">Horario</dt>
-                <dd className="font-medium tabular-nums">
-                  {SERVICE_HOURS.open} – {SERVICE_HOURS.close}
-                </dd>
-              </div>
-            </dl>
-          </Reveal>
-        </div>
+        <SectionHeading
+          eyebrow="Reserva"
+          title="Reservá en un minuto."
+          description="Te confirmamos por WhatsApp."
+        />
 
         <Reveal>
           {whatsappMessage ? (
