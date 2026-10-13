@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath, revalidateTag } from "next/cache"
+import { redirect } from "next/navigation"
 import type { PostgrestError } from "@supabase/supabase-js"
 import { getAdminClient } from "@/lib/admin/auth"
 import { findConflicts } from "@/lib/admin/conflicts"
@@ -192,7 +193,16 @@ export async function deleteTestBooking(_prev: ActionState, data: FormData): Pro
     }
   }
 
-  return done(`Reserva de prueba ${summary.clientName} eliminada.`)
+  leaveDeletedAppointment()
+}
+
+/**
+ * Redirecting from the action itself makes Next render /admin/turnos instead of re-rendering the
+ * deleted turno's detail page (which would hit notFound()).
+ */
+function leaveDeletedAppointment(): never {
+  revalidatePath("/admin", "layout")
+  redirect("/admin/turnos?eliminada=1")
 }
 
 export async function deleteAppointmentPermanently(_prev: ActionState, data: FormData): Promise<ActionState> {
@@ -209,7 +219,7 @@ export async function deleteAppointmentPermanently(_prev: ActionState, data: For
     if (error.code === "42501") return fail("No tenés permisos para eliminar reservas.")
     return dbError(error, "No se pudo eliminar la reserva. No se borró nada.")
   }
-  return done("Reserva eliminada definitivamente.")
+  leaveDeletedAppointment()
 }
 
 export async function manageAppointment(_prev: ActionState, data: FormData): Promise<ActionState> {
