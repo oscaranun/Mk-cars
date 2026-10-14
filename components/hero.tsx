@@ -42,9 +42,39 @@ export function Hero({ fromPrice }: { fromPrice: number | null }) {
           >
             Vamos hasta tu casa o trabajo en Gran Mendoza.
           </p>
+        </div>
 
+        <div className="animate-fade-up md:flex md:flex-col" style={{ animationDelay: "350ms" }}>
+          <div className="relative aspect-[762/460] overflow-hidden md:aspect-auto md:min-h-72 md:flex-1 rounded-[1.75rem] bg-white/5 shadow-2xl shadow-black/40 ring-1 ring-white/10">
+            <Image
+              src="/images/mk-van.webp"
+              alt="Camioneta de MK Car Wash ploteada con el logo, WhatsApp e Instagram de la marca"
+              fill
+              priority
+              sizes="(min-width: 768px) 55vw, 100vw"
+              className="animate-hero-zoom object-cover"
+            />
+          </div>
+        </div>
+      </div>
+
+      {fromPrice != null && (
+        <p
+          className="animate-fade-up mx-auto mt-12 flex w-fit items-center gap-4 px-5 text-electric md:mt-16"
+          style={{ animationDelay: "400ms" }}
+        >
+          <Droplets className="size-8" aria-hidden="true" />
+          <span className="flex flex-col leading-tight">
+            <span className="text-lg font-medium">Desde</span>
+            <span className="text-3xl font-bold tabular-nums">{formatARS(fromPrice)}</span>
+          </span>
+        </p>
+      )}
+
+      <div className="mx-auto mt-12 grid max-w-6xl gap-10 px-5 md:mt-16 md:grid-cols-[1fr_1.1fr] md:items-start md:gap-14 md:px-8">
+        <div className="flex flex-col items-center text-center md:items-start md:text-left">
           <div
-            className="animate-fade-up mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row"
+            className="animate-fade-up flex w-full flex-col gap-3 sm:w-auto sm:flex-row"
             style={{ animationDelay: "400ms" }}
           >
             <a
@@ -98,38 +128,10 @@ export function Hero({ fromPrice }: { fromPrice: number | null }) {
           </div>
         </div>
 
-        <div className="animate-fade-up md:flex md:flex-col" style={{ animationDelay: "350ms" }}>
-          <div className="relative md:flex md:flex-1 md:flex-col">
-          <div className="relative aspect-[762/460] overflow-hidden md:aspect-auto md:min-h-72 md:flex-1 rounded-[1.75rem] bg-white/5 shadow-2xl shadow-black/40 ring-1 ring-white/10">
-            <Image
-              src="/images/mk-van.webp"
-              alt="Camioneta de MK Car Wash ploteada con el logo, WhatsApp e Instagram de la marca"
-              fill
-              priority
-              sizes="(min-width: 768px) 55vw, 100vw"
-              className="animate-hero-zoom object-cover"
-            />
-          </div>
-          </div>
-
-          <div className="mt-10">
-            <HowItWorks />
-          </div>
+        <div className="animate-fade-up" style={{ animationDelay: "600ms" }}>
+          <HowItWorks />
         </div>
       </div>
-
-      {fromPrice != null && (
-      <p
-        className="animate-fade-up mx-auto mt-12 flex w-fit items-center gap-4 px-5 text-electric md:mt-16"
-        style={{ animationDelay: "600ms" }}
-      >
-        <Droplets className="size-8" aria-hidden="true" />
-        <span className="flex flex-col leading-tight">
-          <span className="text-lg font-medium">Desde</span>
-          <span className="text-3xl font-bold tabular-nums">{formatARS(fromPrice)}</span>
-        </span>
-      </p>
-      )}
     </section>
   )
 }
