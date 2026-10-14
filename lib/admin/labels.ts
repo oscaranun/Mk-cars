@@ -26,11 +26,15 @@ export const CONVERTED_INQUIRY_STATUSES = ["convertida", "turno_confirmado", "se
 export const APPOINTMENT_STATUS: Record<string, string> = {
   solicitado: "Solicitado",
   confirmado: "Confirmado",
+  esperando_cliente: "Esperando aceptación del cliente",
   reprogramado: "Reprogramado",
   rechazado: "Rechazado",
   cancelado: "Cancelado",
   realizado: "Realizado",
 }
+
+/** Not yet confirmed: still needs coordination with the client. */
+export const PENDING_APPOINTMENT_STATUSES = ["solicitado", "reprogramado", "esperando_cliente"]
 
 export const PAYMENT_STATUS: Record<string, string> = {
   pendiente: "Pendiente",
@@ -60,7 +64,7 @@ export type Tone = "neutral" | "info" | "success" | "warning" | "danger"
 export function appointmentTone(status: string): Tone {
   if (status === "confirmado") return "info"
   if (status === "realizado") return "success"
-  if (status === "solicitado" || status === "reprogramado") return "warning"
+  if (PENDING_APPOINTMENT_STATUSES.includes(status)) return "warning"
   if (status === "rechazado" || status === "cancelado") return "danger"
   return "neutral"
 }

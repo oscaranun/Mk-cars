@@ -4,8 +4,8 @@ import { revalidatePath, revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
 import type { PostgrestError } from "@supabase/supabase-js"
 import { getAdminClient } from "@/lib/admin/auth"
-import { findConflicts } from "@/lib/admin/conflicts"
-import { formatDateTime, isValidDate, isValidTime } from "@/lib/admin/format"
+import { conflictSummary, findConflicts } from "@/lib/admin/conflicts"
+import { isValidDate, isValidTime } from "@/lib/admin/format"
 import { PRICES_TAG, parsePrices } from "@/lib/prices"
 import { EDITABLE_INQUIRY_STATUSES } from "@/lib/admin/labels"
 import { TEST_CLIENT_PREFIX, getTestBookingSummary } from "@/lib/admin/test-booking"
@@ -222,48 +222,71 @@ export async function deleteAppointmentPermanently(_prev: ActionState, data: For
   leaveDeletedAppointment()
 }
 
+const APPOINTMENT_ACTIONS = ["confirm", "propose", "client_accepted", "client_rejected", "reject", "cancel"]
+
 export async function manageAppointment(_prev: ActionState, data: FormData): Promise<ActionState> {
   const supabase = await admin()
   if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
 
   const id = text(data, "id", 36)
-  const action = text(data, "action", 20)
+  const rawAction = text(data, "action", 20)
+  const action = rawAction === "reschedule" ? "propose" : rawAction
   if (!UUID_RE.test(id)) return fail("Turno inválido.")
-  if (!["confirm", "reschedule", "reject", "cancel"].includes(action)) return fail("Acción inválida.")
+  if (!APPOINTMENT_ACTIONS.includes(action)) return fail("Acción inválida.")
+
+  const { data: current, error: currentError } = await supabase
+    .from("appointments")
+    .select("status, requested_start, duration_minutes, operator, appointment_proposals(proposed_start, duration_minutes, status)")
+    .eq("id", id)
+    .maybeSingle()
+  if (currentError) return dbError(currentError, "No se pudo leer el turno.")
+  if (!current) return fail("Turno inexistente.")
 
   let start: string | null = null
   let duration: number | null = null
   let price: number | null = null
-  if (action === "confirm" || action === "reschedule") {
-    start = dateTime(data, "date", "time")
-    if (!start) return fail("Indicá una fecha y hora válidas.")
-    if (new Date(start).getTime() < Date.now() - 60 * 60 * 1000) return fail("La fecha ya pasó.")
+  let operator: string | null = null
+
+  if (action === "confirm" || action === "propose") {
     const rawDuration = text(data, "duration", 4)
     if (rawDuration) {
       duration = Number(rawDuration)
       if (!Number.isInteger(duration) || duration < 15 || duration > 540) return fail("La duración debe ser entre 15 y 540 minutos.")
     }
-  }
-  if (action === "confirm") {
     const p = money(data, "agreed_price", false)
     if (p === "invalid") return fail("El precio acordado no es válido.")
     price = p
+    operator = text(data, "operator", 80) || null
+  }
 
-    let effectiveDuration = duration
-    if (effectiveDuration == null) {
-      const { data: current } = await supabase.from("appointments").select("duration_minutes").eq("id", id).maybeSingle()
-      effectiveDuration = current?.duration_minutes ?? 60
-    }
-    const check = await findConflicts(supabase, { id, start: start!, durationMinutes: effectiveDuration! })
-    if (!check) return fail("No se pudo verificar la disponibilidad. Probá de nuevo.")
-    if (check.conflicts.length >= check.capacity) {
-      const list = check.conflicts
-        .map((c) => `${formatDateTime(c.confirmed_start)} (${c.duration_minutes} min${c.clientName ? `, ${c.clientName}` : ""})`)
-        .join("; ")
-      const travel = check.travelMinutes ? ` más ${check.travelMinutes} min de traslado` : ""
-      return fail(
-        `Horario ocupado: se superpone${travel} con ${list}. No se confirmó. Elegí otro horario o reprogramá la solicitud.`,
-      )
+  // Pre-check availability so the operator gets a readable list; the DB re-checks atomically.
+  let check: { start: string; duration: number } | null = null
+  if (action === "confirm") {
+    if (!current.requested_start) return fail('El turno no tiene horario solicitado: usá "Proponer otro horario".')
+    check = { start: current.requested_start, duration: duration ?? current.duration_minutes }
+  } else if (action === "propose") {
+    start = dateTime(data, "date", "time")
+    if (!start) return fail("Indicá una fecha y hora válidas.")
+    if (new Date(start).getTime() < Date.now() - 60 * 60 * 1000) return fail("La fecha ya pasó.")
+    check = { start, duration: duration ?? current.duration_minutes }
+  } else if (action === "client_accepted") {
+    const pending = (current.appointment_proposals ?? []).find((p: { status: string }) => p.status === "pendiente")
+    if (!pending) return fail("No hay una propuesta pendiente para aceptar.")
+    check = { start: pending.proposed_start, duration: pending.duration_minutes }
+  }
+
+  if (check) {
+    const result = await findConflicts(supabase, {
+      id,
+      start: check.start,
+      durationMinutes: check.duration,
+      operator: operator ?? current.operator,
+    })
+    if (!result) return fail("No se pudo verificar la disponibilidad. Probá de nuevo.")
+    if (result.blocked) {
+      const next =
+        action === "propose" ? "Elegí otra alternativa." : 'No se confirmó. Usá "Proponer otro horario" para coordinar otra alternativa.'
+      return fail(`Horario no disponible. ${conflictSummary(result)} ${next}`)
     }
   }
 
@@ -273,17 +296,35 @@ export async function manageAppointment(_prev: ActionState, data: FormData): Pro
     p_start: start,
     p_duration: duration,
     p_agreed_price: price,
-    p_operator: action === "confirm" ? text(data, "operator", 80) || null : null,
+    p_operator: operator,
+    p_reason: action === "reject" || action === "cancel" ? text(data, "reason", 300) || null : null,
   })
   if (error) return dbError(error, "No se pudo actualizar el turno.")
 
   const messages: Record<string, string> = {
-    confirm: "Turno confirmado.",
-    reschedule: "Turno reprogramado. Queda pendiente de confirmación.",
-    reject: "Turno rechazado.",
+    confirm: "Turno confirmado. Ya podés enviar la confirmación por WhatsApp.",
+    propose: "Propuesta guardada. El turno queda esperando la aceptación del cliente.",
+    client_accepted: "Aceptación registrada. Turno confirmado: enviá la confirmación definitiva por WhatsApp.",
+    client_rejected: "Propuesta marcada como no aceptada. Ya podés proponer otra alternativa.",
+    reject: "Solicitud rechazada.",
     cancel: "Turno cancelado.",
   }
   return done(messages[action])
+}
+
+/** Manual record only: opening WhatsApp never marks a message as sent, and delivery cannot be verified. */
+export async function markWhatsappSent(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const id = text(data, "id", 36)
+  const kind = text(data, "kind", 20)
+  if (!UUID_RE.test(id)) return fail("Turno inválido.")
+  if (kind !== "confirmacion" && kind !== "propuesta") return fail("Tipo de mensaje inválido.")
+
+  const { error } = await supabase.rpc("mark_whatsapp_sent", { p_appointment_id: id, p_kind: kind })
+  if (error) return dbError(error, "No se pudo registrar el envío.")
+  return done("Registrado como enviado.")
 }
 
 export async function completeAppointment(_prev: ActionState, data: FormData): Promise<ActionState> {
@@ -401,7 +442,7 @@ export async function reviewAppointmentVehicle(_prev: ActionState, data: FormDat
     supabase.from("settings").select("vehicle_prices").eq("id", 1).maybeSingle(),
   ])
   if (!appt) return fail("Turno inexistente.")
-  if (!["solicitado", "reprogramado", "confirmado"].includes(appt.status)) {
+  if (!["solicitado", "reprogramado", "esperando_cliente", "confirmado"].includes(appt.status)) {
     return fail("Este turno ya no admite cambios de vehículo.")
   }
   const prices = parsePrices(settings?.vehicle_prices)

@@ -29,7 +29,7 @@ export default async function AdminSummaryPage() {
     supabase
       .from("appointments")
       .select("id, requested_start, confirmed_start, address, service, status, clients(full_name)")
-      .in("status", ["solicitado", "reprogramado"])
+      .in("status", ["solicitado", "reprogramado", "esperando_cliente"])
       .order("requested_start", { ascending: true })
       .limit(20)
       .returns<ApptRow[]>(),

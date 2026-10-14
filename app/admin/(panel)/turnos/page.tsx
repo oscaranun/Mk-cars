@@ -67,7 +67,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
   const select = "id, requested_start, confirmed_start, duration_minutes, service, address, status, clients(full_name, whatsapp)"
 
   let listQuery = supabase.from("appointments").select(select).order("requested_start", { ascending: true }).limit(300)
-  if (estado === "pendientes") listQuery = listQuery.in("status", ["solicitado", "reprogramado"])
+  if (estado === "pendientes") listQuery = listQuery.in("status", ["solicitado", "reprogramado", "esperando_cliente"])
   else if (APPOINTMENT_STATUS[estado]) listQuery = listQuery.eq("status", estado)
 
   const [calendar, list, settings] = await Promise.all([
@@ -165,7 +165,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
                         "truncate rounded-lg px-1.5 py-1 text-[11px] leading-tight transition hover:brightness-125",
                         a.status === "confirmado" && "bg-primary text-white",
                         a.status === "realizado" && "bg-emerald-500/25 text-emerald-200",
-                        (a.status === "solicitado" || a.status === "reprogramado") && "bg-amber-300/20 text-amber-100",
+                        ["solicitado", "reprogramado", "esperando_cliente"].includes(a.status) && "bg-amber-300/20 text-amber-100",
                       )}
                       title={`${formatTime(startOf(a))} ${a.clients?.full_name ?? ""} — ${APPOINTMENT_STATUS[a.status]}`}
                     >
