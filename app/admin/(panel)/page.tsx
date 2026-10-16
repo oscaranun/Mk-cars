@@ -25,7 +25,7 @@ export default async function AdminSummaryPage() {
 
   const [inquiries, clients, pending, upcoming, payments, balances] = await Promise.all([
     supabase.from("inquiries").select("id", { count: "exact", head: true }).gte("created_at", range.fromISO),
-    supabase.from("clients").select("id", { count: "exact", head: true }).gte("created_at", range.fromISO),
+    supabase.from("clients").select("id", { count: "exact", head: true }).is("archived_at", null).gte("created_at", range.fromISO),
     supabase
       .from("appointments")
       .select("id, requested_start, confirmed_start, address, service, status, clients(full_name)")

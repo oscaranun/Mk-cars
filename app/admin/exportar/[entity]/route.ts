@@ -44,6 +44,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { data, error } = await supabase
       .from("clients")
       .select("full_name, whatsapp, email, source, created_at, last_interaction_at, marketing_consent, notes, services(amount_paid)")
+      .is("archived_at", null)
       .order("created_at", { ascending: false })
       .limit(10000)
     if (error) return new Response("Error al exportar", { status: 500 })

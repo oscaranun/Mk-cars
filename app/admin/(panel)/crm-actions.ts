@@ -87,6 +87,52 @@ export async function updateClient(_prev: ActionState, data: FormData): Promise<
   return done("Datos del cliente guardados.")
 }
 
+export async function archiveClient(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const id = text(data, "id", 36)
+  if (!UUID_RE.test(id)) return fail("Cliente inválido.")
+  const reason = text(data, "reason", 500)
+
+  const { error } = await supabase.rpc("archive_client", { p_id: id, p_reason: reason || null })
+  if (error) return dbError(error, "No se pudo archivar el cliente.")
+  return done("Cliente archivado.")
+}
+
+export async function restoreClient(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const id = text(data, "id", 36)
+  if (!UUID_RE.test(id)) return fail("Cliente inválido.")
+
+  const { error } = await supabase.rpc("restore_client", { p_id: id })
+  if (error) return dbError(error, "No se pudo restaurar el cliente.")
+  return done("Cliente restaurado.")
+}
+
+export async function deleteClientPermanently(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const id = text(data, "id", 36)
+  const confirmation = text(data, "confirmation", 160)
+  if (!UUID_RE.test(id)) return fail("Cliente inválido.")
+  if (!confirmation) return fail("Escribí el nombre o el WhatsApp del cliente para confirmar.")
+
+  // Single RPC = single transaction: the audit snapshot and the deletion happen together or not at all.
+  const { error } = await supabase.rpc("delete_client_permanently", {
+    p_id: id,
+    p_confirmation: confirmation,
+    p_dry_run: false,
+  })
+  if (error) return dbError(error, "No se pudo eliminar el cliente. No se borró nada.")
+
+  revalidatePath("/admin", "layout")
+  redirect("/admin/clientes?estado=archivados&eliminado=1")
+}
+
 export async function addVehicle(_prev: ActionState, data: FormData): Promise<ActionState> {
   const supabase = await admin()
   if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
