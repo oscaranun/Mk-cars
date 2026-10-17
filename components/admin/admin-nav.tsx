@@ -8,6 +8,7 @@ import {
   CalendarDays,
   CalendarRange,
   ClipboardCheck,
+  FlaskConical,
   LayoutDashboard,
   MessagesSquare,
   RefreshCcw,
@@ -27,6 +28,7 @@ const ITEMS = [
   { href: "/admin/cobros", label: "Cobros", icon: Wallet },
   { href: "/admin/caja", label: "Caja", icon: Calculator },
   { href: "/admin/estadisticas", label: "Estadísticas", icon: BarChart3 },
+  { href: "/admin/pruebas", label: "Pruebas", icon: FlaskConical },
 ]
 
 export function AdminNav() {

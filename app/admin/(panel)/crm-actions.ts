@@ -78,6 +78,25 @@ export async function unblockDate(_prev: ActionState, data: FormData): Promise<A
   return done("Día desbloqueado.")
 }
 
+export async function seedDemoData(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a iniciar sesión.")
+  const perMonth = Number(text(data, "per_month", 3) || 100)
+  if (!Number.isInteger(perMonth) || perMonth < 10 || perMonth > 300) return fail("Elegí entre 10 y 300 vehículos por mes.")
+  const { data: result, error } = await supabase.rpc("seed_demo_data", { p_vehicles_per_month: perMonth })
+  if (error) return dbError(error, "No se pudieron generar los datos de prueba.")
+  const r = result as { appointments: number; vehicles: number; clients: number }
+  return done(`Listo: ${r.clients} clientes, ${r.appointments} turnos y ${r.vehicles} vehículos de prueba.`)
+}
+
+export async function purgeDemoData(_prev: ActionState): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a iniciar sesión.")
+  const { error } = await supabase.rpc("purge_demo_data")
+  if (error) return dbError(error, "No se pudieron eliminar los datos de prueba. No se borró nada.")
+  return done("Datos de prueba eliminados. Tus datos reales no se tocaron.")
+}
+
 export async function updateClient(_prev: ActionState, data: FormData): Promise<ActionState> {
   const supabase = await admin()
   if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
