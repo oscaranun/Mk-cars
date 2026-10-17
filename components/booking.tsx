@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import { useRef, useState, useTransition, type FormEvent, type ReactNode } from "react"
 import { ArrowRight, CheckCircle2, ChevronDown, Loader2 } from "lucide-react"
 import { submitBooking } from "@/app/actions/booking"
@@ -90,10 +89,6 @@ export function Booking({ prices, blockedDates = [] }: { prices: VehiclePrices |
     }
     if (blockedDates.includes(date)) {
       setError("Ese día no tenemos turnos disponibles. Elegí otra fecha.")
-      return
-    }
-    if (!data.get("privacy")) {
-      setError("Necesitamos tu consentimiento para gestionar la reserva.")
       return
     }
     setError(null)
@@ -310,52 +305,6 @@ export function Booking({ prices, blockedDates = [] }: { prices: VehiclePrices |
                   </span>
                 </label>
               </fieldset>
-
-              <div className="flex flex-col gap-5 border-t border-border pt-6">
-                <SectionLabel muted>Datos opcionales</SectionLabel>
-                <div className="grid gap-5 md:grid-cols-2 md:gap-x-6">
-                  <Field label="Correo electrónico" htmlFor="email">
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      inputMode="email"
-                      autoComplete="email"
-                      placeholder="tu@correo.com"
-                      className={fieldClass}
-                    />
-                  </Field>
-                  <Field label="Observaciones" htmlFor="notes">
-                    <textarea
-                      id="notes"
-                      name="notes"
-                      rows={1}
-                      maxLength={1000}
-                      placeholder="Indicaciones de acceso, estado del vehículo, etc."
-                      className={cn(fieldClass, "min-h-14 resize-y py-3.5")}
-                    />
-                  </Field>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3 px-1">
-                <label className="flex cursor-pointer items-start gap-3">
-                  <input type="checkbox" name="privacy" required className="mt-0.5 size-4 shrink-0 accent-primary" />
-                  <span className="text-sm text-muted-foreground">
-                    Acepto que MK Cars use mis datos para gestionar esta reserva, según la{" "}
-                    <Link href="/privacidad" className="text-foreground underline underline-offset-2">
-                      política de privacidad
-                    </Link>
-                    .
-                  </span>
-                </label>
-                <label className="flex cursor-pointer items-start gap-3">
-                  <input type="checkbox" name="marketing" className="mt-0.5 size-4 shrink-0 accent-primary" />
-                  <span className="text-sm text-muted-foreground">
-                    Quiero recibir promociones y recordatorios (opcional).
-                  </span>
-                </label>
-              </div>
 
               {error && (
                 <p role="alert" className="rounded-xl bg-sky px-4 py-3 text-sm text-white">
