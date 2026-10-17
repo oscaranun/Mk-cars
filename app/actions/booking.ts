@@ -1,6 +1,7 @@
 "use server"
 
 import { headers } from "next/headers"
+import { getUpcomingBlockedDates } from "@/lib/blocked-dates"
 import { normalizeWhatsapp, resolveSource, toArgentinaTimestamp } from "@/lib/booking"
 import { EXTRAS, TIME_SLOTS, VEHICLES } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
@@ -83,6 +84,10 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
   }
   if (requested.getUTCDay() === 0 && requested.getUTCHours() >= 3) {
     return { ok: false, field: "date", error: "Trabajamos de lunes a sábado. Elegí otro día." }
+  }
+  const blocked = (await getUpcomingBlockedDates(date)).find((b) => b.day === date)
+  if (blocked) {
+    return { ok: false, field: "date", error: "Ese día no tenemos turnos disponibles. Elegí otra fecha." }
   }
   if (data.get("privacy") !== "on") {
     return { ok: false, field: "privacy", error: "Necesitamos tu consentimiento para gestionar la reserva." }

@@ -5,12 +5,14 @@ import { Hero } from "@/components/hero"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { WhatsAppFloat } from "@/components/whatsapp-float"
+import { todayArgentina } from "@/lib/admin/format"
+import { getUpcomingBlockedDates } from "@/lib/blocked-dates"
 import { getVehiclePrices } from "@/lib/prices"
 
 export const revalidate = 60
 
 export default async function Page() {
-  const prices = await getVehiclePrices()
+  const [prices, blockedDates] = await Promise.all([getVehiclePrices(), getUpcomingBlockedDates(todayArgentina())])
   return (
     <>
       <SiteHeader />
@@ -18,7 +20,7 @@ export default async function Page() {
         <Hero fromPrice={prices ? Math.min(prices.auto, prices.suv, prices.pickup) : null} />
         <Benefits />
         <BeforeAfter />
-        <Booking prices={prices} />
+        <Booking prices={prices} blockedDates={blockedDates.map((b) => b.day)} />
       </main>
       <SiteFooter />
       <WhatsAppFloat />

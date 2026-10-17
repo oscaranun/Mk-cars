@@ -2,14 +2,26 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, CalendarDays, ClipboardCheck, LayoutDashboard, MessagesSquare, Users, Wallet } from "lucide-react"
+import {
+  BarChart3,
+  CalendarDays,
+  CalendarRange,
+  ClipboardCheck,
+  LayoutDashboard,
+  MessagesSquare,
+  RefreshCcw,
+  Users,
+  Wallet,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const ITEMS = [
   { href: "/admin", label: "Hoy", icon: LayoutDashboard },
-  { href: "/admin/clientes", label: "Clientes", icon: Users },
-  { href: "/admin/consultas", label: "Consultas", icon: MessagesSquare },
+  { href: "/admin/agenda", label: "Agenda", icon: CalendarRange },
   { href: "/admin/turnos", label: "Turnos", icon: CalendarDays },
+  { href: "/admin/clientes", label: "Clientes", icon: Users },
+  { href: "/admin/recontactar", label: "Recontactar", icon: RefreshCcw },
+  { href: "/admin/consultas", label: "Consultas", icon: MessagesSquare },
   { href: "/admin/servicios", label: "Servicios", icon: ClipboardCheck },
   { href: "/admin/cobros", label: "Cobros", icon: Wallet },
   { href: "/admin/estadisticas", label: "Estadísticas", icon: BarChart3 },

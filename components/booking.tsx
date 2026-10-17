@@ -37,7 +37,7 @@ function vehicleDetail(v: BookingVehicle) {
   return { brand: "", model: v.query.trim() }
 }
 
-export function Booking({ prices }: { prices: VehiclePrices | null }) {
+export function Booking({ prices, blockedDates = [] }: { prices: VehiclePrices | null; blockedDates?: string[] }) {
   const [vehicles, setVehicles] = useState<BookingVehicle[]>([emptyVehicle(0)])
   const [error, setError] = useState<string | null>(null)
   const [whatsappMessage, setWhatsappMessage] = useState<string | null>(null)
@@ -79,6 +79,10 @@ export function Booking({ prices }: { prices: VehiclePrices | null }) {
     }
     if (isSunday(date)) {
       setError(`Trabajamos de ${SERVICE_DAYS.full.toLowerCase()}. Elegí otro día.`)
+      return
+    }
+    if (blockedDates.includes(date)) {
+      setError("Ese día no tenemos turnos disponibles. Elegí otra fecha.")
       return
     }
     if (!data.get("privacy")) {
