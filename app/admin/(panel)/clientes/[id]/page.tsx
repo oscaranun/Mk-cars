@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { ArrowLeft, MessageCircle } from "lucide-react"
 import { addVehicle, updateClient } from "@/app/admin/(panel)/crm-actions"
 import { ActionForm } from "@/components/admin/action-form"
+import { ClientDangerZone } from "@/components/admin/client-danger-zone"
 import { Badge, Card, DetailRow, EmptyState, Field, SectionTitle, TextLink, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
 import { formatDate, formatDateTime, formatWhatsapp, money, whatsappLink } from "@/lib/admin/format"
@@ -33,6 +34,8 @@ type ClientDetail = {
   last_interaction_at: string | null
   marketing_consent: boolean
   privacy_consent_at: string | null
+  archived_at: string | null
+  archive_reason: string | null
   vehicles: { id: string; category: string; brand: string | null; model: string | null; created_at: string }[]
   inquiries: { id: string; created_at: string; service: string; commercial_status: string; source: string }[]
   appointments: {
@@ -62,7 +65,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const { data: client } = await supabase
     .from("clients")
     .select(
-      `id, full_name, whatsapp, email, source, notes, created_at, last_interaction_at, marketing_consent, privacy_consent_at,
+      `id, full_name, whatsapp, email, source, notes, created_at, last_interaction_at, marketing_consent, privacy_consent_at, archived_at, archive_reason,
        vehicles(id, category, brand, model, created_at),
        inquiries(id, created_at, service, commercial_status, source),
        appointments(id, requested_start, confirmed_start, service, status, address),
@@ -92,7 +95,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         </Link>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{client.full_name}</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{client.full_name}</h1>
+              {client.archived_at && <Badge tone="warning">Archivado</Badge>}
+            </div>
             <p className="text-sm text-muted-foreground">
               Cliente desde {formatDate(client.created_at)} · Origen: {client.source}
             </p>
@@ -249,6 +255,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           ))}
         </HistoryCard>
       </div>
+
+      <ClientDangerZone supabase={supabase} client={client} />
     </>
   )
 }

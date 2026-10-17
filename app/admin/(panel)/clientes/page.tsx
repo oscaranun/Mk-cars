@@ -1,4 +1,6 @@
 import type { Metadata } from "next"
+import Link from "next/link"
+import { cn } from "@/lib/utils"
 import {
   EmptyState,
   ExportLink,
@@ -29,12 +31,13 @@ type ClientRow = {
   services: { amount_paid: number }[]
 }
 
-type SearchParams = Promise<{ q?: string; origen?: string; lavados?: string; orden?: string }>
+type SearchParams = Promise<{ q?: string; origen?: string; lavados?: string; orden?: string; estado?: string; eliminado?: string }>
 
 export default async function ClientsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams
   const { supabase } = await requireAdmin()
   const q = sanitizeSearch(params.q)
+  const archived = params.estado === "archivados"
 
   let query = supabase
     .from("clients")
@@ -43,6 +46,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
     )
     .order("created_at", { ascending: false })
     .limit(1000)
+  query = archived ? query.not("archived_at", "is", null) : query.is("archived_at", null)
   if (q) {
     const digits = q.replace(/\D/g, "")
     const terms = [`full_name.ilike.*${q}*`, `email.ilike.*${q}*`]
@@ -76,11 +80,39 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
     <>
       <PageHeader
         title="Clientes"
-        description={`${rows.length} cliente${rows.length === 1 ? "" : "s"}`}
+        description={`${rows.length} cliente${rows.length === 1 ? "" : "s"}${archived ? " archivado" + (rows.length === 1 ? "" : "s") : ""}`}
         actions={<ExportLink entity="clientes" />}
       />
 
-      <FilterBar resetHref="/admin/clientes">
+      {params.eliminado === "1" && (
+        <p role="status" className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          Cliente eliminado definitivamente. Quedó una copia en el registro de auditoría.
+        </p>
+      )}
+
+      <nav aria-label="Estado de clientes" className="flex gap-2">
+        {[
+          { href: "/admin/clientes", label: "Activos", active: !archived },
+          { href: "/admin/clientes?estado=archivados", label: "Archivados", active: archived },
+        ].map((tab) => (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            aria-current={tab.active ? "page" : undefined}
+            className={cn(
+              "inline-flex min-h-9 items-center rounded-full border px-4 text-sm font-medium transition",
+              tab.active
+                ? "border-primary/40 bg-primary/15 text-electric"
+                : "border-border bg-card text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </nav>
+
+      <FilterBar resetHref={archived ? "/admin/clientes?estado=archivados" : "/admin/clientes"}>
+        {archived && <input type="hidden" name="estado" value="archivados" />}
         <Field label="Buscar" htmlFor="q" className="md:w-64">
           <input id="q" name="q" type="search" defaultValue={params.q} placeholder="Nombre, WhatsApp o correo" className={fieldClass} />
         </Field>
@@ -150,7 +182,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
           </tbody>
         </TableWrap>
       ) : (
-        <EmptyState>No hay clientes que coincidan con los filtros.</EmptyState>
+        <EmptyState>{archived ? "No hay clientes archivados." : "No hay clientes que coincidan con los filtros."}</EmptyState>
       )}
     </>
   )
