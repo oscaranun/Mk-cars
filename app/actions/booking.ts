@@ -99,9 +99,6 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
   if (blocked) {
     return { ok: false, field: "date", error: "Ese día no tenemos turnos disponibles. Elegí otra fecha." }
   }
-  if (data.get("privacy") !== "on") {
-    return { ok: false, field: "privacy", error: "Necesitamos tu consentimiento para gestionar la reserva." }
-  }
 
   const supabase = await createClient()
   if (!supabase) {
