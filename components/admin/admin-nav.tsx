@@ -6,7 +6,7 @@ import { BarChart3, CalendarDays, ClipboardCheck, LayoutDashboard, MessagesSquar
 import { cn } from "@/lib/utils"
 
 const ITEMS = [
-  { href: "/admin", label: "Resumen", icon: LayoutDashboard },
+  { href: "/admin", label: "Hoy", icon: LayoutDashboard },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
   { href: "/admin/consultas", label: "Consultas", icon: MessagesSquare },
   { href: "/admin/turnos", label: "Turnos", icon: CalendarDays },
