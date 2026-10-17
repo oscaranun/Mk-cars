@@ -86,7 +86,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
         actions={<ExportLink entity="cobros" query={{ desde: range.from, hasta: range.to }} />}
       />
 
-      <dl className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <dl className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Stat label="Cobrado en el período" value={money(collected)} />
         {byMethod.map((m) => (
           <Stat key={m.method} label={PAYMENT_METHOD[m.method]} value={money(m.total)} />

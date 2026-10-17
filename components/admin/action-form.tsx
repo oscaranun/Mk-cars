@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 type Props = {
   action: (prev: ActionState, data: FormData) => Promise<ActionState>
   children?: ReactNode
-  submitLabel: string
+  submitLabel: ReactNode
   submitClassName?: string
   className?: string
   confirmText?: string

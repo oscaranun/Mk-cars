@@ -45,6 +45,15 @@ export const PAYMENT_STATUS: Record<string, string> = {
 export const PAYMENT_METHOD: Record<string, string> = {
   efectivo: "Efectivo",
   transferencia: "Transferencia",
+  mercadopago: "Mercado Pago",
+  otro: "Otro",
+}
+
+export const EXPENSE_CATEGORY: Record<string, string> = {
+  productos: "Productos",
+  combustible: "Combustible",
+  mantenimiento: "Mantenimiento",
+  publicidad: "Publicidad",
   otro: "Otro",
 }
 
