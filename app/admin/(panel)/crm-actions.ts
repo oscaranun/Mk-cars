@@ -6,6 +6,7 @@ import type { PostgrestError } from "@supabase/supabase-js"
 import { getAdminClient } from "@/lib/admin/auth"
 import { conflictSummary, findConflicts } from "@/lib/admin/conflicts"
 import { isValidDate, isValidTime } from "@/lib/admin/format"
+import { BLOCKED_DATES_TAG } from "@/lib/blocked-dates"
 import { PRICES_TAG, parsePrices } from "@/lib/prices"
 import { EDITABLE_INQUIRY_STATUSES } from "@/lib/admin/labels"
 import { TEST_CLIENT_PREFIX, getTestBookingSummary } from "@/lib/admin/test-booking"
@@ -50,6 +51,31 @@ function dbError(error: PostgrestError, fallback: string): ActionState {
 
 async function admin() {
   return getAdminClient()
+}
+
+export async function blockDate(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a iniciar sesión.")
+  const day = text(data, "day", 10)
+  if (!isValidDate(day)) return fail("Fecha inválida.")
+  const reason = text(data, "reason", 120)
+  const { error } = await supabase.from("blocked_dates").upsert({ day, reason })
+  if (error) return dbError(error, "No se pudo bloquear el día.")
+  revalidateTag(BLOCKED_DATES_TAG, "max")
+  revalidatePath("/")
+  return done("Día bloqueado. La web deja de aceptar reservas para esa fecha.")
+}
+
+export async function unblockDate(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a iniciar sesión.")
+  const day = text(data, "day", 10)
+  if (!isValidDate(day)) return fail("Fecha inválida.")
+  const { error } = await supabase.from("blocked_dates").delete().eq("day", day)
+  if (error) return dbError(error, "No se pudo desbloquear el día.")
+  revalidateTag(BLOCKED_DATES_TAG, "max")
+  revalidatePath("/")
+  return done("Día desbloqueado.")
 }
 
 export async function updateClient(_prev: ActionState, data: FormData): Promise<ActionState> {
