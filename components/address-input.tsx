@@ -1,7 +1,7 @@
 "use client"
 
 import { useId, useRef, useState, type KeyboardEvent } from "react"
-import { CheckCircle2, Loader2, MapPin, MessageCircle, XCircle } from "lucide-react"
+import { CheckCircle2, Loader2, MapPin, MessageCircle, Smile, XCircle } from "lucide-react"
 import { COVERAGE_BOUNDS, isInCoverage } from "@/lib/coverage"
 import { whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
@@ -148,7 +148,7 @@ export function AddressInput({
           type="text"
           autoComplete="off"
           placeholder="Calle, número y departamento"
-          className={cn(className, "pr-11")}
+          className={cn(className, "pr-12")}
           value={value}
           onChange={(e) => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -162,15 +162,15 @@ export function AddressInput({
           aria-describedby={`${listId}-status`}
           required
         />
-        <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
+        <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 items-center">
           {loading ? (
-            <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />
+            <Loader2 className="size-5 animate-spin text-muted-foreground" aria-hidden="true" />
           ) : status === "inside" ? (
-            <CheckCircle2 className="size-4 text-primary" aria-hidden="true" />
+            <CheckCircle2 className="size-7 fill-green-600 text-white" strokeWidth={2.5} aria-hidden="true" />
           ) : status === "outside" ? (
-            <XCircle className="size-4 text-red-400" aria-hidden="true" />
+            <XCircle className="size-5 text-red-400" aria-hidden="true" />
           ) : (
-            <MapPin className="size-4 text-muted-foreground" aria-hidden="true" />
+            <img src="/images/google-maps.png" alt="" aria-hidden="true" className="size-6 rounded-md object-contain" />
           )}
         </span>
         {open && (
@@ -210,7 +210,12 @@ export function AddressInput({
       <input type="hidden" name="lng" value={coords?.lng ?? ""} />
 
       <div id={`${listId}-status`} aria-live="polite" className="min-h-0 text-xs">
-        {status === "inside" && <p className="text-primary">Llegamos a tu domicilio.</p>}
+        {status === "inside" && (
+          <p className="flex items-center gap-2 rounded-xl border border-green-600/30 bg-green-600/10 px-3 py-2 text-sm font-semibold text-green-700">
+            <Smile className="size-5 shrink-0 text-green-600" aria-hidden="true" />
+            ¡Genial! Llegamos a tu domicilio.
+          </p>
+        )}
         {status === "outside" && (
           <p className="text-red-400">
             Esta dirección está fuera de nuestra zona de cobertura.{" "}
