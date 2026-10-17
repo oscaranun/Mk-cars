@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers"
 import { getUpcomingBlockedDates } from "@/lib/blocked-dates"
+import { isInCoverage } from "@/lib/coverage"
 import { normalizeWhatsapp, resolveSource, toArgentinaTimestamp } from "@/lib/booking"
 import { EXTRAS, TIME_SLOTS, VEHICLES } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
@@ -74,6 +75,15 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
   if (email && !EMAIL_RE.test(email)) return { ok: false, field: "email", error: "Ingresá un correo electrónico válido." }
   if (!vehicles) return { ok: false, field: "vehicle", error: "Elegí el tipo de cada vehículo." }
   if (address.length < 5) return { ok: false, field: "address", error: "Ingresá la dirección del lavado." }
+  const lat = text(data, "lat", 20)
+  const lng = text(data, "lng", 20)
+  if (lat && lng && !isInCoverage(Number(lat), Number(lng))) {
+    return {
+      ok: false,
+      field: "address",
+      error: "La dirección está fuera de nuestra zona de cobertura. Escribinos por WhatsApp y lo vemos.",
+    }
+  }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !TIME_SLOTS.includes(time)) {
     return { ok: false, field: "date", error: "Elegí fecha y horario." }
   }

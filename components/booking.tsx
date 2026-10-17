@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useRef, useState, useTransition, type FormEvent, type ReactNode } from "react"
 import { ArrowRight, CheckCircle2, ChevronDown, Loader2 } from "lucide-react"
 import { submitBooking } from "@/app/actions/booking"
+import { AddressInput, type CoverageStatus } from "@/components/address-input"
 import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
 import { BookingVehicles, emptyVehicle, type BookingVehicle } from "@/components/booking-vehicles"
@@ -41,6 +42,8 @@ export function Booking({ prices, blockedDates = [] }: { prices: VehiclePrices |
   const [vehicles, setVehicles] = useState<BookingVehicle[]>([emptyVehicle(0)])
   const [error, setError] = useState<string | null>(null)
   const [whatsappMessage, setWhatsappMessage] = useState<string | null>(null)
+  const [coverage, setCoverage] = useState<CoverageStatus>("unknown")
+  const [formKey, setFormKey] = useState(0)
   const [pending, startTransition] = useTransition()
   const startedAt = useRef(0)
   const nextKey = useRef(1)
@@ -71,6 +74,10 @@ export function Booking({ prices, blockedDates = [] }: { prices: VehiclePrices |
 
     if (!name || !address || !phone || !date || !time) {
       setError("Completá todos los campos obligatorios para reservar.")
+      return
+    }
+    if (coverage === "outside") {
+      setError("La dirección está fuera de nuestra zona de cobertura. Escribinos por WhatsApp y lo vemos.")
       return
     }
     if (vehicles.some((v) => !v.category)) {
@@ -129,6 +136,8 @@ export function Booking({ prices, blockedDates = [] }: { prices: VehiclePrices |
         }
         setWhatsappMessage(message)
         form.reset()
+        setCoverage("unknown")
+        setFormKey((k) => k + 1)
         setVehicles([emptyVehicle(nextKey.current++)])
       } catch {
         setError("No pudimos guardar tu solicitud. Revisá tu conexión y volvé a intentar.")
@@ -178,6 +187,7 @@ export function Booking({ prices, blockedDates = [] }: { prices: VehiclePrices |
             </div>
           ) : (
             <form
+              key={formKey}
               onSubmit={handleSubmit}
               onFocusCapture={() => {
                 if (!startedAt.current) startedAt.current = Date.now()
@@ -219,15 +229,7 @@ export function Booking({ prices, blockedDates = [] }: { prices: VehiclePrices |
                   </Field>
 
                   <Field label="Dirección" htmlFor="address" required>
-                    <input
-                      id="address"
-                      name="address"
-                      type="text"
-                      autoComplete="street-address"
-                      placeholder="Calle, número y departamento"
-                      className={fieldClass}
-                      required
-                    />
+                    <AddressInput className={fieldClass} onStatusChange={setCoverage} />
                   </Field>
 
                   <div className="grid grid-cols-2 gap-3">
