@@ -158,4 +158,10 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+  /* Before/after sweep is the core content of this section, so keep it running */
+  .wash-reveal,
+  .wash-line {
+    animation-duration: 5s !important;
+    animation-iteration-count: infinite !important;
+  }
 }
