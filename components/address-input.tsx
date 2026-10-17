@@ -1,7 +1,7 @@
 "use client"
 
 import { useId, useRef, useState, type KeyboardEvent } from "react"
-import { CheckCircle2, Loader2, MapPin, MessageCircle, Smile, XCircle } from "lucide-react"
+import { CheckCircle2, Frown, Loader2, MapPin, MessageCircle, Smile, XCircle } from "lucide-react"
 import { COVERAGE_BOUNDS, isInCoverage } from "@/lib/coverage"
 import { whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
@@ -168,7 +168,7 @@ export function AddressInput({
           ) : status === "inside" ? (
             <CheckCircle2 className="size-7 fill-green-600 text-white" strokeWidth={2.5} aria-hidden="true" />
           ) : status === "outside" ? (
-            <XCircle className="size-5 text-red-400" aria-hidden="true" />
+            <XCircle className="size-7 fill-red-600 text-white" strokeWidth={2.5} aria-hidden="true" />
           ) : (
             <img src="/images/google-maps.png" alt="" aria-hidden="true" className="size-6 rounded-md object-contain" />
           )}
@@ -217,8 +217,9 @@ export function AddressInput({
           </p>
         )}
         {status === "outside" && (
-          <p className="text-red-400">
-            Esta dirección está fuera de nuestra zona de cobertura.{" "}
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-red-600/30 bg-red-600/10 px-3 py-2 text-sm font-semibold text-red-500">
+            <Frown className="size-5 shrink-0 text-red-500" aria-hidden="true" />
+            <span>Esta dirección está fuera de nuestra zona de cobertura.</span>
             <a
               href={whatsappUrl(`Hola MK Cars, ¿llegan a ${value}?`)}
               target="_blank"
