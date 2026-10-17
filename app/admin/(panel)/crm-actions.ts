@@ -5,10 +5,10 @@ import { redirect } from "next/navigation"
 import type { PostgrestError } from "@supabase/supabase-js"
 import { getAdminClient } from "@/lib/admin/auth"
 import { conflictSummary, findConflicts } from "@/lib/admin/conflicts"
-import { isValidDate, isValidTime } from "@/lib/admin/format"
+import { isValidDate, isValidTime, todayArgentina } from "@/lib/admin/format"
 import { BLOCKED_DATES_TAG } from "@/lib/blocked-dates"
 import { PRICES_TAG, parsePrices } from "@/lib/prices"
-import { EDITABLE_INQUIRY_STATUSES } from "@/lib/admin/labels"
+import { EDITABLE_INQUIRY_STATUSES, EXPENSE_CATEGORY, PAYMENT_METHOD } from "@/lib/admin/labels"
 import { TEST_CLIENT_PREFIX, getTestBookingSummary } from "@/lib/admin/test-booking"
 import { normalizeWhatsapp, toArgentinaTimestamp } from "@/lib/booking"
 
@@ -443,7 +443,7 @@ export async function addPayment(_prev: ActionState, data: FormData): Promise<Ac
 
   if (!UUID_RE.test(serviceId)) return fail("Servicio inválido.")
   if (amount === "invalid" || amount === null || amount <= 0) return fail("Ingresá un importe mayor a cero.")
-  if (!["efectivo", "transferencia", "otro"].includes(method)) return fail("Elegí el medio de pago.")
+  if (!PAYMENT_METHOD[method]) return fail("Elegí el medio de pago.")
   if (!isValidDate(date)) return fail("Indicá la fecha de pago.")
   const paidAt = toArgentinaTimestamp(date, "12:00")
   if (new Date(paidAt).getTime() > Date.now() + 24 * 60 * 60 * 1000) return fail("La fecha de pago no puede ser futura.")
@@ -457,6 +457,42 @@ export async function addPayment(_prev: ActionState, data: FormData): Promise<Ac
   })
   if (error) return dbError(error, "No se pudo registrar el pago.")
   return done("Pago registrado.")
+}
+
+export async function addExpense(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const day = text(data, "day", 10)
+  const category = text(data, "category", 20)
+  const method = text(data, "method", 20)
+  const amount = money(data, "amount", true)
+
+  if (!isValidDate(day)) return fail("Indicá la fecha del gasto.")
+  if (day > todayArgentina()) return fail("La fecha del gasto no puede ser futura.")
+  if (!EXPENSE_CATEGORY[category]) return fail("Elegí una categoría.")
+  if (!PAYMENT_METHOD[method]) return fail("Elegí el medio de pago.")
+  if (amount === "invalid" || amount === null || amount <= 0) return fail("Ingresá un importe mayor a cero.")
+
+  const { error } = await supabase.from("expenses").insert({
+    spent_on: day,
+    category,
+    method,
+    amount,
+    description: text(data, "description", 200) || null,
+  })
+  if (error) return dbError(error, "No se pudo registrar el gasto.")
+  return done("Gasto registrado.")
+}
+
+export async function deleteExpense(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+  const id = text(data, "id", 36)
+  if (!UUID_RE.test(id)) return fail("Gasto inválido.")
+  const { error } = await supabase.from("expenses").delete().eq("id", id)
+  if (error) return dbError(error, "No se pudo eliminar el gasto.")
+  return done("Gasto eliminado.")
 }
 
 export async function updateSettings(_prev: ActionState, data: FormData): Promise<ActionState> {

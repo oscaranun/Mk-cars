@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   BarChart3,
+  Calculator,
   CalendarDays,
   CalendarRange,
   ClipboardCheck,
@@ -24,6 +25,7 @@ const ITEMS = [
   { href: "/admin/consultas", label: "Consultas", icon: MessagesSquare },
   { href: "/admin/servicios", label: "Servicios", icon: ClipboardCheck },
   { href: "/admin/cobros", label: "Cobros", icon: Wallet },
+  { href: "/admin/caja", label: "Caja", icon: Calculator },
   { href: "/admin/estadisticas", label: "Estadísticas", icon: BarChart3 },
 ]
 
