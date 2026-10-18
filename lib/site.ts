@@ -1,3 +1,5 @@
+export const SITE_URL = "https://mk-cars-zeta.vercel.app"
+
 export const WHATSAPP_NUMBER = "5492615099230"
 export const WHATSAPP_DISPLAY = "+54 9 2615 09-9230"
 

@@ -5,6 +5,7 @@ import { EMAIL } from "@/lib/site"
 export const metadata: Metadata = {
   title: "Política de privacidad — MK Cars",
   description: "Cómo MK Cars recopila, usa y protege tus datos personales.",
+  alternates: { canonical: "/privacidad" },
 }
 
 export default function PrivacyPage() {

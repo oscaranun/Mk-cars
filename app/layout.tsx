@@ -1,21 +1,48 @@
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
+import { SITE_URL } from "@/lib/site"
 import "./globals.css"
 
 const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" })
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" })
 
+const title = "MK Cars | Lavado de Autos a Domicilio en Mendoza"
+const description =
+  "Lavado premium de autos a domicilio en Gran Mendoza: exterior, aspirado, interior, vidrios y llantas. Capital, Godoy Cruz, Guaymallén, Las Heras, Luján y Maipú. Reservá online."
+const ogImage = {
+  url: "/images/og-reservar.png",
+  width: 1200,
+  height: 630,
+  alt: "MK Cars — Lavado premium a domicilio en Gran Mendoza",
+}
+
 export const metadata: Metadata = {
-  title: "MK Cars — Lavado de autos a domicilio en Gran Mendoza",
-  description:
-    "Lavado premium a domicilio en Capital, Godoy Cruz, Guaymallén, Las Heras, Luján de Cuyo y Maipú. Desde $25.000. Lunes a sábado de 9:00 a 18:00. Reservá por WhatsApp.",
-  keywords: ["lavado de autos a domicilio", "lavadero móvil Mendoza", "MK Cars", "Gran Mendoza", "car wash Mendoza"],
+  metadataBase: new URL(SITE_URL),
+  title,
+  description,
+  applicationName: "MK Cars",
+  keywords: [
+    "lavado de autos a domicilio Mendoza",
+    "lavadero de autos a domicilio Mendoza",
+    "lavadero móvil Mendoza",
+    "lavado premium de autos Mendoza",
+    "car wash a domicilio Mendoza",
+  ],
+  robots: { index: true, follow: true },
   openGraph: {
-    title: "MK Cars — Tu auto impecable. Sin moverte de donde estás.",
-    description: "Lavado profesional a domicilio en Gran Mendoza.",
+    title,
+    description,
+    url: "/",
+    siteName: "MK Cars",
     locale: "es_AR",
     type: "website",
-    images: ["/images/hero-light.png"],
+    images: [ogImage],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: [ogImage.url],
   },
 }
 

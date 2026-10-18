@@ -9,9 +9,9 @@ import { getVehiclePrices } from "@/lib/prices"
 
 export const revalidate = 60
 
-const title = "Solicitá tu turno — MK Cars Lavado premium a domicilio"
+const title = "Reservar lavado de autos a domicilio en Mendoza | MK Cars"
 const description =
-  "Tu auto impecable, sin salir de casa. Reservá tu lavado premium a domicilio en Gran Mendoza en un minuto."
+  "Reservá online tu lavado premium de autos, SUV o camionetas a domicilio en Gran Mendoza. Elegí día y horario y te confirmamos por WhatsApp."
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://mk-cars-zeta.vercel.app"),

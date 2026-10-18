@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title,
   description,
   alternates: { canonical: "/promo" },
+  robots: { index: false, follow: true },
   openGraph: {
     title: "MK Cars — Tu auto impecable, sin salir de casa",
     description,
