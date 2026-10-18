@@ -1,35 +1,41 @@
 "use client"
 
-import { useId, useRef, useState, type KeyboardEvent } from "react"
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react"
 import { CheckCircle2, Frown, Loader2, MapPin, MessageCircle, Smile, XCircle } from "lucide-react"
 import { COVERAGE_BOUNDS, isInCoverage } from "@/lib/coverage"
 import { whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-type PlacesLib = any
 type Suggestion = { id: string; main: string; secondary: string; prediction: any }
+type Coords = { lat: number; lng: number }
 export type CoverageStatus = "unknown" | "inside" | "outside"
 
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-let placesLoader: Promise<PlacesLib> | null = null
+const MENDOZA_CENTER: Coords = { lat: -32.8895, lng: -68.8458 }
+let mapsLoader: Promise<any> | null = null
 
-function loadPlaces(): Promise<PlacesLib> {
-  if (placesLoader) return placesLoader
-  placesLoader = new Promise((resolve, reject) => {
+function loadMaps(): Promise<any> {
+  if (mapsLoader) return mapsLoader
+  mapsLoader = new Promise((resolve, reject) => {
     const w = window as any
-    if (w.google?.maps?.importLibrary) return resolve(w.google.maps.importLibrary("places"))
-    w.__mkMapsReady = () => resolve(w.google.maps.importLibrary("places"))
+    if (w.google?.maps?.importLibrary) return resolve(w.google.maps)
+    w.__mkMapsReady = () => resolve(w.google.maps)
     const script = document.createElement("script")
     script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&loading=async&language=es&region=AR&callback=__mkMapsReady`
     script.async = true
     script.onerror = () => {
-      placesLoader = null
+      mapsLoader = null
       reject(new Error("Google Maps failed to load"))
     }
     document.head.appendChild(script)
   })
-  return placesLoader
+  return mapsLoader
+}
+
+async function loadLibrary(name: "places" | "maps" | "marker") {
+  const maps = await loadMaps()
+  return maps.importLibrary(name)
 }
 
 export function AddressInput({
@@ -46,20 +52,90 @@ export function AddressInput({
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<CoverageStatus>("unknown")
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [coords, setCoords] = useState<Coords | null>(null)
+  const [mapFailed, setMapFailed] = useState(false)
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sessionToken = useRef<any>(null)
   const requestId = useRef(0)
+  const mapEl = useRef<HTMLDivElement>(null)
+  const map = useRef<any>(null)
+  const marker = useRef<any>(null)
+  const pending = useRef<{ coords: Coords; zoom: boolean } | null>(null)
+  const pinFromMap = useRef<(c: Coords) => void>(() => {})
+
+  const showMap = Boolean(API_KEY) && !mapFailed && (value.trim().length >= 3 || coords !== null)
 
   function updateStatus(next: CoverageStatus) {
     setStatus(next)
     onStatusChange?.(next)
   }
 
+  function setPin(next: Coords) {
+    setCoords(next)
+    updateStatus(isInCoverage(next.lat, next.lng) ? "inside" : "outside")
+  }
+  pinFromMap.current = setPin
+
+  function moveMarker(next: Coords, zoom: boolean) {
+    if (!map.current || !marker.current) {
+      pending.current = { coords: next, zoom }
+      return
+    }
+    marker.current.position = next
+    marker.current.map = map.current
+    map.current.panTo(next)
+    if (zoom) map.current.setZoom(18)
+  }
+
+  useEffect(() => {
+    if (!showMap || map.current || !mapEl.current) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const [{ Map }, { AdvancedMarkerElement }] = await Promise.all([loadLibrary("maps"), loadLibrary("marker")])
+        if (cancelled || !mapEl.current) return
+        const instance = new Map(mapEl.current, {
+          center: MENDOZA_CENTER,
+          zoom: 13,
+          mapTypeId: "hybrid",
+          mapId: "DEMO_MAP_ID",
+          disableDefaultUI: true,
+          zoomControl: true,
+          fullscreenControl: true,
+          clickableIcons: false,
+        })
+        const pin = new AdvancedMarkerElement({ gmpDraggable: true, title: "Tu domicilio" })
+        pin.addListener("dragend", () => {
+          const pos = pin.position
+          if (!pos) return
+          const lat = typeof pos.lat === "function" ? pos.lat() : pos.lat
+          const lng = typeof pos.lng === "function" ? pos.lng() : pos.lng
+          pinFromMap.current({ lat, lng })
+        })
+        instance.addListener("click", (e: any) => {
+          if (!e.latLng) return
+          const next = { lat: e.latLng.lat(), lng: e.latLng.lng() }
+          pin.position = next
+          pin.map = instance
+          pinFromMap.current(next)
+        })
+        map.current = instance
+        marker.current = pin
+        if (pending.current) {
+          moveMarker(pending.current.coords, pending.current.zoom)
+          pending.current = null
+        }
+      } catch {
+        if (!cancelled) setMapFailed(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [showMap])
+
   function handleChange(next: string) {
     setValue(next)
-    setCoords(null)
-    if (status !== "unknown") updateStatus("unknown")
     if (debounce.current) clearTimeout(debounce.current)
     if (!API_KEY || next.trim().length < 3) {
       setSuggestions([])
@@ -72,7 +148,7 @@ export function AddressInput({
   async function fetchSuggestions(input: string) {
     const id = ++requestId.current
     try {
-      const { AutocompleteSuggestion, AutocompleteSessionToken } = await loadPlaces()
+      const { AutocompleteSuggestion, AutocompleteSessionToken } = await loadLibrary("places")
       sessionToken.current ??= new AutocompleteSessionToken()
       const { suggestions: results } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
         input,
@@ -108,11 +184,10 @@ export function AddressInput({
       const place = s.prediction.toPlace()
       await place.fetchFields({ fields: ["location", "formattedAddress"] })
       sessionToken.current = null
-      const lat = place.location.lat()
-      const lng = place.location.lng()
-      setCoords({ lat, lng })
+      const next = { lat: place.location.lat(), lng: place.location.lng() }
       if (place.formattedAddress) setValue(place.formattedAddress)
-      updateStatus(isInCoverage(lat, lng) ? "inside" : "outside")
+      setPin(next)
+      moveMarker(next, true)
     } catch {
       updateStatus("unknown")
     } finally {
@@ -206,6 +281,21 @@ export function AddressInput({
         )}
       </div>
 
+      <div className={cn("flex flex-col gap-1.5", !showMap && "hidden")}>
+        <div
+          ref={mapEl}
+          role="region"
+          aria-label="Mapa para marcar tu domicilio"
+          className="h-60 w-full overflow-hidden rounded-2xl border border-border bg-surface sm:h-72"
+        />
+        <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+          <MapPin className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+          {coords
+            ? "Revisá que el pin esté justo en tu domicilio. Si no, arrastralo o tocá el lugar correcto en el mapa."
+            : "Elegí tu dirección de la lista o tocá el mapa para marcar tu domicilio."}
+        </p>
+      </div>
+
       <input type="hidden" name="lat" value={coords?.lat ?? ""} />
       <input type="hidden" name="lng" value={coords?.lng ?? ""} />
 
@@ -231,7 +321,7 @@ export function AddressInput({
             </a>
           </p>
         )}
-        {status === "unknown" && API_KEY && value.trim().length >= 3 && !open && !loading && (
+        {status === "unknown" && API_KEY && mapFailed && value.trim().length >= 3 && !open && !loading && (
           <p className="text-muted-foreground">Elegí tu dirección de la lista para confirmar la cobertura.</p>
         )}
       </div>
