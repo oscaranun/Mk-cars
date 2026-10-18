@@ -52,6 +52,23 @@ function shiftMonth(month: string, delta: number) {
 
 const startOf = (a: ApptRow) => a.confirmed_start ?? a.requested_start
 
+function CalendarItem({ appt: a }: { appt: ApptRow }) {
+  return (
+    <Link
+      href={`/admin/turnos/${a.id}`}
+      className={cn(
+        "truncate rounded-lg px-1.5 py-1 text-[11px] leading-tight transition hover:brightness-125",
+        a.status === "confirmado" && "bg-primary text-white",
+        a.status === "realizado" && "bg-emerald-500/25 text-emerald-200",
+        ["solicitado", "reprogramado", "esperando_cliente"].includes(a.status) && "bg-amber-300/20 text-amber-100",
+      )}
+      title={`${formatTime(startOf(a))} ${a.clients?.full_name ?? ""} — ${APPOINTMENT_STATUS[a.status]}`}
+    >
+      <span className="tabular-nums">{formatTime(startOf(a))}</span> {a.clients?.full_name ?? "Cliente"}
+    </Link>
+  )
+}
+
 export default async function AppointmentsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams
   const { supabase } = await requireAdmin()
@@ -158,21 +175,21 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
                     {Number(day.slice(8))}
                   </span>
                   {items.slice(0, 3).map((a) => (
-                    <Link
-                      key={a.id}
-                      href={`/admin/turnos/${a.id}`}
-                      className={cn(
-                        "truncate rounded-lg px-1.5 py-1 text-[11px] leading-tight transition hover:brightness-125",
-                        a.status === "confirmado" && "bg-primary text-white",
-                        a.status === "realizado" && "bg-emerald-500/25 text-emerald-200",
-                        ["solicitado", "reprogramado", "esperando_cliente"].includes(a.status) && "bg-amber-300/20 text-amber-100",
-                      )}
-                      title={`${formatTime(startOf(a))} ${a.clients?.full_name ?? ""} — ${APPOINTMENT_STATUS[a.status]}`}
-                    >
-                      <span className="tabular-nums">{formatTime(startOf(a))}</span> {a.clients?.full_name ?? "Cliente"}
-                    </Link>
+                    <CalendarItem key={a.id} appt={a} />
                   ))}
-                  {items.length > 3 && <span className="px-1 text-[11px] text-muted-foreground">+{items.length - 3} más</span>}
+                  {items.length > 3 && (
+                    <details className="group flex flex-col gap-1">
+                      <summary className="cursor-pointer list-none rounded-lg px-1 py-0.5 text-[11px] text-muted-foreground transition hover:text-foreground [&::-webkit-details-marker]:hidden">
+                        <span className="group-open:hidden">+{items.length - 3} más</span>
+                        <span className="hidden group-open:inline">Ver menos</span>
+                      </summary>
+                      <div className="mt-1 flex flex-col gap-1">
+                        {items.slice(3).map((a) => (
+                          <CalendarItem key={a.id} appt={a} />
+                        ))}
+                      </div>
+                    </details>
+                  )}
                 </div>
               )
             })}
