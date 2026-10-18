@@ -1,3 +1,12 @@
+export const BOOKING_ORIGIN: Record<string, string> = {
+  web: "Web",
+  whatsapp_flyer: "WhatsApp — Flyer",
+}
+
+export function bookingOriginLabel(origin: string | null | undefined) {
+  return origin ? (BOOKING_ORIGIN[origin] ?? origin) : "Sin identificar"
+}
+
 export const INQUIRY_STATUS: Record<string, string> = {
   nueva: "Nueva consulta",
   pendiente_respuesta: "Pendiente de respuesta",

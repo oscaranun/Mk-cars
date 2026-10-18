@@ -37,7 +37,15 @@ function vehicleDetail(v: BookingVehicle) {
   return { brand: "", model: v.query.trim() }
 }
 
-export function Booking({ prices, blockedDates = [] }: { prices: VehiclePrices | null; blockedDates?: string[] }) {
+export function Booking({
+  prices,
+  blockedDates = [],
+  standalone = false,
+}: {
+  prices: VehiclePrices | null
+  blockedDates?: string[]
+  standalone?: boolean
+}) {
   const [vehicles, setVehicles] = useState<BookingVehicle[]>([emptyVehicle(0)])
   const [error, setError] = useState<string | null>(null)
   const [whatsappMessage, setWhatsappMessage] = useState<string | null>(null)
@@ -98,6 +106,7 @@ export function Booking({ prices, blockedDates = [] }: { prices: VehiclePrices |
     data.set("utmSource", params.get("utm_source") ?? "")
     data.set("ref", params.get("ref") ?? "")
     data.set("referrer", document.referrer)
+    data.set("origen", params.get("origen") === "whatsapp_flyer" ? "whatsapp_flyer" : "web")
     data.set(
       "vehicles",
       JSON.stringify(vehicles.map((v) => ({ category: v.category, catalog_id: v.catalogId, ...vehicleDetail(v) }))),
@@ -141,13 +150,19 @@ export function Booking({ prices, blockedDates = [] }: { prices: VehiclePrices |
   }
 
   return (
-    <section id="reservar" className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-28">
+    <section
+      id="reservar"
+      aria-label={standalone ? "Formulario de reserva" : undefined}
+      className={cn("mx-auto max-w-6xl px-5 md:px-8", standalone ? "pb-12 md:pb-20" : "py-16 md:py-28")}
+    >
       <div className="flex flex-col gap-8 md:gap-10">
-        <SectionHeading
-          eyebrow="Reserva"
-          title="Reservá en un minuto."
-          description="Te confirmamos por WhatsApp."
-        />
+        {!standalone && (
+          <SectionHeading
+            eyebrow="Reserva"
+            title="Reservá en un minuto."
+            description="Te confirmamos por WhatsApp."
+          />
+        )}
 
         <Reveal>
           {whatsappMessage ? (

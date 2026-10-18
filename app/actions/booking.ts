@@ -132,6 +132,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
       water_supply: waterSupply,
       notes,
       source,
+      origen_reserva: data.get("origen") === "whatsapp_flyer" ? "whatsapp_flyer" : "web",
       marketing_consent: data.get("marketing") === "on",
     },
   })
