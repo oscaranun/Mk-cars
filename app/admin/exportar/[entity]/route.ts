@@ -4,6 +4,7 @@ import { argentinaParts, resolveRange } from "@/lib/admin/format"
 import {
   APPOINTMENT_STATUS,
   INQUIRY_STATUS,
+  bookingOriginLabel,
   PAYMENT_METHOD,
   PAYMENT_STATUS,
   VEHICLE_CATEGORY,
@@ -77,13 +78,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   } else if (entity === "consultas") {
     const { data, error } = await supabase
       .from("inquiries")
-      .select("created_at, service, extras, source, commercial_status, notes, clients(full_name, whatsapp)")
+      .select("created_at, service, extras, source, origen_reserva, commercial_status, notes, clients(full_name, whatsapp)")
       .gte("created_at", range.fromISO)
       .lt("created_at", range.toISO)
       .order("created_at", { ascending: false })
       .limit(10000)
       .returns<
-        { created_at: string; service: string; extras: string[] | null; source: string; commercial_status: string; notes: string | null; clients: { full_name: string; whatsapp: string } | null }[]
+        { created_at: string; service: string; extras: string[] | null; source: string; origen_reserva: string | null; commercial_status: string; notes: string | null; clients: { full_name: string; whatsapp: string } | null }[]
       >()
     if (error) return new Response("Error al exportar", { status: 500 })
     csv = toCsv(
@@ -94,6 +95,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         service: i.service,
         extras: i.extras?.join(", "),
         source: i.source,
+        origin: bookingOriginLabel(i.origen_reserva),
         status: INQUIRY_STATUS[i.commercial_status] ?? i.commercial_status,
         notes: i.notes,
       })),
@@ -103,7 +105,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         ["whatsapp", "WhatsApp"],
         ["service", "Servicio"],
         ["extras", "Extras"],
-        ["source", "Origen"],
+        ["origin", "Origen"],
+        ["source", "Canal"],
         ["status", "Estado"],
         ["notes", "Comentarios"],
       ],

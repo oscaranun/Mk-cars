@@ -16,7 +16,13 @@ import {
 } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
 import { formatDateTime, resolveRange } from "@/lib/admin/format"
-import { EDITABLE_INQUIRY_STATUSES, INQUIRY_STATUS, VEHICLE_CATEGORY, inquiryTone } from "@/lib/admin/labels"
+import {
+  EDITABLE_INQUIRY_STATUSES,
+  INQUIRY_STATUS,
+  VEHICLE_CATEGORY,
+  bookingOriginLabel,
+  inquiryTone,
+} from "@/lib/admin/labels"
 
 export const metadata: Metadata = { title: "Consultas" }
 
@@ -26,6 +32,7 @@ type InquiryRow = {
   service: string
   extras: string[] | null
   source: string
+  origen_reserva: string | null
   commercial_status: string
   notes: string | null
   clients: { id: string; full_name: string; whatsapp: string } | null
@@ -44,7 +51,7 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
 
   let query = supabase
     .from("inquiries")
-    .select("id, created_at, service, extras, source, commercial_status, notes, clients(id, full_name, whatsapp), vehicles(category, brand, model), appointments(id)")
+    .select("id, created_at, service, extras, source, origen_reserva, commercial_status, notes, clients(id, full_name, whatsapp), vehicles(category, brand, model), appointments(id)")
     .gte("created_at", range.fromISO)
     .lt("created_at", range.toISO)
     .order("created_at", { ascending: false })
@@ -117,9 +124,12 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
                         <Badge tone={inquiryTone(inq.commercial_status)}>
                           {INQUIRY_STATUS[inq.commercial_status] ?? inq.commercial_status}
                         </Badge>
+                        <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
+                          Origen: {bookingOriginLabel(inq.origen_reserva)}
+                        </span>
                       </div>
                       <p className="text-sm text-muted-foreground tabular-nums">
-                        {formatDateTime(inq.created_at)} · Origen: {inq.source}
+                        {formatDateTime(inq.created_at)} · Canal: {inq.source}
                       </p>
                       <p className="text-sm">
                         {inq.service}
