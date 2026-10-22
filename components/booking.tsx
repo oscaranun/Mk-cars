@@ -144,6 +144,9 @@ export function Booking({
       `Agua: ${noWater ? "Sin agua en el domicilio" : "Agua del domicilio"}`,
       ...(extras.length ? [`Lavado en detalle: ${extras.join(", ")}`] : []),
       `Dirección: ${address}`,
+      ...(data.get("lat") && data.get("lng")
+        ? [`Ubicación: https://www.google.com/maps?q=${data.get("lat")},${data.get("lng")}`]
+        : []),
       ...(zoneBookingEnabled ? [`Servicio: ${zoneServices.find((s) => s.id === serviceId)?.name ?? "Lavado"}`] : []),
       zoneBookingEnabled
         ? date

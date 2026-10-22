@@ -5,7 +5,7 @@
 type GoogleWindow = Window & { google?: any; __mkMapsReady?: () => void }
 let ready: Promise<void> | null = null
 
-export async function loadGoogleLibrary(name: "places" | "maps") {
+export async function loadGoogleLibrary(name: "places" | "maps" | "marker") {
   const w = window as GoogleWindow
   if (!w.google?.maps?.importLibrary) {
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY

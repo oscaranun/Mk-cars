@@ -88,6 +88,12 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
       error: "La dirección está fuera de nuestra zona de cobertura. Escribinos por WhatsApp y lo vemos.",
     }
   }
+  const latNum = Number(lat)
+  const lngNum = Number(lng)
+  const mapLink =
+    lat && lng && Number.isFinite(latNum) && Number.isFinite(lngNum)
+      ? `https://www.google.com/maps?q=${latNum.toFixed(6)},${lngNum.toFixed(6)}`
+      : ""
   if (await isZoneBookingEnabled()) {
     if (!lat || !lng || !isInCoverage(Number(lat), Number(lng))) {
       return { ok: false, field: "address", error: "Elegí tu dirección de Google Maps para validar la cobertura." }
@@ -108,7 +114,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
         neighborhood: text(data, "neighborhood", 120),
         extras,
         water_supply: waterSupply,
-        notes,
+        notes: mapLink ? [notes, `Ubicación en mapa: ${mapLink}`].filter(Boolean).join("\n") : notes,
         service:
           vehicles.length === 1
             ? `Lavado a domicilio · ${VEHICLES.find((v) => v.id === vehicles[0].category)?.name}`
@@ -184,7 +190,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
       service,
       extras,
       water_supply: waterSupply,
-      notes,
+      notes: mapLink ? [notes, `Ubicación en mapa: ${mapLink}`].filter(Boolean).join("\n") : notes,
       source,
       origen_reserva: data.get("origen") === "whatsapp_flyer" ? "whatsapp_flyer" : "web",
       marketing_consent: data.get("marketing") === "on",
