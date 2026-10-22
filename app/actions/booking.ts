@@ -6,6 +6,9 @@ import { isInCoverage } from "@/lib/coverage"
 import { normalizeWhatsapp, resolveSource, toArgentinaTimestamp } from "@/lib/booking"
 import { EXTRAS, TIME_SLOTS, VEHICLES } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/service"
+import { isZoneBookingEnabled } from "@/lib/zones/server"
+import { isValidDate } from "@/lib/admin/format"
 
 export type BookingResult = { ok: true } | { ok: false; error: string; field?: string }
 
@@ -72,7 +75,8 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
     return { ok: false, field: "name", error: "Ingresá tu nombre y apellido." }
   }
   if (!whatsapp) return { ok: false, field: "phone", error: "Ingresá un WhatsApp válido con código de área." }
-  if (email && !EMAIL_RE.test(email)) return { ok: false, field: "email", error: "Ingresá un correo electrónico válido." }
+  if (email && !EMAIL_RE.test(email))
+    return { ok: false, field: "email", error: "Ingresá un correo electrónico válido." }
   if (!vehicles) return { ok: false, field: "vehicle", error: "Elegí el tipo de cada vehículo." }
   if (address.length < 5) return { ok: false, field: "address", error: "Ingresá la dirección del lavado." }
   const lat = text(data, "lat", 20)
@@ -83,6 +87,56 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
       field: "address",
       error: "La dirección está fuera de nuestra zona de cobertura. Escribinos por WhatsApp y lo vemos.",
     }
+  }
+  if (await isZoneBookingEnabled()) {
+    if (!lat || !lng || !isInCoverage(Number(lat), Number(lng))) {
+      return { ok: false, field: "address", error: "Elegí tu dirección de Google Maps para validar la cobertura." }
+    }
+    if (date && !isValidDate(date)) return { ok: false, field: "date", error: "Elegí una fecha válida." }
+    const serviceClient = createServiceClient()
+    const serviceType = text(data, "service_type_id", 36)
+    if (serviceType && !UUID_RE.test(serviceType)) return { ok: false, error: "Elegí un servicio válido." }
+    if (!serviceClient) return { ok: false, error: "El sistema de reservas no está disponible." }
+    const headerList = await headers()
+    const { error } = await serviceClient.rpc("submit_zone_booking", {
+      p_payload: {
+        full_name: fullName,
+        whatsapp,
+        email,
+        vehicles,
+        address,
+        neighborhood: text(data, "neighborhood", 120),
+        extras,
+        water_supply: waterSupply,
+        notes,
+        service:
+          vehicles.length === 1
+            ? `Lavado a domicilio · ${VEHICLES.find((v) => v.id === vehicles[0].category)?.name}`
+            : `Lavado a domicilio · ${vehicles.length} vehículos`,
+        source: resolveSource({
+          utmSource: text(data, "utmSource", 40),
+          ref: text(data, "ref", 40),
+          referrer: text(data, "referrer", 300) || headerList.get("referer"),
+        }),
+        origen_reserva: data.get("origen") === "whatsapp_flyer" ? "whatsapp_flyer" : "web",
+        marketing_consent: data.get("marketing") === "on",
+        service_type_id: serviceType || null,
+      },
+      p_day: date || null,
+      p_lat: Number(lat),
+      p_lng: Number(lng),
+      p_waitlist: data.get("waitlist") === "on",
+    })
+    if (error) {
+      console.error("[zones] submit failed:", error.code)
+      return {
+        ok: false,
+        error: ["P0001", "P0002", "22023"].includes(error.code)
+          ? error.message
+          : "No pudimos guardar tu solicitud. Intentá nuevamente.",
+      }
+    }
+    return { ok: true }
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !TIME_SLOTS.includes(time)) {
     return { ok: false, field: "date", error: "Elegí fecha y horario." }

@@ -39,6 +39,43 @@ export async function findConflicts(
   const capacity = Number(settings?.operational_capacity) || 1
   const travelMinutes = Math.max(0, Number(settings?.travel_minutes) || 0)
 
+  const { data: zoneSettings } = await supabase
+    .from("zone_booking_settings")
+    .select("enabled,travel_minutes,buffer_minutes")
+    .eq("id", 1)
+    .maybeSingle()
+  if (zoneSettings?.enabled) {
+    const { data: matches, error: matchError } = await supabase.rpc("appointment_slot_conflicts", {
+      p_start: start,
+      p_duration: durationMinutes,
+      p_exclude: id,
+      p_operator: operator ?? null,
+    })
+    if (matchError) return null
+    const conflicts: Conflict[] = (matches ?? []).map(
+      (a: {
+        id: string
+        confirmed_start: string
+        duration_minutes: number
+        operator: string | null
+        same_operator: boolean
+      }) => ({
+        id: a.id,
+        confirmed_start: a.confirmed_start,
+        duration_minutes: a.duration_minutes,
+        operator: a.operator,
+        clientName: null,
+        sameOperator: a.same_operator,
+      }),
+    )
+    return {
+      capacity: 1,
+      travelMinutes: Number(zoneSettings.travel_minutes) + Number(zoneSettings.buffer_minutes),
+      conflicts,
+      blocked: conflicts.length > 0,
+    }
+  }
+
   const startMs = new Date(start).getTime()
   const windowStart = startMs - travelMinutes * 60_000
   const windowEnd = startMs + (durationMinutes + travelMinutes) * 60_000
@@ -51,7 +88,13 @@ export async function findConflicts(
     .gte("confirmed_start", new Date(startMs - MAX_WINDOW_HOURS * 3_600_000).toISOString())
     .lte("confirmed_start", new Date(windowEnd).toISOString())
     .returns<
-      { id: string; confirmed_start: string; duration_minutes: number; operator: string | null; clients: { full_name: string } | null }[]
+      {
+        id: string
+        confirmed_start: string
+        duration_minutes: number
+        operator: string | null
+        clients: { full_name: string } | null
+      }[]
     >()
   if (error) return null
 
@@ -80,7 +123,10 @@ export async function findConflicts(
 
 export function conflictSummary(check: ConflictCheck) {
   const list = check.conflicts
-    .map((c) => `${formatDateTime(c.confirmed_start)} (${c.duration_minutes} min${c.clientName ? `, ${c.clientName}` : ""}${c.sameOperator ? ", mismo operario" : ""})`)
+    .map(
+      (c) =>
+        `${formatDateTime(c.confirmed_start)} (${c.duration_minutes} min${c.clientName ? `, ${c.clientName}` : ""}${c.sameOperator ? ", mismo operario" : ""})`,
+    )
     .join("; ")
   const travel = check.travelMinutes ? ` (incluye ${check.travelMinutes} min de traslado)` : ""
   return `Se superpone${travel} con ${list}.`
