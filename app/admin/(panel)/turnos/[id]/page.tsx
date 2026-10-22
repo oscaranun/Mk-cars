@@ -651,7 +651,7 @@ function MarkSentForm({ id, kind }: { id: string; kind: "confirmacion" | "propue
   )
 }
 
-function ProposeCard({
+async function ProposeCard({
   title,
   description,
   submitLabel,
@@ -669,6 +669,10 @@ function ProposeCard({
   secondary?: boolean
 }) {
   const slug = submitLabel.toLowerCase().replace(/\W+/g, "-")
+  const {supabase}=await requireAdmin()
+  const {data:operation}=await supabase.from("zone_booking_settings").select("enabled,day_start,day_end").eq("id",1).maybeSingle()
+  const minTime=operation?.enabled?operation.day_start.slice(0,5):"09:00"
+  const maxTime=operation?.enabled?operation.day_end.slice(0,5):"18:00"
   return (
     <Card className="flex flex-col gap-4">
       <SectionTitle>{title}</SectionTitle>
@@ -681,7 +685,7 @@ function ProposeCard({
             <input id={`${slug}-date`} name="date" type="date" required min={today} className={inputClass} />
           </Field>
           <Field label="Nuevo horario" htmlFor={`${slug}-time`}>
-            <input id={`${slug}-time`} name="time" type="time" required min="09:00" max="18:00" step={900} className={inputClass} />
+            <input id={`${slug}-time`} name="time" type="time" required min={minTime} max={maxTime} step={900} className={inputClass} />
           </Field>
           <Field label="Duración (min)" htmlFor={`${slug}-duration`}>
             <input id={`${slug}-duration`} name="duration" type="number" min={15} max={540} step={15} defaultValue={appt.duration_minutes} className={inputClass} />

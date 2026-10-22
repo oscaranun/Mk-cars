@@ -5,6 +5,8 @@ import { CheckCircle2, Frown, Loader2, MapPin, MessageCircle, Smile, XCircle } f
 import { COVERAGE_BOUNDS, isInCoverage } from "@/lib/coverage"
 import { whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
+import { loadGoogleLibrary } from "@/lib/google-maps"
+import type { Point } from "@/lib/zones/geometry"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Suggestion = { id: string; main: string; secondary: string; prediction: any }
@@ -13,37 +15,16 @@ export type CoverageStatus = "unknown" | "inside" | "outside"
 
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 const MENDOZA_CENTER: Coords = { lat: -32.8895, lng: -68.8458 }
-let mapsLoader: Promise<any> | null = null
-
-function loadMaps(): Promise<any> {
-  if (mapsLoader) return mapsLoader
-  mapsLoader = new Promise((resolve, reject) => {
-    const w = window as any
-    if (w.google?.maps?.importLibrary) return resolve(w.google.maps)
-    w.__mkMapsReady = () => resolve(w.google.maps)
-    const script = document.createElement("script")
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&loading=async&language=es&region=AR&callback=__mkMapsReady`
-    script.async = true
-    script.onerror = () => {
-      mapsLoader = null
-      reject(new Error("Google Maps failed to load"))
-    }
-    document.head.appendChild(script)
-  })
-  return mapsLoader
-}
-
-async function loadLibrary(name: "places" | "maps" | "marker") {
-  const maps = await loadMaps()
-  return maps.importLibrary(name)
-}
+const loadLibrary = loadGoogleLibrary
 
 export function AddressInput({
   className,
   onStatusChange,
+  onLocationChange,
 }: {
   className: string
   onStatusChange?: (status: CoverageStatus) => void
+  onLocationChange?: (point: Point | null) => void
 }) {
   const listId = useId()
   const [value, setValue] = useState("")
@@ -54,6 +35,7 @@ export function AddressInput({
   const [status, setStatus] = useState<CoverageStatus>("unknown")
   const [coords, setCoords] = useState<Coords | null>(null)
   const [mapFailed, setMapFailed] = useState(false)
+  const [neighborhood, setNeighborhood] = useState("")
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sessionToken = useRef<any>(null)
   const requestId = useRef(0)
@@ -71,10 +53,15 @@ export function AddressInput({
   }
 
   function setPin(next: Coords) {
+    const inside = isInCoverage(next.lat, next.lng)
     setCoords(next)
-    updateStatus(isInCoverage(next.lat, next.lng) ? "inside" : "outside")
+    onLocationChange?.(inside ? next : null)
+    updateStatus(inside ? "inside" : "outside")
   }
-  pinFromMap.current = setPin
+  pinFromMap.current = (next) => {
+    setNeighborhood("")
+    setPin(next)
+  }
 
   function moveMarker(next: Coords, zoom: boolean) {
     if (!map.current || !marker.current) {
@@ -136,6 +123,8 @@ export function AddressInput({
 
   function handleChange(next: string) {
     setValue(next)
+    requestId.current++
+    setLoading(false)
     if (debounce.current) clearTimeout(debounce.current)
     if (!API_KEY || next.trim().length < 3) {
       setSuggestions([])
@@ -177,21 +166,34 @@ export function AddressInput({
   }
 
   async function select(s: Suggestion) {
+    const selectedRequest = ++requestId.current
+    if (debounce.current) clearTimeout(debounce.current)
     setOpen(false)
     setValue([s.main, s.secondary].filter(Boolean).join(", "))
     setLoading(true)
     try {
       const place = s.prediction.toPlace()
-      await place.fetchFields({ fields: ["location", "formattedAddress"] })
+      await place.fetchFields({ fields: ["location", "formattedAddress", "addressComponents"] })
+      if (selectedRequest !== requestId.current) return
       sessionToken.current = null
       const next = { lat: place.location.lat(), lng: place.location.lng() }
+      const lat = place.location.lat()
+      const lng = place.location.lng()
+      setNeighborhood(
+        place.addressComponents?.find(
+          (c: { types: string[] }) => c.types.includes("neighborhood") || c.types.includes("sublocality_level_1"),
+        )?.longText ?? "",
+      )
       if (place.formattedAddress) setValue(place.formattedAddress)
       setPin(next)
       moveMarker(next, true)
     } catch {
+      if (selectedRequest !== requestId.current) return
+      setCoords(null)
+      onLocationChange?.(null)
       updateStatus("unknown")
     } finally {
-      setLoading(false)
+      if (selectedRequest === requestId.current) setLoading(false)
     }
   }
 
@@ -265,10 +267,7 @@ export function AddressInput({
                   select(s)
                 }}
                 onMouseEnter={() => setActive(i)}
-                className={cn(
-                  "flex cursor-pointer items-start gap-3 px-4 py-3 text-sm",
-                  i === active && "bg-surface",
-                )}
+                className={cn("flex cursor-pointer items-start gap-3 px-4 py-3 text-sm", i === active && "bg-surface")}
               >
                 <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                 <span className="flex min-w-0 flex-col">
@@ -298,6 +297,7 @@ export function AddressInput({
 
       <input type="hidden" name="lat" value={coords?.lat ?? ""} />
       <input type="hidden" name="lng" value={coords?.lng ?? ""} />
+      <input type="hidden" name="neighborhood" value={neighborhood} />
 
       <div id={`${listId}-status`} aria-live="polite" className="min-h-0 text-xs">
         {status === "inside" && (

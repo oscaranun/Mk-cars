@@ -12,6 +12,9 @@ import { WhatsAppIcon } from "@/components/whatsapp-icon"
 import { EXTRAS, SERVICE_DAYS, TIME_SLOTS, VEHICLES, whatsappUrl } from "@/lib/site"
 import type { VehiclePrices } from "@/lib/prices"
 import { cn } from "@/lib/utils"
+import { ZoneDatePicker } from "@/components/zone-date-picker"
+import type { Point } from "@/lib/zones/geometry"
+import type { ServiceType } from "@/lib/zones/types"
 
 const fieldClass =
   "min-h-14 w-full rounded-2xl border border-border bg-surface px-4 text-base text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-primary focus:bg-card focus:ring-4 focus:ring-primary/10"
@@ -41,15 +44,23 @@ export function Booking({
   prices,
   blockedDates = [],
   standalone = false,
+  zoneBookingEnabled = false,
+  zoneServices = [],
 }: {
   prices: VehiclePrices | null
   blockedDates?: string[]
   standalone?: boolean
+  zoneBookingEnabled?: boolean
+  zoneServices?: ServiceType[]
 }) {
   const [vehicles, setVehicles] = useState<BookingVehicle[]>([emptyVehicle(0)])
   const [error, setError] = useState<string | null>(null)
   const [whatsappMessage, setWhatsappMessage] = useState<string | null>(null)
   const [coverage, setCoverage] = useState<CoverageStatus>("unknown")
+  const [point, setPoint] = useState<Point | null>(null)
+  const [serviceId, setServiceId] = useState(
+    () => zoneServices.find((s) => s.is_default)?.id ?? zoneServices[0]?.id ?? "",
+  )
   const [formKey, setFormKey] = useState(0)
   const [pending, startTransition] = useTransition()
   const startedAt = useRef(0)
@@ -79,8 +90,12 @@ export function Booking({
       .map((id) => EXTRAS.find((x) => x.id === id)?.name)
       .filter(Boolean)
 
-    if (!name || !address || !phone || !date || !time) {
+    if (!name || !address || !phone || (!zoneBookingEnabled && (!date || !time))) {
       setError("Completá todos los campos obligatorios para reservar.")
+      return
+    }
+    if (zoneBookingEnabled && (!point || data.get("zoneAvailabilityReady") !== "yes")) {
+      setError("Validá tu dirección y elegí un día disponible para continuar.")
       return
     }
     if (coverage === "outside") {
@@ -91,7 +106,7 @@ export function Booking({
       setError("Elegí el tipo de cada vehículo.")
       return
     }
-    if (isSunday(date)) {
+    if (!zoneBookingEnabled && isSunday(date)) {
       setError(`Trabajamos de ${SERVICE_DAYS.full.toLowerCase()}. Elegí otro día.`)
       return
     }
@@ -123,14 +138,22 @@ export function Booking({
       "Hola MK Cars, envié una solicitud de turno desde la web.",
       "",
       `Nombre: ${name}`,
-      ...(vehicles.length > 1 ? [`Vehículos (${vehicles.length}):`, ...vehicleLines] : [`Vehículo: ${vehicleLines[0]}`]),
+      ...(vehicles.length > 1
+        ? [`Vehículos (${vehicles.length}):`, ...vehicleLines]
+        : [`Vehículo: ${vehicleLines[0]}`]),
       `Agua: ${noWater ? "Sin agua en el domicilio" : "Agua del domicilio"}`,
       ...(extras.length ? [`Lavado en detalle: ${extras.join(", ")}`] : []),
       `Dirección: ${address}`,
       ...(data.get("lat") && data.get("lng")
         ? [`Ubicación: https://www.google.com/maps?q=${data.get("lat")},${data.get("lng")}`]
         : []),
-      `Fecha preferida: ${formatDate(date)} · ${time} hs`,
+      ...(zoneBookingEnabled ? [`Servicio: ${zoneServices.find((s) => s.id === serviceId)?.name ?? "Lavado"}`] : []),
+      zoneBookingEnabled
+        ? date
+          ? `Día solicitado: ${formatDate(date)} · horario a coordinar`
+          : "Día y horario a coordinar: revisión de zona"
+        : `Fecha preferida: ${formatDate(date)} · ${time} hs`,
+      ...(data.get("waitlist") === "on" ? ["Solicitud en lista de espera, sin confirmación."] : []),
       ...(notes ? [`Observaciones: ${notes}`] : []),
     ].join("\n")
 
@@ -144,6 +167,7 @@ export function Booking({
         setWhatsappMessage(message)
         form.reset()
         setCoverage("unknown")
+        setPoint(null)
         setFormKey((k) => k + 1)
         setVehicles([emptyVehicle(nextKey.current++)])
       } catch {
@@ -151,6 +175,45 @@ export function Booking({
       }
     })
   }
+
+  const customerFields = (
+    <>
+      <Field label="Nombre y apellido" htmlFor="name" required>
+        <input
+          id="name"
+          name="name"
+          type="text"
+          autoComplete="name"
+          placeholder="Tu nombre y apellido"
+          className={fieldClass}
+          required
+        />
+      </Field>
+
+      <Field label="WhatsApp" htmlFor="phone" required>
+        <input
+          id="phone"
+          name="phone"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          placeholder="261 000-0000"
+          className={fieldClass}
+          required
+        />
+      </Field>
+    </>
+  )
+  const vehicleFields = (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <SectionLabel>Vehículos</SectionLabel>
+        <p className="text-sm text-muted-foreground">Agregá todos los autos que quieras lavar en el mismo turno.</p>
+      </div>
+      <BookingVehicles vehicles={vehicles} prices={prices} onChange={setVehicles} onAdd={addVehicle} />
+      <ServiceIncludes />
+    </div>
+  )
 
   return (
     <section
@@ -160,11 +223,7 @@ export function Booking({
     >
       <div className="flex flex-col gap-8 md:gap-10">
         {!standalone && (
-          <SectionHeading
-            eyebrow="Reserva"
-            title="Reservá en un minuto."
-            description="Te confirmamos por WhatsApp."
-          />
+          <SectionHeading eyebrow="Reserva" title="Reservá en un minuto." description="Te confirmamos por WhatsApp." />
         )}
 
         <Reveal>
@@ -177,7 +236,9 @@ export function Booking({
               <div className="flex flex-col gap-2">
                 <h3 className="text-xl font-semibold tracking-tight">Solicitud recibida</h3>
                 <p className="leading-relaxed text-muted-foreground">
-                  Recibimos tu solicitud de turno. MK Cars verificará la disponibilidad y te confirmará por WhatsApp.
+                  {zoneBookingEnabled
+                    ? "¡Recibimos tu solicitud! Te contactaremos por WhatsApp para proponerte un horario. Tu reserva quedará confirmada cuando aceptes."
+                    : "Recibimos tu solicitud de turno. MK Cars verificará la disponibilidad y te confirmará por WhatsApp."}
                 </p>
               </div>
               <a
@@ -213,108 +274,110 @@ export function Booking({
                 <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
               </div>
 
+              {zoneBookingEnabled && vehicleFields}
+
               <div className="flex flex-col gap-5">
                 <SectionLabel>Datos para tu turno</SectionLabel>
                 <div className="grid gap-5 md:grid-cols-2 md:gap-x-6">
-                  <Field label="Nombre y apellido" htmlFor="name" required>
-                    <input
-                      id="name"
-                      name="name"
-                      type="text"
-                      autoComplete="name"
-                      placeholder="Tu nombre y apellido"
-                      className={fieldClass}
-                      required
-                    />
-                  </Field>
+                  {!zoneBookingEnabled && customerFields}
 
-                  <Field label="WhatsApp" htmlFor="phone" required>
-                    <input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      placeholder="261 000-0000"
-                      className={fieldClass}
-                      required
-                    />
-                  </Field>
-
-                  <Field label="Dirección" htmlFor="address" required>
-                    <AddressInput className={fieldClass} onStatusChange={setCoverage} />
-                  </Field>
-
-                  <div className="grid grid-cols-2 gap-3">
-                  <Field label="Fecha" htmlFor="date" required>
-                    <input
-                      id="date"
-                      name="date"
-                      type="date"
-                      min={todayISO()}
-                      className={cn(fieldClass, "pr-2")}
-                      required
-                    />
-                  </Field>
-
-                  <Field label="Horario" htmlFor="time" required>
-                    <SelectWrap>
+                  {zoneBookingEnabled && (
+                    <Field label="Servicio" htmlFor="service-type" required>
                       <select
-                        id="time"
-                        name="time"
-                        defaultValue=""
-                        className={cn(fieldClass, "appearance-none pr-10")}
+                        id="service-type"
+                        name="service_type_id"
+                        value={serviceId}
+                        onChange={(e) => setServiceId(e.target.value)}
+                        className={fieldClass}
                         required
                       >
-                        <option value="" disabled>
-                          Hora
-                        </option>
-                        {TIME_SLOTS.map((t) => (
-                          <option key={t} value={t}>
-                            {t} hs
+                        {!zoneServices.length && <option value="">No hay servicios disponibles</option>}
+                        {zoneServices.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} · {s.minutes_per_vehicle} min por vehículo
                           </option>
                         ))}
                       </select>
-                    </SelectWrap>
+                    </Field>
+                  )}
+
+                  <Field label="Dirección" htmlFor="address" required>
+                    <AddressInput className={fieldClass} onStatusChange={setCoverage} onLocationChange={setPoint} />
                   </Field>
-                  </div>
+                  {zoneBookingEnabled ? (
+                    <ZoneDatePicker
+                      point={point}
+                      vehicles={vehicles.length}
+                      fieldClass={fieldClass}
+                      serviceId={serviceId}
+                    />
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Fecha" htmlFor="date" required>
+                        <input
+                          id="date"
+                          name="date"
+                          type="date"
+                          min={todayISO()}
+                          className={cn(fieldClass, "pr-2")}
+                          required
+                        />
+                      </Field>
+
+                      <Field label="Horario" htmlFor="time" required>
+                        <SelectWrap>
+                          <select
+                            id="time"
+                            name="time"
+                            defaultValue=""
+                            className={cn(fieldClass, "appearance-none pr-10")}
+                            required
+                          >
+                            <option value="" disabled>
+                              Hora
+                            </option>
+                            {TIME_SLOTS.map((t) => (
+                              <option key={t} value={t}>
+                                {t} hs
+                              </option>
+                            ))}
+                          </select>
+                        </SelectWrap>
+                      </Field>
+                    </div>
+                  )}
+                  {zoneBookingEnabled && customerFields}
                 </div>
               </div>
 
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1">
-                  <SectionLabel>Vehículos</SectionLabel>
-                  <p className="text-sm text-muted-foreground">
-                    Agregá todos los autos que quieras lavar en el mismo turno.
-                  </p>
-                </div>
-                <BookingVehicles vehicles={vehicles} prices={prices} onChange={setVehicles} onAdd={addVehicle} />
-            <ServiceIncludes />
-              </div>
+              {!zoneBookingEnabled && vehicleFields}
 
               <fieldset className="flex flex-col gap-3">
-  <legend className="sr-only">Lavado en detalle</legend>
-  <details className="group rounded-2xl border border-border bg-surface/60 open:bg-surface">
-  <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 text-sm font-medium text-primary transition hover:text-primary/80 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 [&::-webkit-details-marker]:hidden">
-  <span className="flex flex-col py-2">
-  Sumar lavado en detalle
-  <span className="text-xs font-normal text-muted-foreground">Tapizados y motor · Opcional</span>
-  </span>
-  <ChevronDown className="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
-  </summary>
-  <div className="grid gap-3 px-4 pb-4 md:grid-cols-2">
-  {EXTRAS.map((extra) => (
-  <label
-  key={extra.id}
-  className="flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background/40 px-4 transition-colors has-[:checked]:border-primary has-[:checked]:bg-sky has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40"
-  >
-  <input type="checkbox" name="extras" value={extra.id} className="size-5 accent-primary" />
-  <span className="flex-1 text-sm font-medium text-white">{extra.name}</span>
-  <span className="text-xs text-muted-foreground">Consultar</span>
-  </label>
-  ))}
-  </div>
-  </details>
+                <legend className="sr-only">Lavado en detalle</legend>
+                <details className="group rounded-2xl border border-border bg-surface/60 open:bg-surface">
+                  <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 text-sm font-medium text-primary transition hover:text-primary/80 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 [&::-webkit-details-marker]:hidden">
+                    <span className="flex flex-col py-2">
+                      Sumar lavado en detalle
+                      <span className="text-xs font-normal text-muted-foreground">Tapizados y motor · Opcional</span>
+                    </span>
+                    <ChevronDown
+                      className="size-4 shrink-0 transition-transform group-open:rotate-180"
+                      aria-hidden="true"
+                    />
+                  </summary>
+                  <div className="grid gap-3 px-4 pb-4 md:grid-cols-2">
+                    {EXTRAS.map((extra) => (
+                      <label
+                        key={extra.id}
+                        className="flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background/40 px-4 transition-colors has-[:checked]:border-primary has-[:checked]:bg-sky has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40"
+                      >
+                        <input type="checkbox" name="extras" value={extra.id} className="size-5 accent-primary" />
+                        <span className="flex-1 text-sm font-medium text-white">{extra.name}</span>
+                        <span className="text-xs text-muted-foreground">Consultar</span>
+                      </label>
+                    ))}
+                  </div>
+                </details>
                 <label className="mt-1 flex cursor-pointer items-start gap-3 px-1">
                   <input type="checkbox" name="noWater" className="mt-0.5 size-4 accent-primary" />
                   <span className="flex flex-col">
@@ -343,7 +406,10 @@ export function Booking({
                 ) : (
                   <>
                     Solicitar turno
-                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                    <ArrowRight
+                      className="size-4 transition-transform group-hover:translate-x-0.5"
+                      aria-hidden="true"
+                    />
                   </>
                 )}
               </button>
@@ -378,10 +444,7 @@ function Field({
 }) {
   return (
     <div className={cn("flex min-w-0 flex-col gap-2", className)}>
-      <label
-        htmlFor={htmlFor}
-        className={cn("text-sm", required ? "font-medium text-white" : "text-muted-foreground")}
-      >
+      <label htmlFor={htmlFor} className={cn("text-sm", required ? "font-medium text-white" : "text-muted-foreground")}>
         {label}
         {required && (
           <span className="text-primary" aria-hidden="true">

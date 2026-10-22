@@ -7,6 +7,7 @@ import {
   Calculator,
   CalendarDays,
   CalendarRange,
+  MapPinned,
   ClipboardCheck,
   FlaskConical,
   LayoutDashboard,
@@ -20,6 +21,8 @@ import { cn } from "@/lib/utils"
 const ITEMS = [
   { href: "/admin", label: "Hoy", icon: LayoutDashboard },
   { href: "/admin/agenda", label: "Agenda", icon: CalendarRange },
+  { href: "/admin/agenda-servicios", label: "Agenda de servicios", icon: CalendarDays },
+  { href: "/admin/zonas", label: "Zonas y recorridos", icon: MapPinned },
   { href: "/admin/turnos", label: "Turnos", icon: CalendarDays },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
   { href: "/admin/recontactar", label: "Recontactar", icon: RefreshCcw },
@@ -38,7 +41,7 @@ export function AdminNav() {
     <nav aria-label="Secciones del panel" className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:min-h-0 lg:flex-1 lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-contain lg:px-0">
       <ul className="flex gap-1.5 lg:flex-col">
         {ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = href === "/admin" ? pathname === "/admin" : pathname.startsWith(href)
+          const active = href === "/admin" ? pathname === "/admin" : pathname === href || pathname.startsWith(`${href}/`)
           return (
             <li key={href} className="shrink-0">
               <Link

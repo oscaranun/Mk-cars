@@ -6,6 +6,7 @@ import { Logo } from "@/components/logo"
 import { todayArgentina } from "@/lib/admin/format"
 import { getUpcomingBlockedDates } from "@/lib/blocked-dates"
 import { getVehiclePrices } from "@/lib/prices"
+import { getZoneServices, isZoneBookingEnabled } from "@/lib/zones/server"
 
 export const revalidate = 60
 
@@ -43,7 +44,8 @@ export const metadata: Metadata = {
 }
 
 export default async function ReservarPage() {
-  const [prices, blockedDates] = await Promise.all([getVehiclePrices(), getUpcomingBlockedDates(todayArgentina())])
+  const [prices, blockedDates, zoneBookingEnabled] = await Promise.all([getVehiclePrices(), getUpcomingBlockedDates(todayArgentina()), isZoneBookingEnabled()])
+  const zoneServices = zoneBookingEnabled ? await getZoneServices() : []
   return (
     <main className="min-h-dvh pb-[env(safe-area-inset-bottom)]">
       <header className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-5 pb-8 pt-[max(1.5rem,env(safe-area-inset-top))] text-center md:px-8 md:pb-10 md:pt-10">
@@ -61,7 +63,7 @@ export default async function ReservarPage() {
         </div>
       </header>
 
-      <Booking prices={prices} blockedDates={blockedDates.map((b) => b.day)} standalone />
+      <Booking prices={prices} blockedDates={blockedDates.map((b) => b.day)} zoneBookingEnabled={zoneBookingEnabled} zoneServices={zoneServices} standalone />
 
       <footer className="flex justify-center px-5 pb-10">
         <Link
