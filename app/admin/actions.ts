@@ -1,8 +1,10 @@
 "use server"
 
 import { redirect } from "next/navigation"
+import type { AuthError } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient, hasAnyAdmin } from "@/lib/supabase/service"
+import { loginFailureDiagnostic } from "@/lib/supabase/login-diagnostics"
 
 export type LoginState = { error: string | null }
 
@@ -14,9 +16,20 @@ export async function login(_prev: LoginState, data: FormData): Promise<LoginSta
   const password = String(data.get("password") ?? "")
   if (!email || !password) return { error: "Ingresá correo y contraseña." }
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  let error: AuthError | null
+  try {
+    const result = await supabase.auth.signInWithPassword({ email, password })
+    error = result.error
+  } catch (cause) {
+    console.error("[admin] login failed:", loginFailureDiagnostic(
+      cause, process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    ))
+    return { error: "No se pudo conectar para iniciar sesión. Intentá nuevamente." }
+  }
   if (error) {
-    console.error("[admin] login failed:", error.code)
+    console.error("[admin] login failed:", loginFailureDiagnostic(
+      error, process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    ))
     if (error.code === "email_not_confirmed") return { error: "El correo todavía no fue confirmado." }
     if (error.status === 429) return { error: "Demasiados intentos. Esperá unos minutos." }
     if (error.code === "invalid_credentials") return { error: "Correo o contraseña incorrectos." }
