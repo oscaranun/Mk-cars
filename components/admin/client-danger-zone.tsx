@@ -11,6 +11,7 @@ type DeletePreview = {
   vehicles: number
   inquiries: number
   appointments: number
+  services?: number
 }
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
@@ -82,6 +83,7 @@ export async function ClientDangerZone({ supabase, client }: Props) {
                 <li>{plural(preview.vehicles, "vehículo", "vehículos")}</li>
                 <li>{plural(preview.inquiries, "consulta", "consultas")}</li>
                 <li>{plural(preview.appointments, "turno", "turnos")}</li>
+                {preview.services ? <li>{plural(preview.services, "servicio y sus cobros", "servicios y sus cobros")}</li> : null}
               </ul>
             </div>
           )}
