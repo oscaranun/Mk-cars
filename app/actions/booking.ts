@@ -144,20 +144,24 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
     }
     return { ok: true }
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !TIME_SLOTS.includes(time)) {
-    return { ok: false, field: "date", error: "Elegí fecha y horario." }
-  }
-  const requestedStart = toArgentinaTimestamp(date, time)
-  const requested = new Date(requestedStart)
-  if (Number.isNaN(requested.getTime()) || requested.getTime() < Date.now()) {
-    return { ok: false, field: "date", error: "Elegí una fecha y horario futuros." }
-  }
-  if (requested.getUTCDay() === 0 && requested.getUTCHours() >= 3) {
-    return { ok: false, field: "date", error: "Trabajamos de lunes a sábado. Elegí otro día." }
-  }
-  const blocked = (await getUpcomingBlockedDates(date)).find((b) => b.day === date)
-  if (blocked) {
-    return { ok: false, field: "date", error: "Ese día no tenemos turnos disponibles. Elegí otra fecha." }
+  // MK Cars proposes the slot afterwards; a date only arrives from older cached clients.
+  let requestedStart: string | null = null
+  if (date || time) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !TIME_SLOTS.includes(time)) {
+      return { ok: false, field: "date", error: "Elegí fecha y horario." }
+    }
+    requestedStart = toArgentinaTimestamp(date, time)
+    const requested = new Date(requestedStart)
+    if (Number.isNaN(requested.getTime()) || requested.getTime() < Date.now()) {
+      return { ok: false, field: "date", error: "Elegí una fecha y horario futuros." }
+    }
+    if (requested.getUTCDay() === 0 && requested.getUTCHours() >= 3) {
+      return { ok: false, field: "date", error: "Trabajamos de lunes a sábado. Elegí otro día." }
+    }
+    const blocked = (await getUpcomingBlockedDates(date)).find((b) => b.day === date)
+    if (blocked) {
+      return { ok: false, field: "date", error: "Ese día no tenemos turnos disponibles. Elegí otra fecha." }
+    }
   }
 
   const supabase = await createClient()
