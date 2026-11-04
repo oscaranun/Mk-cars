@@ -1,6 +1,9 @@
 import type { ReactNode } from "react"
 import type { Metadata } from "next"
+import Link from "next/link"
+import { headers } from "next/headers"
 import { LogOut } from "lucide-react"
+import { SECTIONS, USERS_SECTION, allowedKeys, canAccess, sectionForPath } from "@/lib/admin/permissions"
 import { logout } from "@/app/admin/actions"
 import { AdminNav } from "@/components/admin/admin-nav"
 import { Logo } from "@/components/logo"
@@ -25,8 +28,25 @@ function LogoutButton() {
   )
 }
 
+function NoAccess({ allowed }: { allowed: string[] }) {
+  const links = [...SECTIONS, USERS_SECTION].filter((s) => allowed.includes(s.key))
+  return (
+    <div role="alert" className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
+      <p>No tenés permiso para ver esta sección. Pedile acceso al propietario del panel.</p>
+      {links.length > 0 && (
+        <Link href={links[0].href} className="w-fit font-medium text-electric underline-offset-4 hover:underline">
+          Ir a {links[0].label}
+        </Link>
+      )}
+    </div>
+  )
+}
+
 export default async function PanelLayout({ children }: { children: ReactNode }) {
-  const { user, isAdmin } = await requireAdmin()
+  const { user, isAdmin, profile } = await requireAdmin()
+  const pathname = (await headers()).get("x-pathname") ?? "/admin"
+  const allowed = allowedKeys(profile)
+  const permitted = canAccess(profile, sectionForPath(pathname))
 
   return (
     <div className="min-h-dvh bg-background lg:flex">
@@ -37,7 +57,7 @@ export default async function PanelLayout({ children }: { children: ReactNode })
             <LogoutButton />
           </div>
         </div>
-        {isAdmin && <AdminNav />}
+        {isAdmin && <AdminNav allowed={allowed} />}
         <div className="mt-auto hidden flex-col gap-3 lg:flex">
           <p className="truncate text-xs text-muted-foreground" title={user.email ?? undefined}>
             {user.email}
@@ -48,7 +68,11 @@ export default async function PanelLayout({ children }: { children: ReactNode })
 
       <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-8 px-4 py-6 md:px-8 lg:py-10">
         {isAdmin ? (
-          children
+          permitted ? (
+            children
+          ) : (
+            <NoAccess allowed={allowed} />
+          )
         ) : (
           <p role="alert" className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
             Tu usuario no tiene permisos de administrador.

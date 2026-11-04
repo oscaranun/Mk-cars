@@ -2,8 +2,17 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { isSupabaseConfigured } from "@/lib/supabase/config"
 
+const PUBLIC_ADMIN_PATHS = ["/admin/login", "/admin/recuperar", "/admin/restablecer"]
+
+function nextWithPathname(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set("x-pathname", request.nextUrl.pathname)
+  return NextResponse.next({ request: { headers: requestHeaders } })
+}
+
 export async function updateSession(request: NextRequest) {
-  const isAdminArea = request.nextUrl.pathname.startsWith("/admin") && request.nextUrl.pathname !== "/admin/login"
+  const { pathname } = request.nextUrl
+  const isAdminArea = pathname.startsWith("/admin") && !PUBLIC_ADMIN_PATHS.includes(pathname)
 
   if (!isSupabaseConfigured()) {
     if (isAdminArea) {
@@ -11,10 +20,10 @@ export async function updateSession(request: NextRequest) {
       url.pathname = "/admin/login"
       return NextResponse.redirect(url)
     }
-    return NextResponse.next({ request })
+    return nextWithPathname(request)
   }
 
-  let supabaseResponse = NextResponse.next({ request })
+  let supabaseResponse = nextWithPathname(request)
 
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookieOptions: { secure: process.env.NODE_ENV === "production" },
@@ -24,7 +33,7 @@ export async function updateSession(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-        supabaseResponse = NextResponse.next({ request })
+        supabaseResponse = nextWithPathname(request)
         cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
       },
     },
