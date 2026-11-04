@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient, hasAnyAdmin } from "@/lib/supabase/service"
+import { sendPasswordResetEmail } from "@/lib/admin/password-reset"
 
 export type LoginState = { error: string | null }
 
@@ -52,7 +53,7 @@ export async function createFirstAdmin(_prev: LoginState, data: FormData): Promi
     return { error: "No se pudo crear el administrador. Intentá nuevamente." }
   }
 
-  const { error: adminError } = await service.from("admins").insert({ user_id: created.user.id })
+  const { error: adminError } = await service.from("admins").insert({ user_id: created.user.id, role: "owner" })
   if (adminError) {
     console.error("[admin] could not grant admin role:", adminError.code)
     await service.auth.admin.deleteUser(created.user.id)
@@ -62,6 +63,23 @@ export async function createFirstAdmin(_prev: LoginState, data: FormData): Promi
   const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
   if (signInError) redirect("/admin/login")
   redirect("/admin")
+}
+
+export type ResetRequestState = { ok: boolean; message: string | null }
+
+export async function requestPasswordReset(_prev: ResetRequestState, data: FormData): Promise<ResetRequestState> {
+  const email = String(data.get("email") ?? "").trim().toLowerCase()
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, message: "Ingresá un correo válido." }
+
+  const result = await sendPasswordResetEmail(email)
+  if (!result.ok && result.code === "rate_limited") {
+    return { ok: false, message: "Se enviaron demasiados correos. Esperá unos minutos e intentá de nuevo." }
+  }
+  if (!result.ok && result.code === "not_configured") return { ok: false, message: "Supabase no está configurado." }
+  return {
+    ok: true,
+    message: "Si el correo pertenece a un usuario del panel, te enviamos un enlace para cambiar la contraseña.",
+  }
 }
 
 export async function logout() {

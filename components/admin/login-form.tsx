@@ -1,8 +1,10 @@
 "use client"
 
+import Link from "next/link"
 import { useActionState } from "react"
 import { Loader2 } from "lucide-react"
 import { login, type LoginState } from "@/app/admin/actions"
+import { PasswordInput } from "@/components/admin/password-input"
 
 const fieldClass =
   "min-h-14 w-full rounded-2xl border border-border bg-surface px-4 text-base text-foreground outline-none transition focus:border-primary focus:bg-card focus:ring-4 focus:ring-primary/10"
@@ -19,17 +21,18 @@ export function LoginForm() {
         <input id="email" name="email" type="email" autoComplete="username" required className={fieldClass} />
       </div>
       <div className="flex flex-col gap-2">
-        <label htmlFor="password" className="text-sm text-muted-foreground">
-          Contraseña
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          className={fieldClass}
-        />
+        <div className="flex items-center justify-between gap-3">
+          <label htmlFor="password" className="text-sm text-muted-foreground">
+            Contraseña
+          </label>
+          <Link
+            href="/admin/recuperar"
+            className="inline-flex min-h-11 items-center text-sm font-medium text-electric underline-offset-4 hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
+        <PasswordInput id="password" name="password" autoComplete="current-password" required className={fieldClass} />
       </div>
       {state.error && (
         <p role="alert" className="rounded-xl bg-sky px-4 py-3 text-sm text-white">

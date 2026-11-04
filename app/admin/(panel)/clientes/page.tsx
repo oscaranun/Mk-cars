@@ -13,6 +13,7 @@ import {
   tdClass,
   thClass,
 } from "@/components/admin/ui"
+import { ClientRowActions } from "@/components/admin/client-row-actions"
 import { requireAdmin } from "@/lib/admin/auth"
 import { formatDate, formatWhatsapp, money, sanitizeSearch } from "@/lib/admin/format"
 import { VEHICLE_CATEGORY } from "@/lib/admin/labels"
@@ -154,6 +155,9 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
               <th className={thClass}>Vehículos</th>
               <th className={`${thClass} text-right`}>Lavados</th>
               <th className={`${thClass} text-right`}>Total pagado</th>
+              <th className={`${thClass} text-right`}>
+                <span className="sr-only">Acciones</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -177,6 +181,9 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
                 </td>
                 <td className={`${tdClass} text-right tabular-nums`}>{c.washes}</td>
                 <td className={`${tdClass} text-right tabular-nums`}>{money(c.paid)}</td>
+                <td className={`${tdClass} text-right`}>
+                  <ClientRowActions client={c} archived={archived} />
+                </td>
               </tr>
             ))}
           </tbody>
