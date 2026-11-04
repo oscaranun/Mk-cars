@@ -9,6 +9,8 @@ import { buildConfirmationMessage, buildProposalMessage, type BookingMessageData
 import { ActionForm } from "@/components/admin/action-form"
 import { TestBookingDelete } from "@/components/admin/test-booking-delete"
 import { AppointmentDelete } from "@/components/admin/appointment-delete"
+import { OfferPanel } from "@/components/admin/offer-panel"
+import { AppointmentNotes, AppointmentPayments } from "@/components/admin/appointment-ledger"
 import { isTestClientName } from "@/lib/admin/test-booking"
 import {
   Badge,
@@ -117,6 +119,14 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
       .returns<HistoryRow[]>(),
   ])
   if (!appt) notFound()
+
+  // Separate query: the columns only exist once migration 011 is installed.
+  const { data: paymentSummary } = await supabase
+    .from("appointments")
+    .select("amount_paid, payment_status")
+    .eq("id", id)
+    .maybeSingle()
+    .returns<{ amount_paid: number; payment_status: string }>()
 
   const status = appt.status
   const isRequest = status === "solicitado" || status === "reprogramado"
@@ -360,6 +370,35 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
         </Card>
 
         <div className="flex flex-col gap-6">
+          {!isClosed && (
+            <OfferPanel
+              supabase={supabase}
+              appointment={{
+                id: appt.id,
+                status,
+                service: appt.service,
+                duration_minutes: appt.duration_minutes,
+                clientName: appt.clients?.full_name.trim() ?? "",
+                whatsapp: appt.clients?.whatsapp ?? null,
+              }}
+              today={today}
+              defaultPrice={defaultPrice}
+            />
+          )}
+
+          <AppointmentPayments
+            supabase={supabase}
+            appointment={{
+              id: appt.id,
+              status,
+              total: appt.agreed_price,
+              amount_paid: paymentSummary?.amount_paid ?? null,
+              payment_status: paymentSummary?.payment_status ?? null,
+            }}
+          />
+
+          <AppointmentNotes supabase={supabase} appointmentId={appt.id} />
+
           {isRequest && (
             <Card className="flex flex-col gap-4">
               <SectionTitle>Confirmar turno</SectionTitle>

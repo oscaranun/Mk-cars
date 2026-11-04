@@ -18,6 +18,7 @@ import {
   thClass,
 } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
+import { activePayments } from "@/lib/admin/payments"
 import { formatDate, formatDateTime, money, resolveRange, todayArgentina } from "@/lib/admin/format"
 import { PAYMENT_METHOD, PAYMENT_STATUS, paymentTone } from "@/lib/admin/labels"
 import { cn } from "@/lib/utils"
@@ -51,14 +52,18 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   const range = resolveRange(params, 30)
   const today = todayArgentina()
 
-  let paymentsQuery = supabase
-    .from("payments")
-    .select("id, amount, method, paid_at, notes, services(wash_type, clients(id, full_name))")
-    .gte("paid_at", range.fromISO)
-    .lt("paid_at", range.toISO)
-    .order("paid_at", { ascending: false })
-    .limit(1000)
-  if (params.medio && PAYMENT_METHOD[params.medio]) paymentsQuery = paymentsQuery.eq("method", params.medio)
+  const paymentsQuery = activePayments((excludeVoided) => {
+    let q = supabase
+      .from("payments")
+      .select("id, amount, method, paid_at, notes, services(wash_type, clients(id, full_name))")
+      .gte("paid_at", range.fromISO)
+      .lt("paid_at", range.toISO)
+      .order("paid_at", { ascending: false })
+      .limit(1000)
+    if (params.medio && PAYMENT_METHOD[params.medio]) q = q.eq("method", params.medio)
+    if (excludeVoided) q = q.is("voided_at", null)
+    return q.returns<PaymentRow[]>()
+  })
 
   const [{ data: open }, { data: payments }] = await Promise.all([
     supabase
@@ -67,7 +72,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
       .neq("payment_status", "cobrado")
       .order("performed_at", { ascending: true })
       .returns<OpenService[]>(),
-    paymentsQuery.returns<PaymentRow[]>(),
+    paymentsQuery,
   ])
 
   const openRows = (open ?? []).filter((s) => Number(s.final_price) - Number(s.amount_paid) > 0)

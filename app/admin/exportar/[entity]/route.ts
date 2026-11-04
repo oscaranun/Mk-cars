@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server"
 import { getAdminClient } from "@/lib/admin/auth"
+import { activePayments } from "@/lib/admin/payments"
 import { argentinaParts, resolveRange } from "@/lib/admin/format"
 import {
   APPOINTMENT_STATUS,
@@ -188,16 +189,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       ],
     )
   } else if (entity === "cobros") {
-    const { data, error } = await supabase
-      .from("payments")
-      .select("paid_at, amount, method, notes, services(wash_type, clients(full_name))")
-      .gte("paid_at", range.fromISO)
-      .lt("paid_at", range.toISO)
-      .order("paid_at", { ascending: false })
-      .limit(10000)
-      .returns<
+    const { data, error } = await activePayments((excludeVoided) => {
+      const q = supabase
+        .from("payments")
+        .select("paid_at, amount, method, notes, services(wash_type, clients(full_name))")
+        .gte("paid_at", range.fromISO)
+        .lt("paid_at", range.toISO)
+        .order("paid_at", { ascending: false })
+        .limit(10000)
+      return (excludeVoided ? q.is("voided_at", null) : q).returns<
         { paid_at: string; amount: number; method: string; notes: string | null; services: { wash_type: string; clients: { full_name: string } | null } | null }[]
       >()
+    })
     if (error) return new Response("Error al exportar", { status: 500 })
     csv = toCsv(
       (data ?? []).map((p) => ({

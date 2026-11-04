@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { updatePrices, updateSettings } from "@/app/admin/(panel)/crm-actions"
+import { saveTransferSettings } from "@/app/admin/(panel)/offer-actions"
 import { parsePrices } from "@/lib/prices"
 import { ActionForm } from "@/components/admin/action-form"
 import { DeletedNotice } from "@/components/admin/deleted-notice"
@@ -100,6 +101,13 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
     supabase.from("settings").select("operational_capacity, default_duration_minutes, vehicle_prices").eq("id", 1).maybeSingle(),
   ])
   const prices = parsePrices(settings.data?.vehicle_prices)
+  // Separate query: these columns only exist once migration 011 is installed.
+  const transfer = await supabase
+    .from("settings")
+    .select("transfer_alias, transfer_holder, transfer_bank")
+    .eq("id", 1)
+    .maybeSingle()
+    .returns<{ transfer_alias: string | null; transfer_holder: string | null; transfer_bank: string | null }>()
 
   const byDay = new Map<string, ApptRow[]>()
   for (const a of calendar.data ?? []) {
@@ -124,7 +132,17 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
       <PageHeader
         title="Turnos"
         description="La confirmación es manual: ningún turno se confirma solo."
-        actions={<ExportLink entity="turnos" />}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin/turnos/nuevo"
+              className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Nuevo turno manual
+            </Link>
+            <ExportLink entity="turnos" />
+          </div>
+        }
       />
 
       {params.eliminada === "1" && <DeletedNotice />}
@@ -307,6 +325,28 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
           </ActionForm>
         ) : (
           <p className="text-sm text-destructive">No se pudieron leer los precios configurados.</p>
+        )}
+      </Card>
+
+      <Card className="flex flex-col gap-4">
+        <SectionTitle>Datos para transferencia</SectionTitle>
+        <p className="text-sm text-muted-foreground text-pretty">
+          Se muestran al cliente recién cuando acepta la propuesta. El pago se registra en el turno solo después de verificarlo en tu cuenta.
+        </p>
+        {transfer.error ? (
+          <p className="text-sm text-muted-foreground">Disponible cuando se instale la migración 011 en esta base.</p>
+        ) : (
+          <ActionForm action={saveTransferSettings} submitLabel="Guardar datos de transferencia" inline>
+            <Field label="Alias o CBU/CVU" htmlFor="alias" className="w-full sm:w-56">
+              <input id="alias" name="alias" maxLength={60} defaultValue={transfer.data?.transfer_alias ?? ""} className={fieldClass} />
+            </Field>
+            <Field label="Titular" htmlFor="holder" className="w-full sm:w-56">
+              <input id="holder" name="holder" maxLength={120} defaultValue={transfer.data?.transfer_holder ?? ""} className={fieldClass} />
+            </Field>
+            <Field label="Banco o billetera" htmlFor="bank" className="w-full sm:w-48">
+              <input id="bank" name="bank" maxLength={80} defaultValue={transfer.data?.transfer_bank ?? ""} className={fieldClass} />
+            </Field>
+          </ActionForm>
         )}
       </Card>
     </>
