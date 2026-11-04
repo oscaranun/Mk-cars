@@ -90,8 +90,8 @@ export function Booking({
       .map((id) => EXTRAS.find((x) => x.id === id)?.name)
       .filter(Boolean)
 
-    if (!name || !address || !phone || (!zoneBookingEnabled && (!date || !time))) {
-      setError("Completá todos los campos obligatorios para reservar.")
+    if (!name || !address || !phone) {
+      setError("Completá todos los campos obligatorios para solicitar el lavado.")
       return
     }
     if (zoneBookingEnabled && (!point || data.get("zoneAvailabilityReady") !== "yes")) {
@@ -106,11 +106,7 @@ export function Booking({
       setError("Elegí el tipo de cada vehículo.")
       return
     }
-    if (!zoneBookingEnabled && isSunday(date)) {
-      setError(`Trabajamos de ${SERVICE_DAYS.full.toLowerCase()}. Elegí otro día.`)
-      return
-    }
-    if (blockedDates.includes(date)) {
+    if (zoneBookingEnabled && date && blockedDates.includes(date)) {
       setError("Ese día no tenemos turnos disponibles. Elegí otra fecha.")
       return
     }
@@ -148,11 +144,9 @@ export function Booking({
         ? [`Ubicación: https://www.google.com/maps?q=${data.get("lat")},${data.get("lng")}`]
         : []),
       ...(zoneBookingEnabled ? [`Servicio: ${zoneServices.find((s) => s.id === serviceId)?.name ?? "Lavado"}`] : []),
-      zoneBookingEnabled
-        ? date
-          ? `Día solicitado: ${formatDate(date)} · horario a coordinar`
-          : "Día y horario a coordinar: revisión de zona"
-        : `Fecha preferida: ${formatDate(date)} · ${time} hs`,
+      zoneBookingEnabled && date
+        ? `Día solicitado: ${formatDate(date)} · horario a coordinar`
+        : "Día y horario: espero las opciones de MK Cars",
       ...(data.get("waitlist") === "on" ? ["Solicitud en lista de espera, sin confirmación."] : []),
       ...(notes ? [`Observaciones: ${notes}`] : []),
     ].join("\n")
@@ -236,9 +230,8 @@ export function Booking({
               <div className="flex flex-col gap-2">
                 <h3 className="text-xl font-semibold tracking-tight">Solicitud recibida</h3>
                 <p className="leading-relaxed text-muted-foreground">
-                  {zoneBookingEnabled
-                    ? "¡Recibimos tu solicitud! Te contactaremos por WhatsApp para proponerte un horario. Tu reserva quedará confirmada cuando aceptes."
-                    : "Recibimos tu solicitud de turno. MK Cars verificará la disponibilidad y te confirmará por WhatsApp."}
+                  ¡Recibimos tu solicitud! Te vamos a enviar por WhatsApp un enlace con las opciones de turno y el precio. Tu
+                  turno queda confirmado cuando aceptes.
                 </p>
               </div>
               <a
@@ -304,47 +297,13 @@ export function Booking({
                   <Field label="Dirección" htmlFor="address" required>
                     <AddressInput className={fieldClass} onStatusChange={setCoverage} onLocationChange={setPoint} />
                   </Field>
-                  {zoneBookingEnabled ? (
+                  {zoneBookingEnabled && (
                     <ZoneDatePicker
                       point={point}
                       vehicles={vehicles.length}
                       fieldClass={fieldClass}
                       serviceId={serviceId}
                     />
-                  ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                      <Field label="Fecha" htmlFor="date" required>
-                        <input
-                          id="date"
-                          name="date"
-                          type="date"
-                          min={todayISO()}
-                          className={cn(fieldClass, "pr-2")}
-                          required
-                        />
-                      </Field>
-
-                      <Field label="Horario" htmlFor="time" required>
-                        <SelectWrap>
-                          <select
-                            id="time"
-                            name="time"
-                            defaultValue=""
-                            className={cn(fieldClass, "appearance-none pr-10")}
-                            required
-                          >
-                            <option value="" disabled>
-                              Hora
-                            </option>
-                            {TIME_SLOTS.map((t) => (
-                              <option key={t} value={t}>
-                                {t} hs
-                              </option>
-                            ))}
-                          </select>
-                        </SelectWrap>
-                      </Field>
-                    </div>
                   )}
                   {zoneBookingEnabled && customerFields}
                 </div>
@@ -387,6 +346,16 @@ export function Booking({
                 </label>
               </fieldset>
 
+              <div className="flex flex-col gap-2 rounded-2xl bg-surface px-4 py-3 text-sm">
+                <p className="text-white text-pretty">
+                  No elegís fecha ni hora: te enviamos por WhatsApp las opciones de turno disponibles para que aceptes la que
+                  prefieras.
+                </p>
+                <p className="text-muted-foreground text-pretty">
+                  El pago se realiza por transferencia (alias) una vez confirmado el turno.
+                </p>
+              </div>
+
               {error && (
                 <p role="alert" className="rounded-xl bg-sky px-4 py-3 text-sm text-white">
                   {error}
@@ -405,7 +374,7 @@ export function Booking({
                   </>
                 ) : (
                   <>
-                    Solicitar turno
+                    Solicitar lavado
                     <ArrowRight
                       className="size-4 transition-transform group-hover:translate-x-0.5"
                       aria-hidden="true"

@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Card, EmptyState, Field, FilterBar, PageHeader, SectionTitle, Stat, fieldClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
+import { activePayments } from "@/lib/admin/payments"
 import { money, resolveRange } from "@/lib/admin/format"
 import { CONVERTED_INQUIRY_STATUSES, INQUIRY_STATUS, PAYMENT_METHOD, VEHICLE_CATEGORY } from "@/lib/admin/labels"
 
@@ -31,7 +32,10 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
       .gte("performed_at", range.fromISO)
       .lt("performed_at", range.toISO)
       .limit(5000),
-    supabase.from("payments").select("amount, method").gte("paid_at", range.fromISO).lt("paid_at", range.toISO).limit(5000),
+    activePayments((excludeVoided) => {
+      const q = supabase.from("payments").select("amount, method").gte("paid_at", range.fromISO).lt("paid_at", range.toISO).limit(5000)
+      return excludeVoided ? q.is("voided_at", null) : q
+    }),
     supabase.from("services").select("client_id").limit(10000),
     supabase.from("services").select("final_price, amount_paid").neq("payment_status", "cobrado").limit(5000),
   ])

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { DayExpenses, DayPayments, MethodBreakdown, type CashExpense, type CashPayment } from "@/components/admin/cash-sections"
 import { PageHeader, Stat, secondaryButtonClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
+import { activePayments } from "@/lib/admin/payments"
 import { addDays, formatDate, isValidDate, money, startOfArgentinaDay, todayArgentina } from "@/lib/admin/format"
 import { cn } from "@/lib/utils"
 
@@ -27,24 +28,29 @@ export default async function CashPage({ searchParams }: { searchParams: SearchP
   const monthStart = `${day.slice(0, 7)}-01`
 
   const [{ data: payments }, { data: expenses }, { data: monthPayments }, { data: monthExpenses }] = await Promise.all([
-    supabase
-      .from("payments")
-      .select("id, amount, method, paid_at, services(wash_type, clients(full_name))")
-      .gte("paid_at", startOfArgentinaDay(day))
-      .lt("paid_at", startOfArgentinaDay(addDays(day, 1)))
-      .order("paid_at", { ascending: true })
-      .returns<PaymentRow[]>(),
+    activePayments((excludeVoided) => {
+      const q = supabase
+        .from("payments")
+        .select("id, amount, method, paid_at, services(wash_type, clients(full_name))")
+        .gte("paid_at", startOfArgentinaDay(day))
+        .lt("paid_at", startOfArgentinaDay(addDays(day, 1)))
+        .order("paid_at", { ascending: true })
+      return (excludeVoided ? q.is("voided_at", null) : q).returns<PaymentRow[]>()
+    }),
     supabase
       .from("expenses")
       .select("id, amount, method, category, description")
       .eq("spent_on", day)
       .order("created_at", { ascending: true })
       .returns<CashExpense[]>(),
-    supabase
-      .from("payments")
-      .select("amount")
-      .gte("paid_at", startOfArgentinaDay(monthStart))
-      .lt("paid_at", startOfArgentinaDay(addDays(day, 1))),
+    activePayments((excludeVoided) => {
+      const q = supabase
+        .from("payments")
+        .select("amount")
+        .gte("paid_at", startOfArgentinaDay(monthStart))
+        .lt("paid_at", startOfArgentinaDay(addDays(day, 1)))
+      return excludeVoided ? q.is("voided_at", null) : q
+    }),
     supabase.from("expenses").select("amount").gte("spent_on", monthStart).lte("spent_on", day),
   ])
 
