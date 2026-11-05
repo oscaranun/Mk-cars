@@ -11,10 +11,10 @@ export const EXTRAS = [
   { id: "motor", name: "Limpieza de motor" },
 ] as const
 
-export const SERVICE_DAYS = { full: "Lunes a sábado", short: "Lun a Sáb" }
-export const SERVICE_HOURS = { open: "9:00", close: "18:00" }
+export const SERVICE_DAYS = { full: "Todos los días, incluso feriados", short: "Todos los días" }
+export const SERVICE_HOURS = { open: "7:00", close: "20:00" }
 
-export const TIME_SLOTS = ["9:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"]
+export const TIME_SLOTS = Array.from({ length: 14 }, (_, i) => `${i + 7}:00`)
 
 export function whatsappUrl(message: string) {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`

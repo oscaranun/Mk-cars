@@ -8,7 +8,7 @@ const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono"
 export const metadata: Metadata = {
   title: "MK Cars — Lavado de autos a domicilio en Gran Mendoza",
   description:
-    "Lavado premium a domicilio en Capital, Godoy Cruz, Guaymallén, Las Heras, Luján de Cuyo y Maipú. Desde $25.000. Lunes a sábado de 9:00 a 18:00. Reservá por WhatsApp.",
+    "Lavado premium a domicilio en Capital, Godoy Cruz, Guaymallén, Las Heras, Luján de Cuyo y Maipú. Desde $25.000. Todos los días de 7:00 a 20:00, incluso feriados. Reservá por WhatsApp.",
   keywords: ["lavado de autos a domicilio", "lavadero móvil Mendoza", "MK Cars", "Gran Mendoza", "car wash Mendoza"],
   openGraph: {
     title: "MK Cars — Tu auto impecable. Sin moverte de donde estás.",

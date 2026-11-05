@@ -140,6 +140,12 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
             >
               Nuevo turno manual
             </Link>
+            <Link
+              href="/admin/turnos/realizado"
+              className="inline-flex h-10 items-center justify-center rounded-md border border-border px-4 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              Cargar lavado realizado
+            </Link>
             <ExportLink entity="turnos" />
           </div>
         }
@@ -179,14 +185,12 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
             {cells.map((day, idx) => {
               if (!day) return <div key={`empty-${idx}`} aria-hidden="true" />
               const items = byDay.get(day) ?? []
-              const isSunday = idx % 7 === 6
-              return (
+                return (
                 <div
                   key={day}
                   className={cn(
                     "flex min-h-24 flex-col gap-1 rounded-2xl border border-border/70 bg-surface p-1.5",
-                    day === today && "border-electric",
-                    isSunday && "opacity-50",
+                  day === today && "border-electric",
                   )}
                 >
                   <span className={cn("px-1 text-xs tabular-nums", day === today ? "font-semibold text-electric" : "text-muted-foreground")}>
@@ -268,7 +272,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
       <Card className="flex flex-col gap-4">
         <SectionTitle>Disponibilidad</SectionTitle>
         <p className="text-sm text-muted-foreground text-pretty">
-          Lunes a sábado de 9:00 a 18:00. La capacidad es la cantidad de turnos confirmados que pueden superponerse (por ejemplo,
+          Todos los días, incluso domingos y feriados, de 7:00 a 20:00. La capacidad es la cantidad de turnos confirmados que pueden superponerse (por ejemplo,
           equipos trabajando en paralelo). Con capacidad 1 no se permite ninguna superposición.
         </p>
         <ActionForm action={updateSettings} submitLabel="Guardar disponibilidad" inline>
