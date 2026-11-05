@@ -522,10 +522,21 @@ export async function updateSettings(_prev: ActionState, data: FormData): Promis
   const duration = Number(text(data, "default_duration_minutes", 4))
   if (!Number.isInteger(capacity) || capacity < 1 || capacity > 20) return fail("La capacidad debe ser entre 1 y 20.")
   if (!Number.isInteger(duration) || duration < 15 || duration > 540) return fail("La duración debe ser entre 15 y 540 minutos.")
+  const durationDefaults: Record<string, number> = {}
+  for (const key of ["auto", "suv", "pickup"]) {
+    const value = Number(text(data, `duration_${key}`, 4) || duration)
+    if (!Number.isInteger(value) || value < 15 || value > 540) return fail("Las duraciones por vehículo deben ser entre 15 y 540 minutos.")
+    durationDefaults[key] = value
+  }
 
   const { error } = await supabase
     .from("settings")
-    .update({ operational_capacity: capacity, default_duration_minutes: duration, updated_at: new Date().toISOString() })
+    .update({
+      operational_capacity: capacity,
+      default_duration_minutes: duration,
+      duration_defaults: durationDefaults,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", 1)
   if (error) return dbError(error, "No se pudo guardar la configuración.")
   return done("Configuración guardada.")

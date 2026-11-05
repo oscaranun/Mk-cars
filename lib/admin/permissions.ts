@@ -1,18 +1,25 @@
-export const SECTIONS = [
+type Section = { key: string; href: string; label: string; group?: "admin"; hidden?: boolean }
+
+/**
+ * Order defines the sidebar. `hidden` sections keep their route, data and permission
+ * key (links from other screens still work) but no longer appear in the menu.
+ */
+export const SECTIONS: readonly Section[] = [
+  { key: "consultas", href: "/admin/consultas", label: "Consultas" },
   { key: "hoy", href: "/admin", label: "Hoy" },
   { key: "agenda", href: "/admin/agenda", label: "Agenda" },
-  { key: "agenda-servicios", href: "/admin/agenda-servicios", label: "Agenda de servicios" },
-  { key: "zonas", href: "/admin/zonas", label: "Zonas y recorridos" },
-  { key: "turnos", href: "/admin/turnos", label: "Turnos" },
-  { key: "clientes", href: "/admin/clientes", label: "Clientes" },
   { key: "recontactar", href: "/admin/recontactar", label: "Recontactar" },
-  { key: "consultas", href: "/admin/consultas", label: "Consultas" },
-  { key: "servicios", href: "/admin/servicios", label: "Servicios" },
-  { key: "cobros", href: "/admin/cobros", label: "Cobros" },
-  { key: "caja", href: "/admin/caja", label: "Caja" },
-  { key: "estadisticas", href: "/admin/estadisticas", label: "Estadísticas" },
-  { key: "pruebas", href: "/admin/pruebas", label: "Pruebas" },
-] as const
+  { key: "cobros", href: "/admin/cobros", label: "Ingresos", group: "admin" },
+  { key: "caja", href: "/admin/caja", label: "Egresos", group: "admin" },
+  { key: "estadisticas", href: "/admin/estadisticas", label: "Estadísticas", group: "admin" },
+  { key: "servicios", href: "/admin/servicios", label: "Reportes", group: "admin" },
+  { key: "configuracion", href: "/admin/configuracion", label: "Configuración", group: "admin" },
+  { key: "clientes", href: "/admin/clientes", label: "Clientes" },
+  { key: "turnos", href: "/admin/turnos", label: "Turnos", hidden: true },
+  { key: "agenda-servicios", href: "/admin/agenda-servicios", label: "Agenda de servicios", hidden: true },
+  { key: "zonas", href: "/admin/zonas", label: "Zonas y recorridos", hidden: true },
+  { key: "pruebas", href: "/admin/pruebas", label: "Pruebas", hidden: true },
+]
 
 export const USERS_SECTION = { key: "usuarios", href: "/admin/usuarios", label: "Usuarios" } as const
 
