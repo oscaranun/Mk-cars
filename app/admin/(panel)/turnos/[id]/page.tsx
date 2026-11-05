@@ -708,10 +708,8 @@ async function ProposeCard({
   secondary?: boolean
 }) {
   const slug = submitLabel.toLowerCase().replace(/\W+/g, "-")
-  const {supabase}=await requireAdmin()
-  const {data:operation}=await supabase.from("zone_booking_settings").select("enabled,day_start,day_end").eq("id",1).maybeSingle()
-  const minTime=operation?.enabled?operation.day_start.slice(0,5):"09:00"
-  const maxTime=operation?.enabled?operation.day_end.slice(0,5):"18:00"
+  const minTime="07:00"
+  const maxTime="20:00"
   return (
     <Card className="flex flex-col gap-4">
       <SectionTitle>{title}</SectionTitle>

@@ -186,6 +186,48 @@ export async function createManualAppointment(_prev: ActionState, data: FormData
   redirect(`/admin/turnos/${id}?creado=1`)
 }
 
+export async function registerCompletedService(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await getAdminClient()
+  if (!supabase) return fail("Sesión vencida. Volvé a iniciar sesión.")
+  const whatsapp = normalizeWhatsapp(text(data, "whatsapp", 30))
+  if (!whatsapp) return fail("Ingresá un WhatsApp válido con código de área.")
+  const source = text(data, "source", 20)
+  if (!MANUAL_SOURCES.includes(source)) return fail("Elegí el origen del pedido.")
+  const date = text(data, "date", 10)
+  const time = text(data, "time", 5)
+  if (!isValidDate(date) || !isValidTime(time)) return fail("Revisá la fecha y la hora del lavado.")
+  if (time < "07:00" || time > "20:00") return fail("El horario debe estar entre las 07:00 y las 20:00.")
+  const price = amount(data, "final_price")
+  if (price === "invalid" || price === null) return fail("Ingresá el importe del servicio.")
+  const paid = amount(data, "amount_paid")
+  if (paid === "invalid") return fail("Revisá el importe cobrado.")
+
+  const { data: id, error } = await supabase.rpc("admin_register_completed_service", {
+    p: {
+      full_name: text(data, "full_name", 120),
+      whatsapp,
+      vehicle_category: text(data, "vehicle_category", 20),
+      brand: text(data, "brand", 60),
+      model: text(data, "model", 60),
+      address: text(data, "address", 200),
+      neighborhood: text(data, "neighborhood", 120),
+      service: text(data, "service", 120),
+      performed_at: toArgentinaTimestamp(date, time),
+      final_price: price,
+      amount_paid: paid ?? price,
+      method: text(data, "method", 20),
+      water_supply: data.get("no_water") === "on" ? "propia" : "domicilio",
+      operator: text(data, "operator", 80),
+      source,
+      notes: text(data, "notes", 1000),
+      internal_note: text(data, "internal_note", 4000),
+    },
+  })
+  if (error) return dbError(error, "No se pudo registrar el lavado.")
+  revalidatePath("/admin", "layout")
+  redirect(`/admin/turnos/${id}`)
+}
+
 export async function saveTransferSettings(_prev: ActionState, data: FormData): Promise<ActionState> {
   const supabase = await getAdminClient()
   if (!supabase) return fail("Sesión vencida. Volvé a iniciar sesión.")

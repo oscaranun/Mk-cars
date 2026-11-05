@@ -155,9 +155,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
     if (Number.isNaN(requested.getTime()) || requested.getTime() < Date.now()) {
       return { ok: false, field: "date", error: "Elegí una fecha y horario futuros." }
     }
-    if (requested.getUTCDay() === 0 && requested.getUTCHours() >= 3) {
-      return { ok: false, field: "date", error: "Trabajamos de lunes a sábado. Elegí otro día." }
-    }
+
     const blocked = (await getUpcomingBlockedDates(date)).find((b) => b.day === date)
     if (blocked) {
       return { ok: false, field: "date", error: "Ese día no tenemos turnos disponibles. Elegí otra fecha." }
