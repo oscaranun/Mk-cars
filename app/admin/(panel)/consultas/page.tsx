@@ -5,6 +5,7 @@ import { ConfirmAction } from "@/components/admin/confirm-action"
 import {
   Badge,
   Card,
+  CreateAppointmentLink,
   EmptyState,
   ExportLink,
   Field,
@@ -78,7 +79,12 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
       <PageHeader
         title="Consultas"
         description={`${inquiries?.length ?? 0} consulta${inquiries?.length === 1 ? "" : "s"} en el período`}
-        actions={<ExportLink entity="consultas" query={{ desde: range.from, hasta: range.to }} />}
+        actions={
+          <>
+            <CreateAppointmentLink />
+            <ExportLink entity="consultas" query={{ desde: range.from, hasta: range.to }} />
+          </>
+        }
       />
 
       <FilterBar resetHref="/admin/consultas">

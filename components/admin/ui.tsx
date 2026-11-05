@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { Download } from "lucide-react"
+import { Download, Plus } from "lucide-react"
 import type { Tone } from "@/lib/admin/labels"
 import { cn } from "@/lib/utils"
 
@@ -99,6 +99,18 @@ export function ExportLink({ entity, query }: { entity: string; query?: Record<s
       <Download className="size-4" aria-hidden="true" />
       Exportar CSV
     </a>
+  )
+}
+
+export function CreateAppointmentLink() {
+  return (
+    <Link
+      href="/admin/turnos/nuevo"
+      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 text-sm font-medium text-white transition hover:bg-emerald-500 active:scale-[0.98]"
+    >
+      <Plus className="size-4" aria-hidden="true" />
+      Crear Turno
+    </Link>
   )
 }
 
