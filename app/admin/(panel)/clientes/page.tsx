@@ -1,7 +1,9 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { REVIEW_STATUS, reviewTone } from "@/lib/admin/reviews"
 import {
+  Badge,
   EmptyState,
   ExportLink,
   Field,
@@ -27,12 +29,21 @@ type ClientRow = {
   email: string | null
   source: string
   created_at: string
+  review_status: string
   vehicles: { category: string; brand: string | null; model: string | null }[]
   inquiries: { created_at: string }[]
   services: { amount_paid: number }[]
 }
 
-type SearchParams = Promise<{ q?: string; origen?: string; lavados?: string; orden?: string; estado?: string; eliminado?: string }>
+type SearchParams = Promise<{
+  q?: string
+  origen?: string
+  lavados?: string
+  orden?: string
+  estado?: string
+  eliminado?: string
+  resena?: string
+}>
 
 export default async function ClientsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams
@@ -43,7 +54,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
   let query = supabase
     .from("clients")
     .select(
-      "id, full_name, whatsapp, email, source, created_at, vehicles(category, brand, model), inquiries(created_at), services(amount_paid)",
+      "id, full_name, whatsapp, email, source, created_at, review_status, vehicles(category, brand, model), inquiries(created_at), services(amount_paid)",
     )
     .order("created_at", { ascending: false })
     .limit(1000)
@@ -55,6 +66,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
     query = query.or(terms.join(","))
   }
   if (params.origen) query = query.eq("source", params.origen.slice(0, 40))
+  if (params.resena && params.resena in REVIEW_STATUS) query = query.eq("review_status", params.resena)
 
   const [{ data, error }, sources] = await Promise.all([
     query.returns<ClientRow[]>(),
@@ -135,6 +147,16 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
             <option value="recurrentes">Recurrentes (2 o más)</option>
           </select>
         </Field>
+        <Field label="Reseña Google" htmlFor="resena" className="md:w-48">
+          <select id="resena" name="resena" defaultValue={params.resena ?? ""} className={fieldClass}>
+            <option value="">Todas</option>
+            {Object.entries(REVIEW_STATUS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </Field>
         <Field label="Ordenar por" htmlFor="orden" className="md:w-44">
           <select id="orden" name="orden" defaultValue={params.orden ?? ""} className={fieldClass}>
             <option value="">Más recientes</option>
@@ -166,6 +188,11 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
                 <td className={tdClass}>
                   <TextLink href={`/admin/clientes/${c.id}`}>{c.full_name}</TextLink>
                   <p className="text-xs text-muted-foreground">Origen: {c.source}</p>
+                  {c.review_status !== "pendiente" && (
+                    <div className="mt-1">
+                      <Badge tone={reviewTone(c.review_status)}>{REVIEW_STATUS[c.review_status] ?? c.review_status}</Badge>
+                    </div>
+                  )}
                 </td>
                 <td className={tdClass}>
                   <p className="tabular-nums">{formatWhatsapp(c.whatsapp)}</p>

@@ -5,6 +5,7 @@ import { ArrowLeft, MessageCircle } from "lucide-react"
 import { addVehicle, updateClient } from "@/app/admin/(panel)/crm-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { ClientDangerZone } from "@/components/admin/client-danger-zone"
+import { ReviewSection } from "@/components/admin/review-section"
 import { Badge, Card, DetailRow, EmptyState, Field, SectionTitle, TextLink, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
 import { formatDate, formatDateTime, formatWhatsapp, money, whatsappLink } from "@/lib/admin/format"
@@ -255,6 +256,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           ))}
         </HistoryCard>
       </div>
+
+      <ReviewSection supabase={supabase} clientId={client.id} />
 
       <ClientDangerZone supabase={supabase} client={client} />
     </>
