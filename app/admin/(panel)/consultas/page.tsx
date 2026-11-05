@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { deleteInquiry, updateInquiryStatus } from "@/app/admin/(panel)/crm-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { ConfirmAction } from "@/components/admin/confirm-action"
+import { CopyBookingLinkButton } from "@/components/admin/copy-booking-link-button"
 import {
   Badge,
   Card,
@@ -81,6 +82,7 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
         description={`${inquiries?.length ?? 0} consulta${inquiries?.length === 1 ? "" : "s"} en el período`}
         actions={
           <>
+            <CopyBookingLinkButton />
             <CreateAppointmentLink />
             <ExportLink entity="consultas" query={{ desde: range.from, hasta: range.to }} />
           </>
