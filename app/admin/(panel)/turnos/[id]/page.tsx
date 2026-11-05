@@ -10,6 +10,7 @@ import { ActionForm } from "@/components/admin/action-form"
 import { TestBookingDelete } from "@/components/admin/test-booking-delete"
 import { AppointmentDelete } from "@/components/admin/appointment-delete"
 import { OfferPanel } from "@/components/admin/offer-panel"
+import { ReviewSection } from "@/components/admin/review-section"
 import { AppointmentNotes, AppointmentPayments } from "@/components/admin/appointment-ledger"
 import { isTestClientName } from "@/lib/admin/test-booking"
 import {
@@ -586,6 +587,8 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
               </Link>
             </Card>
           )}
+
+          {(service || status === "realizado") && appt.clients && <ReviewSection supabase={supabase} clientId={appt.clients.id} />}
 
           {isConfirmed && (
             <ProposeCard
