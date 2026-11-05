@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { AlertTriangle, Check, Copy, Link2, MessageCircle, Star } from "lucide-react"
+import { AlertTriangle, Check, Copy, Link2, MessageCircle, RotateCcw, Star } from "lucide-react"
 import { setClientReview } from "@/app/admin/(panel)/review-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { Badge, Card, Field, SectionTitle, fieldClass, primaryButtonClass, secondaryButtonClass } from "@/components/admin/ui"
@@ -13,8 +13,12 @@ type Copied = "message" | "link" | null
 export function ReviewPanel({ client }: { client: ClientReview }) {
   const [copied, setCopied] = useState<Copied>(null)
   const [used, setUsed] = useState(false)
-  const message = buildReviewMessage(client.full_name)
+  const defaultMessage = buildReviewMessage(client.full_name)
+  const [message, setMessage] = useState(defaultMessage)
+  const isEmpty = message.trim().length === 0
+  const isEdited = message !== defaultMessage
   const digits = client.whatsapp.replace(/\D/g, "")
+  const messageId = `review-message-${client.id}`
   const alreadyRequested = Boolean(client.review_requested_at)
   const received = client.review_status === "recibida"
 
@@ -56,16 +60,28 @@ export function ReviewPanel({ client }: { client: ClientReview }) {
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <a
-          href={`https://wa.me/${digits}?text=${encodeURIComponent(message)}`}
+          href={isEmpty ? undefined : `https://wa.me/${digits}?text=${encodeURIComponent(message)}`}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => setUsed(true)}
-          className={`${primaryButtonClass} w-full sm:w-fit`}
+          aria-disabled={isEmpty}
+          onClick={(event) => {
+            if (isEmpty) {
+              event.preventDefault()
+              return
+            }
+            setUsed(true)
+          }}
+          className={`${primaryButtonClass} w-full sm:w-fit ${isEmpty ? "pointer-events-none opacity-50" : ""}`}
         >
           <MessageCircle className="size-4" aria-hidden="true" />
           Enviar por WhatsApp
         </a>
-        <button type="button" onClick={() => copy("message")} className={`${secondaryButtonClass} w-full sm:w-fit`}>
+        <button
+          type="button"
+          onClick={() => copy("message")}
+          disabled={isEmpty}
+          className={`${secondaryButtonClass} w-full disabled:opacity-50 sm:w-fit`}
+        >
           {copied === "message" ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
           {copied === "message" ? "Mensaje copiado" : "Copiar mensaje"}
         </button>
@@ -74,6 +90,38 @@ export function ReviewPanel({ client }: { client: ClientReview }) {
           {copied === "link" ? "Link copiado" : "Copiar link"}
         </button>
       </div>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <label htmlFor={messageId} className="text-sm font-medium">
+            Vista previa del mensaje
+          </label>
+          {isEdited && (
+            <button
+              type="button"
+              onClick={() => setMessage(defaultMessage)}
+              className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <RotateCcw className="size-3.5" aria-hidden="true" />
+              Restaurar original
+            </button>
+          )}
+        </div>
+        <textarea
+          id={messageId}
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          rows={11}
+          maxLength={2000}
+          aria-describedby={`${messageId}-hint`}
+          className={`${fieldClass} min-h-56 resize-y py-3 leading-relaxed`}
+        />
+        <p id={`${messageId}-hint`} className="text-xs text-muted-foreground">
+          {isEmpty
+            ? "Escribí un mensaje para poder enviarlo o copiarlo."
+            : "Podés editarlo antes de enviarlo. WhatsApp y “Copiar mensaje” usan este texto."}
+        </p>
+      </div>
+
       <p aria-live="polite" className="sr-only">
         {copied === "message" ? "Mensaje copiado al portapapeles" : copied === "link" ? "Link copiado al portapapeles" : ""}
       </p>
