@@ -3,7 +3,7 @@ import { createManualAppointment } from "@/app/admin/(panel)/offer-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { Card, Field, PageHeader, SectionTitle, TextLink, fieldClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
-import { VEHICLE_CATEGORY } from "@/lib/admin/labels"
+import { VehicleDurationFields } from "@/components/admin/vehicle-duration-fields"
 
 export const metadata: Metadata = { title: "Nuevo turno manual" }
 
@@ -16,7 +16,9 @@ const SOURCES: [string, string][] = [
 ]
 
 export default async function NewManualAppointmentPage() {
-  await requireAdmin()
+  const { supabase } = await requireAdmin()
+  const { data: settings } = await supabase.from("settings").select("duration_defaults").eq("id", 1).maybeSingle()
+  const defaults: Record<string, number> = { auto: 60, suv: 75, pickup: 90, ...(settings?.duration_defaults ?? {}) }
 
   return (
     <>
@@ -49,15 +51,7 @@ export default async function NewManualAppointmentPage() {
 
           <SectionTitle>Vehículo y servicio</SectionTitle>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Tipo de vehículo" htmlFor="vehicle_category">
-              <select id="vehicle_category" name="vehicle_category" required defaultValue="auto" className={fieldClass}>
-                {(["auto", "suv", "pickup"] as const).map((key) => (
-                  <option key={key} value={key}>
-                    {VEHICLE_CATEGORY[key] ?? key}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <VehicleDurationFields defaults={defaults} />
             <Field label="Marca" htmlFor="brand">
               <input id="brand" name="brand" maxLength={60} className={fieldClass} />
             </Field>

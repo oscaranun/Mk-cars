@@ -8,6 +8,7 @@ import { logout } from "@/app/admin/actions"
 import { AdminNav } from "@/components/admin/admin-nav"
 import { Logo } from "@/components/logo"
 import { requireAdmin } from "@/lib/admin/auth"
+import { PENDING_APPOINTMENT_STATUSES } from "@/lib/admin/labels"
 
 export const metadata: Metadata = {
   title: { default: "Panel — MK Cars", template: "%s — Panel MK Cars" },
@@ -29,7 +30,7 @@ function LogoutButton() {
 }
 
 function NoAccess({ allowed }: { allowed: string[] }) {
-  const links = [...SECTIONS, USERS_SECTION].filter((s) => allowed.includes(s.key))
+  const links = [...SECTIONS, USERS_SECTION].filter((s) => !("hidden" in s && s.hidden) && allowed.includes(s.key))
   return (
     <div role="alert" className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
       <p>No tenés permiso para ver esta sección. Pedile acceso al propietario del panel.</p>
@@ -42,11 +43,56 @@ function NoAccess({ allowed }: { allowed: string[] }) {
   )
 }
 
+type Supabase = Awaited<ReturnType<typeof requireAdmin>>["supabase"]
+
+async function navCounts(supabase: Supabase, allowed: string[]): Promise<Record<string, number>> {
+  const ar = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires" })
+  const today = ar.format(new Date())
+  const dayStart = `${today}T00:00:00-03:00`
+  const dayEnd = `${today}T23:59:59-03:00`
+  const count = async (query: PromiseLike<{ count: number | null }>) => (await query).count ?? 0
+
+  const [requests, newInquiries, todays, followUps] = await Promise.all([
+    allowed.includes("consultas")
+      ? count(supabase.from("appointments").select("id", { count: "exact", head: true }).in("status", PENDING_APPOINTMENT_STATUSES))
+      : 0,
+    allowed.includes("consultas")
+      ? count(
+          supabase
+            .from("inquiries")
+            .select("id", { count: "exact", head: true })
+            .in("commercial_status", ["nueva", "pendiente_respuesta"]),
+        )
+      : 0,
+    allowed.includes("hoy")
+      ? count(
+          supabase
+            .from("appointments")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "confirmado")
+            .gte("confirmed_start", dayStart)
+            .lte("confirmed_start", dayEnd),
+        )
+      : 0,
+    allowed.includes("recontactar")
+      ? count(
+          supabase
+            .from("clients")
+            .select("id", { count: "exact", head: true })
+            .is("archived_at", null)
+            .lte("follow_up_at", today),
+        )
+      : 0,
+  ])
+  return { consultas: requests + newInquiries, hoy: todays, recontactar: followUps }
+}
+
 export default async function PanelLayout({ children }: { children: ReactNode }) {
-  const { user, isAdmin, profile } = await requireAdmin()
+  const { user, isAdmin, profile, supabase } = await requireAdmin()
   const pathname = (await headers()).get("x-pathname") ?? "/admin"
   const allowed = allowedKeys(profile)
   const permitted = canAccess(profile, sectionForPath(pathname))
+  const counts = isAdmin ? await navCounts(supabase, allowed) : {}
 
   return (
     <div className="min-h-dvh bg-background lg:flex">
@@ -57,7 +103,7 @@ export default async function PanelLayout({ children }: { children: ReactNode })
             <LogoutButton />
           </div>
         </div>
-        {isAdmin && <AdminNav allowed={allowed} />}
+        {isAdmin && <AdminNav allowed={allowed} counts={counts} />}
         <div className="mt-auto hidden flex-col gap-3 lg:flex">
           <p className="truncate text-xs text-muted-foreground" title={user.email ?? undefined}>
             {user.email}

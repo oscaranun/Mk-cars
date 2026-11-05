@@ -163,9 +163,14 @@ export async function createManualAppointment(_prev: ActionState, data: FormData
   if (!MANUAL_SOURCES.includes(source)) return fail("Elegí el origen del pedido.")
   const price = amount(data, "price")
   if (price === "invalid") return fail("Revisá el precio.")
+  const duration = Number(text(data, "duration", 4))
+  if (!Number.isInteger(duration) || duration < 15 || duration > 540) {
+    return fail("Indicá una duración estimada válida (entre 15 y 540 minutos).")
+  }
 
   const { data: id, error } = await supabase.rpc("admin_create_appointment", {
     p: {
+      duration: String(duration),
       full_name: text(data, "full_name", 120),
       whatsapp,
       vehicle_category: text(data, "vehicle_category", 20),

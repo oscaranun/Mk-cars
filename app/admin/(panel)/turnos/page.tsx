@@ -98,7 +98,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
       )
       .returns<ApptRow[]>(),
     listQuery.returns<ApptRow[]>(),
-    supabase.from("settings").select("operational_capacity, default_duration_minutes, vehicle_prices").eq("id", 1).maybeSingle(),
+    supabase.from("settings").select("operational_capacity, default_duration_minutes, duration_defaults, vehicle_prices").eq("id", 1).maybeSingle(),
   ])
   const prices = parsePrices(settings.data?.vehicle_prices)
   // Separate query: these columns only exist once migration 011 is installed.
@@ -301,6 +301,21 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
               className={fieldClass}
             />
           </Field>
+          {(["auto", "suv", "pickup"] as const).map((key) => (
+            <Field key={key} label={`Duración ${VEHICLE_CATEGORY[key] ?? key} (min)`} htmlFor={`duration_${key}`} className="w-44">
+              <input
+                id={`duration_${key}`}
+                name={`duration_${key}`}
+                type="number"
+                min={15}
+                max={540}
+                step={5}
+                required
+                defaultValue={settings.data?.duration_defaults?.[key] ?? { auto: 60, suv: 75, pickup: 90 }[key]}
+                className={fieldClass}
+              />
+            </Field>
+          ))}
         </ActionForm>
       </Card>
 
