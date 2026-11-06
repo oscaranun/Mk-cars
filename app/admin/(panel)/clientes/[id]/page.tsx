@@ -41,7 +41,7 @@ type ClientDetail = {
   inquiries: { id: string; created_at: string; service: string; commercial_status: string; source: string }[]
   appointments: {
     id: string
-    requested_start: string
+    requested_start: string | null
     confirmed_start: string | null
     service: string
     status: string
@@ -77,7 +77,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     .returns<ClientDetail>()
   if (!client) notFound()
 
-  const byDateDesc = <T,>(list: T[], key: (x: T) => string) => [...list].sort((a, b) => key(b).localeCompare(key(a)))
+  // Turnos booked by zone have no time yet (both dates null), so the key must tolerate null.
+  const byDateDesc = <T,>(list: T[], key: (x: T) => string | null) =>
+    [...list].sort((a, b) => (key(b) ?? "").localeCompare(key(a) ?? ""))
   const inquiries = byDateDesc(client.inquiries, (i) => i.created_at)
   const appointments = byDateDesc(client.appointments, (a) => a.confirmed_start ?? a.requested_start)
   const services = byDateDesc(client.services, (s) => s.performed_at)
@@ -229,7 +231,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <HistoryItem
               key={a.id}
               primary={<TextLink href={`/admin/turnos/${a.id}`}>{a.service}</TextLink>}
-              secondary={`${formatDateTime(a.confirmed_start ?? a.requested_start)} · ${a.address}`}
+              secondary={`${a.confirmed_start ?? a.requested_start ? formatDateTime(a.confirmed_start ?? a.requested_start) : "Sin horario"} · ${a.address}`}
             >
               <Badge tone={appointmentTone(a.status)}>{APPOINTMENT_STATUS[a.status] ?? a.status}</Badge>
             </HistoryItem>

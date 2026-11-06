@@ -115,7 +115,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
     const day = argentinaParts(startOf(a)).date
     byDay.set(day, [...(byDay.get(day) ?? []), a])
   }
-  for (const list of byDay.values()) list.sort((a, b) => startOf(a).localeCompare(startOf(b)))
+  for (const list of byDay.values()) list.sort((a, b) => (startOf(a) ?? "").localeCompare(startOf(b) ?? ""))
 
   const firstWeekday = (new Date(`${monthStart}T00:00:00Z`).getUTCDay() + 6) % 7
   const daysInMonth = Number(addDays(nextMonth, -1).slice(8, 10))
