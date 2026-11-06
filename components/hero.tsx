@@ -40,7 +40,7 @@ export function Hero({ fromPrice }: { fromPrice: number | null }) {
             className="animate-fade-up mt-4 max-w-sm text-pretty leading-relaxed text-white/65 md:text-lg"
             style={{ animationDelay: "300ms" }}
           >
-            Vamos hasta tu casa o trabajo en Gran Mendoza.
+            Lavado de autos a domicilio en Mendoza. Vamos hasta tu casa o trabajo.
           </p>
         </div>
 
