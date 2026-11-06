@@ -3,6 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, MessageCircle } from "lucide-react"
 import { addVehicle, splitInquiryToNewClient, updateClient } from "@/app/admin/(panel)/crm-actions"
+import { addPackage, setVehiclePlate, usePackageWash } from "@/app/admin/(panel)/pro-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { ClientDangerZone } from "@/components/admin/client-danger-zone"
 import { ReviewSection } from "@/components/admin/review-section"
@@ -37,7 +38,7 @@ type ClientDetail = {
   privacy_consent_at: string | null
   archived_at: string | null
   archive_reason: string | null
-  vehicles: { id: string; category: string; brand: string | null; model: string | null; created_at: string }[]
+  vehicles: { id: string; category: string; brand: string | null; model: string | null; plate: string | null; created_at: string }[]
   inquiries: { id: string; created_at: string; service: string; commercial_status: string; source: string }[]
   appointments: {
     id: string
@@ -67,7 +68,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     .from("clients")
     .select(
       `id, full_name, whatsapp, email, source, notes, created_at, last_interaction_at, marketing_consent, privacy_consent_at, archived_at, archive_reason,
-       vehicles(id, category, brand, model, created_at),
+       vehicles(id, category, brand, model, plate, created_at),
        inquiries(id, created_at, service, commercial_status, source),
        appointments(id, requested_start, confirmed_start, service, status, address),
        services(id, performed_at, wash_type, final_price, amount_paid, payment_status, payments(id, amount, method, paid_at))`,
@@ -76,6 +77,14 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     .maybeSingle()
     .returns<ClientDetail>()
   if (!client) notFound()
+
+  const [{ data: packageRows }, { data: settings }, { data: taskRows }] = await Promise.all([
+    supabase.from("client_packages").select("id, name, total_washes, used_washes, price, expires_on, created_at").eq("client_id", id).order("created_at", { ascending: false }),
+    supabase.from("settings").select("loyalty_every").eq("id", 1).maybeSingle(),
+    supabase.from("admin_tasks").select("id, title, due_on").eq("client_id", id).is("done_at", null).order("due_on"),
+  ])
+  const packages = packageRows ?? []
+  const loyaltyEvery = settings?.loyalty_every ?? 6
 
   // Turnos booked by zone have no time yet (both dates null), so the key must tolerate null.
   const byDateDesc = <T,>(list: T[], key: (x: T) => string | null) =>
@@ -89,6 +98,17 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   )
   const totalPaid = services.reduce((sum, s) => sum + Number(s.amount_paid), 0)
   const balance = services.reduce((sum, s) => sum + Number(s.final_price) - Number(s.amount_paid), 0)
+  const loyaltyProgress = services.length % loyaltyEvery
+  const nextIsFree = loyaltyProgress === loyaltyEvery - 1
+
+  const timeline = [
+    ...inquiries.map((i) => ({ at: i.created_at, label: "Consulta", text: i.service, href: undefined as string | undefined })),
+    ...appointments
+      .filter((a) => a.confirmed_start ?? a.requested_start)
+      .map((a) => ({ at: (a.confirmed_start ?? a.requested_start)!, label: "Turno", text: `${a.service} · ${APPOINTMENT_STATUS[a.status] ?? a.status}`, href: `/admin/turnos/${a.id}` })),
+    ...services.map((s) => ({ at: s.performed_at, label: "Lavado", text: `${s.wash_type} · ${money(s.final_price)}`, href: undefined })),
+    ...payments.map((p) => ({ at: p.paid_at, label: "Pago", text: `${money(p.amount)} · ${PAYMENT_METHOD[p.method] ?? p.method}`, href: undefined })),
+  ].sort((a, b) => b.at.localeCompare(a.at))
 
   return (
     <>
@@ -182,9 +202,20 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           {client.vehicles.length ? (
             <ul className="flex flex-col gap-2">
               {client.vehicles.map((v) => (
-                <li key={v.id} className="flex items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-3 text-sm">
-                  <span>{[v.brand, v.model].filter(Boolean).join(" ") || "Sin marca/modelo"}</span>
-                  <Badge tone="info">{VEHICLE_CATEGORY[v.category] ?? v.category}</Badge>
+                <li key={v.id} className="flex flex-col gap-2 rounded-2xl bg-surface px-4 py-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span>
+                      {[v.brand, v.model].filter(Boolean).join(" ") || "Sin marca/modelo"}
+                      {v.plate && <span className="ml-2 font-mono text-xs text-muted-foreground">{v.plate}</span>}
+                    </span>
+                    <Badge tone="info">{VEHICLE_CATEGORY[v.category] ?? v.category}</Badge>
+                  </div>
+                  <ActionForm action={setVehiclePlate} submitLabel="Guardar" submitClassName={secondaryButtonClass} inline>
+                    <input type="hidden" name="vehicle_id" value={v.id} />
+                    <Field label="Patente" htmlFor={`plate-${v.id}`}>
+                      <input id={`plate-${v.id}`} name="plate" maxLength={12} defaultValue={v.plate ?? ""} placeholder="AB123CD" className={`${fieldClass} w-36 uppercase`} />
+                    </Field>
+                  </ActionForm>
                 </li>
               ))}
             </ul>
@@ -216,6 +247,112 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </ActionForm>
         </Card>
       </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="flex flex-col gap-3">
+          <SectionTitle aside={nextIsFree && <Badge tone="success">Próximo gratis</Badge>}>Fidelidad</SectionTitle>
+          <p className="text-sm text-muted-foreground">
+            {loyaltyProgress} de {loyaltyEvery} lavados. Cada {loyaltyEvery}, uno gratis.
+          </p>
+          <div className="flex gap-1" aria-hidden="true">
+            {Array.from({ length: loyaltyEvery }, (_, i) => (
+              <span key={i} className={`h-2 flex-1 rounded-full ${i < loyaltyProgress ? "bg-electric" : "bg-surface"}`} />
+            ))}
+          </div>
+        </Card>
+
+        <Card className="flex flex-col gap-3">
+          <SectionTitle>Abonos</SectionTitle>
+          {packages.length === 0 ? (
+            <EmptyState>Sin abonos.</EmptyState>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {packages.map((p) => {
+                const left = p.total_washes - p.used_washes
+                return (
+                  <li key={p.id} className="flex flex-col gap-2 rounded-2xl bg-surface px-4 py-3 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">{p.name}</span>
+                      <Badge tone={left > 0 ? "success" : "neutral"}>
+                        Quedan {left} de {p.total_washes}
+                      </Badge>
+                    </div>
+                    {p.expires_on && <span className="text-xs text-muted-foreground">Vence {formatDate(p.expires_on)}</span>}
+                    <div className="flex flex-wrap gap-2">
+                      <ActionForm action={usePackageWash} submitLabel="Usar un lavado" submitClassName={secondaryButtonClass}>
+                        <input type="hidden" name="package_id" value={p.id} />
+                        <input type="hidden" name="delta" value="1" />
+                      </ActionForm>
+                      {p.used_washes > 0 && (
+                        <ActionForm action={usePackageWash} submitLabel="Deshacer" submitClassName={secondaryButtonClass}>
+                          <input type="hidden" name="package_id" value={p.id} />
+                          <input type="hidden" name="delta" value="-1" />
+                        </ActionForm>
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          <details className="rounded-2xl border border-border px-4 py-2 text-sm">
+            <summary className="cursor-pointer py-1 text-muted-foreground hover:text-foreground">Nuevo abono</summary>
+            <ActionForm action={addPackage} submitLabel="Crear abono" resetOnSuccess className="pt-3">
+              <input type="hidden" name="client_id" value={client.id} />
+              <Field label="Nombre" htmlFor="pkg-name">
+                <input id="pkg-name" name="name" required maxLength={80} placeholder="4 lavados por mes" className={fieldClass} />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Lavados" htmlFor="pkg-total">
+                  <input id="pkg-total" name="total_washes" type="number" min={1} max={100} required defaultValue={4} className={fieldClass} />
+                </Field>
+                <Field label="Precio" htmlFor="pkg-price">
+                  <input id="pkg-price" name="price" inputMode="decimal" className={fieldClass} />
+                </Field>
+              </div>
+              <Field label="Vence (opcional)" htmlFor="pkg-exp">
+                <input id="pkg-exp" name="expires_on" type="date" className={fieldClass} />
+              </Field>
+            </ActionForm>
+          </details>
+        </Card>
+
+        <Card className="flex flex-col gap-3">
+          <SectionTitle aside={<TextLink href={`/admin/tareas?cliente=${client.id}`}>Nueva</TextLink>}>Tareas</SectionTitle>
+          {(taskRows ?? []).length === 0 ? (
+            <EmptyState>Sin tareas pendientes.</EmptyState>
+          ) : (
+            <ul className="flex flex-col gap-2 text-sm">
+              {(taskRows ?? []).map((t) => (
+                <li key={t.id} className="flex justify-between gap-2 rounded-2xl bg-surface px-4 py-3">
+                  <span>{t.title}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{formatDate(t.due_on)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+
+      <Card className="flex flex-col gap-3">
+        <SectionTitle>Línea de tiempo</SectionTitle>
+        {timeline.length === 0 ? (
+          <EmptyState>Todavía no hay actividad.</EmptyState>
+        ) : (
+          <ol className="flex flex-col border-l border-border pl-4">
+            {timeline.slice(0, 60).map((e, i) => (
+              <li key={i} className="relative py-2 text-sm">
+                <span className="absolute -left-[21px] top-3.5 size-2.5 rounded-full bg-electric" aria-hidden="true" />
+                <p>
+                  <span className="font-medium">{e.label}</span> ·{" "}
+                  {e.href ? <TextLink href={e.href}>{e.text}</TextLink> : e.text}
+                </p>
+                <time className="text-xs tabular-nums text-muted-foreground">{formatDateTime(e.at)}</time>
+              </li>
+            ))}
+          </ol>
+        )}
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <HistoryCard title="Consultas" empty="Sin consultas.">

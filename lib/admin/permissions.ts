@@ -1,22 +1,39 @@
-type Section = { key: string; href: string; label: string; group?: "admin"; hidden?: boolean }
+export type NavGroup = "operacion" | "clientes" | "finanzas" | "config"
+
+export const NAV_GROUPS: { key: NavGroup; label: string }[] = [
+  { key: "operacion", label: "Operación" },
+  { key: "clientes", label: "Clientes" },
+  { key: "finanzas", label: "Finanzas" },
+  { key: "config", label: "Configuración" },
+]
+
+type Section = { key: string; href: string; label: string; group?: NavGroup; hidden?: boolean }
 
 /**
  * Order defines the sidebar. `hidden` sections keep their route, data and permission
  * key (links from other screens still work) but no longer appear in the menu.
  */
 export const SECTIONS: readonly Section[] = [
-  { key: "consultas", href: "/admin/consultas", label: "Consultas" },
-  { key: "hoy", href: "/admin", label: "Hoy" },
-  { key: "agenda", href: "/admin/agenda", label: "Agenda" },
-  { key: "recontactar", href: "/admin/recontactar", label: "Recontactar" },
-  { key: "movimientos", href: "/admin/movimientos", label: "Movimientos", group: "admin" },
-  { key: "cobros", href: "/admin/cobros", label: "Ingresos", group: "admin" },
-  { key: "caja", href: "/admin/caja", label: "Egresos", group: "admin" },
-  { key: "estadisticas", href: "/admin/estadisticas", label: "Estadísticas", group: "admin" },
-  { key: "servicios", href: "/admin/servicios", label: "Reportes", group: "admin" },
-  { key: "configuracion", href: "/admin/configuracion", label: "Configuración", group: "admin" },
-  { key: "clientes", href: "/admin/clientes", label: "Clientes" },
+  { key: "hoy", href: "/admin", label: "Hoy", group: "operacion" },
+  { key: "tablero", href: "/admin/tablero", label: "Tablero", group: "operacion" },
+  { key: "consultas", href: "/admin/consultas", label: "Consultas", group: "operacion" },
+  { key: "agenda", href: "/admin/agenda", label: "Agenda", group: "operacion" },
+  { key: "recorrido", href: "/admin/recorrido", label: "Mi recorrido", group: "operacion" },
+  { key: "tareas", href: "/admin/tareas", label: "Tareas", group: "operacion" },
+  { key: "clientes", href: "/admin/clientes", label: "Clientes", group: "clientes" },
+  { key: "recontactar", href: "/admin/recontactar", label: "Recontactar", group: "clientes" },
+  { key: "campanas", href: "/admin/campanas", label: "Campañas y cupones", group: "clientes" },
+  { key: "movimientos", href: "/admin/movimientos", label: "Movimientos", group: "finanzas" },
+  { key: "cobros", href: "/admin/cobros", label: "Ingresos", group: "finanzas" },
+  { key: "caja", href: "/admin/caja", label: "Egresos", group: "finanzas" },
+  { key: "gastos-fijos", href: "/admin/gastos-fijos", label: "Gastos fijos", group: "finanzas" },
+  { key: "cierre", href: "/admin/cierre", label: "Cierre de caja", group: "finanzas" },
+  { key: "estadisticas", href: "/admin/estadisticas", label: "Estadísticas", group: "finanzas" },
+  { key: "servicios", href: "/admin/servicios", label: "Reportes", group: "finanzas" },
+  { key: "configuracion", href: "/admin/configuracion", label: "Ajustes", group: "config" },
+  { key: "actividad", href: "/admin/actividad", label: "Historial de cambios", group: "config" },
   { key: "turnos", href: "/admin/turnos", label: "Turnos", hidden: true },
+  { key: "precios", href: "/admin/precios", label: "Lista de precios", hidden: true },
   { key: "agenda-servicios", href: "/admin/agenda-servicios", label: "Agenda de servicios", hidden: true },
   { key: "zonas", href: "/admin/zonas", label: "Zonas y recorridos", hidden: true },
   { key: "pruebas", href: "/admin/pruebas", label: "Pruebas", hidden: true },

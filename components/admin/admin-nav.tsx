@@ -6,51 +6,73 @@ import { usePathname } from "next/navigation"
 import {
   ArrowLeftRight,
   BarChart3,
-  Briefcase,
   Calculator,
   CalendarDays,
   CalendarRange,
   ChevronDown,
+  ClipboardCheck,
   FileText,
+  History,
+  KanbanSquare,
   LayoutDashboard,
+  ListChecks,
+  Megaphone,
   MessagesSquare,
+  Navigation,
+  Receipt,
   RefreshCcw,
+  Repeat,
   Settings2,
   ShieldCheck,
   Users,
   Wallet,
   type LucideIcon,
 } from "lucide-react"
-import { SECTIONS, USERS_SECTION } from "@/lib/admin/permissions"
+import { NAV_GROUPS, SECTIONS, USERS_SECTION, type NavGroup } from "@/lib/admin/permissions"
 import { cn } from "@/lib/utils"
 
 const ICONS: Record<string, LucideIcon> = {
   hoy: LayoutDashboard,
+  tablero: KanbanSquare,
   agenda: CalendarRange,
+  recorrido: Navigation,
+  tareas: ListChecks,
   turnos: CalendarDays,
   clientes: Users,
   recontactar: RefreshCcw,
+  campanas: Megaphone,
   consultas: MessagesSquare,
   servicios: FileText,
   movimientos: ArrowLeftRight,
   cobros: Wallet,
   caja: Calculator,
+  "gastos-fijos": Repeat,
+  cierre: ClipboardCheck,
   estadisticas: BarChart3,
   configuracion: Settings2,
+  actividad: History,
   usuarios: ShieldCheck,
+  precios: Receipt,
 }
 
-type Item = { key: string; href: string; label: string; group?: "admin"; hidden?: boolean }
+type Item = (typeof SECTIONS)[number]
 
-const ITEMS: Item[] = [...SECTIONS, USERS_SECTION]
+const NESTED_UNDER: Record<string, string[]> = {
+  "/admin/configuracion": [USERS_SECTION.href, "/admin/precios", "/admin/zonas", "/admin/agenda-servicios", "/admin/pruebas"],
+  "/admin/tablero": ["/admin/turnos"],
+}
+
+function matches(href: string, pathname: string) {
+  return href === "/admin" ? pathname === "/admin" : pathname === href || pathname.startsWith(`${href}/`)
+}
 
 function isActive(href: string, pathname: string) {
-  return href === "/admin" ? pathname === "/admin" : pathname === href || pathname.startsWith(`${href}/`)
+  return matches(href, pathname) || (NESTED_UNDER[href] ?? []).some((nested) => matches(nested, pathname))
 }
 
 const linkClass = (active: boolean) =>
   cn(
-    "flex min-h-11 w-full items-center gap-3 rounded-full px-4 text-sm font-medium transition lg:rounded-2xl",
+    "flex min-h-10 w-full items-center gap-3 rounded-full px-4 text-sm font-medium transition lg:rounded-2xl",
     active ? "bg-primary text-primary-foreground shadow-glow" : "text-muted-foreground hover:bg-sky hover:text-foreground",
   )
 
@@ -78,54 +100,43 @@ function NavLink({ item, active, count }: { item: Item; active: boolean; count?:
 
 export function AdminNav({ allowed, counts = {} }: { allowed: string[]; counts?: Record<string, number> }) {
   const pathname = usePathname()
-  const visible = ITEMS.filter((item) => !item.hidden && allowed.includes(item.key))
-  const adminItems = visible.filter((i) => i.group === "admin")
-  const adminActive = adminItems.some((i) => isActive(i.href, pathname))
-  const [open, setOpen] = useState(adminActive)
-  const expanded = open || adminActive
-
-  const top = visible.filter((i) => !i.group)
-  const firstAfterAdmin = top.findIndex((i) => i.key === "clientes")
-  const before = firstAfterAdmin === -1 ? top : top.slice(0, firstAfterAdmin)
-  const after = firstAfterAdmin === -1 ? [] : top.slice(firstAfterAdmin)
-
-  const renderItem = (item: Item) => (
-    <li key={item.key} className="shrink-0">
-      <NavLink item={item} active={isActive(item.href, pathname)} count={counts[item.key]} />
-    </li>
-  )
+  const visible = SECTIONS.filter((item) => !item.hidden && allowed.includes(item.key))
+  const activeGroup = visible.find((i) => isActive(i.href, pathname))?.group
+  const [closed, setClosed] = useState<Partial<Record<NavGroup, boolean>>>({})
 
   return (
-    <nav aria-label="Secciones del panel" className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:min-h-0 lg:flex-1 lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-contain lg:px-0">
-      <ul className="flex gap-1.5 lg:flex-col">
-        {before.map(renderItem)}
-        {adminItems.length > 0 && (
-          <li className="shrink-0 lg:flex lg:flex-col lg:gap-1.5">
-            <button
-              type="button"
-              aria-expanded={expanded}
-              aria-controls="nav-administracion"
-              onClick={() => setOpen((v) => !v)}
-              className={linkClass(false)}
-            >
-              <Briefcase className="size-4 shrink-0 text-electric" aria-hidden="true" />
-              <span className="whitespace-nowrap">Administración</span>
-              <ChevronDown className={cn("ml-auto size-4 transition", expanded && "rotate-180")} aria-hidden="true" />
-            </button>
-            {expanded && (
-              <ul id="nav-administracion" className="hidden flex-col gap-1.5 lg:ml-4 lg:flex lg:border-l lg:border-border lg:pl-2">
-                {adminItems.map(renderItem)}
+    <nav
+      aria-label="Secciones del panel"
+      className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:min-h-0 lg:flex-1 lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-contain lg:px-0"
+    >
+      <ul className="flex gap-1.5 lg:flex-col lg:gap-3">
+        {NAV_GROUPS.map((group) => {
+          const items = visible.filter((i) => i.group === group.key)
+          if (items.length === 0) return null
+          const expanded = group.key === activeGroup || !closed[group.key]
+          const listId = `nav-${group.key}`
+          return (
+            <li key={group.key} className="contents lg:flex lg:flex-col lg:gap-1">
+              <button
+                type="button"
+                aria-expanded={expanded}
+                aria-controls={listId}
+                onClick={() => setClosed((c) => ({ ...c, [group.key]: expanded }))}
+                className="hidden items-center justify-between px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 hover:text-foreground lg:flex"
+              >
+                {group.label}
+                <ChevronDown className={cn("size-3.5 transition", expanded && "rotate-180")} aria-hidden="true" />
+              </button>
+              <ul id={listId} className={cn("contents lg:flex-col lg:gap-1", expanded ? "lg:flex" : "lg:hidden")}>
+                {items.map((item) => (
+                  <li key={item.key} className="shrink-0">
+                    <NavLink item={item} active={isActive(item.href, pathname)} count={counts[item.key]} />
+                  </li>
+                ))}
               </ul>
-            )}
-          </li>
-        )}
-        {expanded &&
-          adminItems.map((item) => (
-            <li key={`m-${item.key}`} className="shrink-0 lg:hidden">
-              <NavLink item={item} active={isActive(item.href, pathname)} count={counts[item.key]} />
             </li>
-          ))}
-        {after.map(renderItem)}
+          )
+        })}
       </ul>
     </nav>
   )
