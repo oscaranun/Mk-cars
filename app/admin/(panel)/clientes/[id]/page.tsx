@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, MessageCircle } from "lucide-react"
-import { addVehicle, updateClient } from "@/app/admin/(panel)/crm-actions"
+import { addVehicle, splitInquiryToNewClient, updateClient } from "@/app/admin/(panel)/crm-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { ClientDangerZone } from "@/components/admin/client-danger-zone"
 import { ReviewSection } from "@/components/admin/review-section"
@@ -220,7 +220,37 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       <div className="grid gap-6 lg:grid-cols-2">
         <HistoryCard title="Consultas" empty="Sin consultas.">
           {inquiries.map((i) => (
-            <HistoryItem key={i.id} primary={i.service} secondary={`${formatDateTime(i.created_at)} · ${i.source}`}>
+            <HistoryItem
+              key={i.id}
+              primary={i.service}
+              secondary={`${formatDateTime(i.created_at)} · ${i.source}`}
+              extra={
+                inquiries.length > 1 ? (
+                  <details className="group mt-2 rounded-2xl bg-surface px-4 py-2 text-sm">
+                    <summary className="cursor-pointer select-none py-1 text-muted-foreground hover:text-foreground">
+                      Es otra persona: separar en otro cliente
+                    </summary>
+                    <ActionForm
+                      action={splitInquiryToNewClient}
+                      submitLabel="Separar en cliente nuevo"
+                      submitClassName={secondaryButtonClass}
+                      confirmText="Se creará un cliente nuevo con esta consulta, sus turnos, servicios y su vehículo. ¿Continuar?"
+                      className="pt-3 pb-2"
+                    >
+                      <input type="hidden" name="inquiry_id" value={i.id} />
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Field label="Nombre y apellido" htmlFor={`split-name-${i.id}`}>
+                          <input id={`split-name-${i.id}`} name="full_name" required minLength={2} className={fieldClass} />
+                        </Field>
+                        <Field label="WhatsApp (distinto)" htmlFor={`split-wa-${i.id}`}>
+                          <input id={`split-wa-${i.id}`} name="whatsapp" inputMode="tel" required className={fieldClass} />
+                        </Field>
+                      </div>
+                    </ActionForm>
+                  </details>
+                ) : null
+              }
+            >
               <Badge tone={inquiryTone(i.commercial_status)}>{INQUIRY_STATUS[i.commercial_status] ?? i.commercial_status}</Badge>
             </HistoryItem>
           ))}
@@ -279,18 +309,23 @@ function HistoryItem({
   primary,
   secondary,
   children,
+  extra,
 }: {
   primary: React.ReactNode
   secondary: string
   children: React.ReactNode
+  extra?: React.ReactNode
 }) {
   return (
-    <li className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="text-sm font-medium">{primary}</span>
-        <span className="text-xs tabular-nums text-muted-foreground">{secondary}</span>
+    <li className="flex flex-col py-3 first:pt-0 last:pb-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-sm font-medium">{primary}</span>
+          <span className="text-xs tabular-nums text-muted-foreground">{secondary}</span>
+        </div>
+        {children}
       </div>
-      {children}
+      {extra}
     </li>
   )
 }
