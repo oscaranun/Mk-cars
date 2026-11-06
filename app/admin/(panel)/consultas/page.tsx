@@ -3,6 +3,7 @@ import { deleteInquiry, updateInquiryStatus } from "@/app/admin/(panel)/crm-acti
 import { ActionForm } from "@/components/admin/action-form"
 import { ConfirmAction } from "@/components/admin/confirm-action"
 import { CopyBookingLinkButton } from "@/components/admin/copy-booking-link-button"
+import { QuickAppointmentControls, type QuickAppointment } from "@/components/admin/quick-appointment-controls"
 import {
   Badge,
   Card,
@@ -19,7 +20,6 @@ import {
 import { requireAdmin } from "@/lib/admin/auth"
 import { formatDateTime, resolveRange } from "@/lib/admin/format"
 import {
-  EDITABLE_INQUIRY_STATUSES,
   INQUIRY_STATUS,
   VEHICLE_CATEGORY,
   bookingOriginLabel,
@@ -39,7 +39,7 @@ type InquiryRow = {
   notes: string | null
   clients: { id: string; full_name: string; whatsapp: string } | null
   vehicles: { category: string; brand: string | null; model: string | null } | null
-  appointments: { id: string }[] | null
+  appointments: QuickAppointment[] | null
 }
 
 type HistoryRow = { entity_id: string; from_status: string | null; to_status: string; changed_at: string }
@@ -53,7 +53,7 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
 
   let query = supabase
     .from("inquiries")
-    .select("id, created_at, service, extras, source, origen_reserva, commercial_status, notes, clients(id, full_name, whatsapp), vehicles(category, brand, model), appointments(id)")
+    .select("id, created_at, service, extras, source, origen_reserva, commercial_status, notes, clients(id, full_name, whatsapp), vehicles(category, brand, model), appointments(id, status, payment_status, amount_paid, agreed_price, discount)")
     .gte("created_at", range.fromISO)
     .lt("created_at", range.toISO)
     .order("created_at", { ascending: false })
@@ -117,7 +117,6 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
                   .join(" ")
               : null
             const log = historyById.get(inq.id) ?? []
-            const editable = (EDITABLE_INQUIRY_STATUSES as readonly string[]).includes(inq.commercial_status)
             return (
               <li key={inq.id}>
                 <Card className="flex flex-col gap-4">
@@ -162,18 +161,13 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
                       <select
                         id={`status-${inq.id}`}
                         name="status"
-                        defaultValue={editable ? inq.commercial_status : ""}
+                        defaultValue={inq.commercial_status}
                         required
                         className={`${fieldClass} md:w-60`}
                       >
-                        {!editable && (
-                          <option value="" disabled>
-                            Cambiar estado…
-                          </option>
-                        )}
-                        {EDITABLE_INQUIRY_STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {INQUIRY_STATUS[s]}
+                        {Object.entries(INQUIRY_STATUS).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
                           </option>
                         ))}
                       </select>
@@ -203,6 +197,14 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
                     </ConfirmAction>
                     </div>
                   </div>
+
+                  {inq.appointments?.map((appt, idx) => (
+                    <QuickAppointmentControls
+                      key={appt.id}
+                      appointment={appt}
+                      index={inq.appointments && inq.appointments.length > 1 ? idx + 1 : undefined}
+                    />
+                  ))}
 
                   {log.length > 0 && (
                     <details className="group rounded-2xl bg-surface px-4 py-3 text-sm">
