@@ -147,6 +147,28 @@ export async function updateAppointmentContactName(_prev: ActionState, data: For
   return done(name ? "Nombre guardado solo para este turno." : "Este turno vuelve a usar el nombre del cliente.")
 }
 
+/** Moves one consulta (with its turnos, servicios and own vehicles) to a brand-new client. */
+export async function splitInquiryToNewClient(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const inquiryId = text(data, "inquiry_id", 36)
+  const fullName = text(data, "full_name", 120)
+  const whatsapp = normalizeWhatsapp(text(data, "whatsapp", 30))
+  if (!UUID_RE.test(inquiryId)) return fail("Consulta inválida.")
+  if (fullName.length < 2) return fail("Ingresá nombre y apellido.")
+  if (!whatsapp) return fail("El WhatsApp no es un número argentino válido.")
+
+  const { data: newId, error } = await supabase.rpc("split_inquiry_to_new_client", {
+    p_inquiry_id: inquiryId,
+    p_full_name: fullName,
+    p_whatsapp: whatsapp,
+  })
+  if (error) return dbError(error, "No se pudo separar la consulta.")
+  revalidatePath("/admin", "layout")
+  redirect(`/admin/clientes/${newId as string}`)
+}
+
 export async function archiveClient(_prev: ActionState, data: FormData): Promise<ActionState> {
   const supabase = await admin()
   if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
