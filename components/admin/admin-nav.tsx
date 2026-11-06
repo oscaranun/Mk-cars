@@ -42,10 +42,16 @@ const ICONS: Record<string, LucideIcon> = {
 
 type Item = { key: string; href: string; label: string; group?: "admin"; hidden?: boolean }
 
-const ITEMS: Item[] = [...SECTIONS, USERS_SECTION]
+const ITEMS: Item[] = [...SECTIONS]
+
+const NESTED_UNDER: Record<string, string[]> = { "/admin/configuracion": [USERS_SECTION.href] }
+
+function matches(href: string, pathname: string) {
+  return href === "/admin" ? pathname === "/admin" : pathname === href || pathname.startsWith(`${href}/`)
+}
 
 function isActive(href: string, pathname: string) {
-  return href === "/admin" ? pathname === "/admin" : pathname === href || pathname.startsWith(`${href}/`)
+  return matches(href, pathname) || (NESTED_UNDER[href] ?? []).some((nested) => matches(nested, pathname))
 }
 
 const linkClass = (active: boolean) =>
