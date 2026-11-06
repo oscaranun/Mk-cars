@@ -37,6 +37,7 @@ type ApptRow = {
   service: string
   address: string
   status: string
+  contact_name: string | null
   clients: { full_name: string; whatsapp: string } | null
 }
 
@@ -63,9 +64,9 @@ function CalendarItem({ appt: a }: { appt: ApptRow }) {
         a.status === "realizado" && "bg-emerald-500/25 text-emerald-200",
         ["solicitado", "reprogramado", "esperando_cliente"].includes(a.status) && "bg-amber-300/20 text-amber-100",
       )}
-      title={`${formatTime(startOf(a))} ${a.clients?.full_name ?? ""} — ${APPOINTMENT_STATUS[a.status]}`}
+      title={`${formatTime(startOf(a))} ${a.contact_name ?? a.clients?.full_name ?? ""} — ${APPOINTMENT_STATUS[a.status]}`}
     >
-      <span className="tabular-nums">{formatTime(startOf(a))}</span> {a.clients?.full_name ?? "Cliente"}
+      <span className="tabular-nums">{formatTime(startOf(a))}</span> {a.contact_name ?? a.clients?.full_name ?? "Cliente"}
     </Link>
   )
 }
@@ -82,7 +83,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
   const toISO = startOfArgentinaDay(nextMonth)
   const estado = params.estado ?? "pendientes"
 
-  const select = "id, requested_start, confirmed_start, duration_minutes, service, address, status, clients(full_name, whatsapp)"
+  const select = "id, requested_start, confirmed_start, duration_minutes, service, address, status, contact_name, clients(full_name, whatsapp)"
 
   let listQuery = supabase.from("appointments").select(select).order("requested_start", { ascending: true }).limit(300)
   if (estado === "pendientes") listQuery = listQuery.in("status", ["solicitado", "reprogramado", "esperando_cliente"])
@@ -254,7 +255,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
                     <TextLink href={`/admin/turnos/${a.id}`}>{formatDateTime(startOf(a))}</TextLink>
                     {!a.confirmed_start && <p className="text-xs text-muted-foreground">Horario solicitado</p>}
                   </td>
-                  <td className={tdClass}>{a.clients?.full_name ?? "—"}</td>
+                  <td className={tdClass}>{a.contact_name ?? a.clients?.full_name ?? "—"}</td>
                   <td className={tdClass}>{a.service}</td>
                   <td className={tdClass}>{a.address}</td>
                   <td className={tdClass}>

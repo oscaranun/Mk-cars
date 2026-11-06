@@ -132,6 +132,21 @@ export async function updateClient(_prev: ActionState, data: FormData): Promise<
   return done("Datos del cliente guardados.")
 }
 
+/** Renames a single turno only; the client record (shared by every turno of the same WhatsApp) stays untouched. */
+export async function updateAppointmentContactName(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const id = text(data, "id", 36)
+  const name = text(data, "contact_name", 120)
+  if (!UUID_RE.test(id)) return fail("Turno inválido.")
+  if (name && name.length < 2) return fail("Ingresá nombre y apellido.")
+
+  const { error } = await supabase.from("appointments").update({ contact_name: name || null }).eq("id", id)
+  if (error) return dbError(error, "No se pudo guardar el nombre del turno.")
+  return done(name ? "Nombre guardado solo para este turno." : "Este turno vuelve a usar el nombre del cliente.")
+}
+
 export async function archiveClient(_prev: ActionState, data: FormData): Promise<ActionState> {
   const supabase = await admin()
   if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")

@@ -25,14 +25,14 @@ export default async function AdminTodayPage() {
   const [pending, agenda, inquiries, unpaid] = await Promise.all([
     supabase
       .from("appointments")
-      .select("id, requested_start, address, service, status, created_at, updated_at, clients(full_name, whatsapp)")
+      .select("id, requested_start, address, service, status, created_at, updated_at, contact_name, clients(full_name, whatsapp)")
       .in("status", PENDING_APPOINTMENT_STATUSES)
       .order("created_at", { ascending: true })
       .limit(50)
       .returns<PendingAppt[]>(),
     supabase
       .from("appointments")
-      .select("id, confirmed_start, duration_minutes, address, service, status, clients(full_name, whatsapp)")
+      .select("id, confirmed_start, duration_minutes, address, service, status, contact_name, clients(full_name, whatsapp)")
       .in("status", ["confirmado", "realizado"])
       .gte("confirmed_start", startOfArgentinaDay(today))
       .lt("confirmed_start", startOfArgentinaDay(addDays(today, 1)))

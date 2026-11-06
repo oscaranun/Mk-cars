@@ -18,6 +18,7 @@ export type PendingAppt = {
   status: string
   created_at: string
   updated_at: string
+  contact_name?: string | null
   clients: ClientRef
 }
 
@@ -28,6 +29,7 @@ export type AgendaAppt = {
   address: string
   service: string
   status: string
+  contact_name?: string | null
   clients: ClientRef
 }
 
@@ -115,7 +117,7 @@ export function PendingSection({ items, now }: { items: PendingAppt[]; now: numb
       {items.length ? (
         <ul className="flex flex-col gap-3">
           {items.map((a) => {
-            const name = a.clients?.full_name ?? "Cliente"
+            const name = a.contact_name ?? a.clients?.full_name ?? "Cliente"
             const waiting = waitingLabel(a.status === "solicitado" ? a.created_at : a.updated_at, now)
             const late = a.status !== "esperando_cliente" && waiting.minutes > LATE_MINUTES
             return (
@@ -202,7 +204,7 @@ export function AgendaSection({ items }: { items: AgendaAppt[] }) {
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <div className="flex items-center justify-between gap-2">
                       <Link href={`/admin/turnos/${a.id}`} className="truncate font-medium hover:underline">
-                        {a.clients?.full_name ?? "Cliente"}
+                        {a.contact_name ?? a.clients?.full_name ?? "Cliente"}
                       </Link>
                       <Badge tone={appointmentTone(a.status)}>{APPOINTMENT_STATUS[a.status] ?? a.status}</Badge>
                     </div>

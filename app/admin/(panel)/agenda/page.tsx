@@ -17,6 +17,7 @@ type ApptRow = {
   address: string
   service: string
   status: string
+  contact_name: string | null
   clients: { full_name: string } | null
 }
 
@@ -37,14 +38,14 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   const [confirmed, pending, blocked] = await Promise.all([
     supabase
       .from("appointments")
-      .select("id, requested_start, confirmed_start, duration_minutes, address, service, status, clients(full_name)")
+      .select("id, requested_start, confirmed_start, duration_minutes, address, service, status, contact_name, clients(full_name)")
       .in("status", ["confirmado", "realizado"])
       .gte("confirmed_start", fromISO)
       .lt("confirmed_start", toISO)
       .returns<ApptRow[]>(),
     supabase
       .from("appointments")
-      .select("id, requested_start, confirmed_start, duration_minutes, address, service, status, clients(full_name)")
+      .select("id, requested_start, confirmed_start, duration_minutes, address, service, status, contact_name, clients(full_name)")
       .in("status", PENDING_APPOINTMENT_STATUSES)
       .gte("requested_start", fromISO)
       .lt("requested_start", toISO)
@@ -60,7 +61,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
         start,
         day: argentinaParts(start).date,
         duration: a.duration_minutes ?? 60,
-        name: a.clients?.full_name ?? "Cliente",
+        name: a.contact_name ?? a.clients?.full_name ?? "Cliente",
         address: a.address,
         status: a.status,
       }

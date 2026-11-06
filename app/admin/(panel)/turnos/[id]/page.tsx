@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, MessageCircle } from "lucide-react"
-import { completeAppointment, manageAppointment, markWhatsappSent, reviewAppointmentVehicle } from "@/app/admin/(panel)/crm-actions"
+import { completeAppointment, manageAppointment, markWhatsappSent, reviewAppointmentVehicle, updateAppointmentContactName } from "@/app/admin/(panel)/crm-actions"
 import { findConflicts, type ConflictCheck } from "@/lib/admin/conflicts"
 import { WhatsappComposer } from "@/components/admin/whatsapp-composer"
 import { buildConfirmationMessage, buildProposalMessage, type BookingMessageData } from "@/lib/admin/whatsapp-messages"
@@ -48,6 +48,7 @@ type Appointment = {
   water_supply: string
   cancel_reason: string | null
   created_at: string
+  contact_name: string | null
   clients: { id: string; full_name: string; whatsapp: string; email: string | null } | null
   vehicles: { category: string; brand: string | null; model: string | null } | null
   inquiries: { notes: string | null } | null
@@ -101,7 +102,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
       .from("appointments")
       .select(
         `id, service, extras, address, requested_start, confirmed_start, confirmed_at, duration_minutes, status, agreed_price,
-         operator, water_supply, cancel_reason, created_at,
+         operator, water_supply, cancel_reason, created_at, contact_name,
          clients(id, full_name, whatsapp, email), vehicles(category, brand, model), inquiries(notes),
          services(id, performed_at, final_price, amount_paid),
          appointment_vehicles(position, category, price_applied, classification, needs_review, vehicles(category, brand, model)),
@@ -129,6 +130,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
     .maybeSingle()
     .returns<{ amount_paid: number; payment_status: string }>()
 
+  const displayName = (appt.contact_name ?? appt.clients?.full_name ?? "").trim()
   const status = appt.status
   const isRequest = status === "solicitado" || status === "reprogramado"
   const isConfirmed = status === "confirmado"
@@ -187,7 +189,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
         ]
       : []
   const messageData: BookingMessageData = {
-    clientName: appt.clients?.full_name.trim() ?? "",
+    clientName: displayName,
     address: appt.address,
     service: appt.service,
     extras: appt.extras ?? [],
@@ -227,7 +229,8 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
         <Card className="flex flex-col gap-5">
           <SectionTitle>Datos del turno</SectionTitle>
           <dl className="grid gap-4 sm:grid-cols-2">
-            <DetailRow label="Cliente">
+            <DetailRow label="Nombre en este turno">{displayName || "—"}</DetailRow>
+            <DetailRow label="Ficha de cliente">
               {appt.clients ? <TextLink href={`/admin/clientes/${appt.clients.id}`}>{appt.clients.full_name}</TextLink> : "—"}
             </DetailRow>
             <DetailRow label="WhatsApp">
@@ -253,6 +256,25 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
               <span className="tabular-nums">{formatDateTime(appt.created_at)}</span>
             </DetailRow>
           </dl>
+          <div className="flex flex-col gap-2 border-t border-border pt-4">
+            <ActionForm action={updateAppointmentContactName} submitLabel="Guardar nombre" submitClassName={secondaryButtonClass} inline>
+              <input type="hidden" name="id" value={appt.id} />
+              <Field label="Cambiar nombre solo en este turno" htmlFor="contact-name" className="min-w-0 flex-1 sm:w-72">
+                <input
+                  id="contact-name"
+                  name="contact_name"
+                  maxLength={120}
+                  autoComplete="off"
+                  defaultValue={appt.contact_name ?? ""}
+                  placeholder={appt.clients?.full_name ?? "Nombre y apellido"}
+                  className={fieldClass}
+                />
+              </Field>
+            </ActionForm>
+            <p className="text-xs text-muted-foreground text-pretty">
+              No modifica la ficha del cliente ni los otros turnos del mismo WhatsApp. Dejalo vacío para usar el nombre del cliente.
+            </p>
+          </div>
           {lineVehicles.length > 0 && (
             <div className="flex flex-col gap-2 border-t border-border pt-4">
               <div className="flex flex-wrap items-center gap-2">
@@ -379,7 +401,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                 status,
                 service: appt.service,
                 duration_minutes: appt.duration_minutes,
-                clientName: appt.clients?.full_name.trim() ?? "",
+                clientName: displayName,
                 whatsapp: appt.clients?.whatsapp ?? null,
               }}
               today={today}
