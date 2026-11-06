@@ -8,7 +8,7 @@ import { conflictSummary, findConflicts } from "@/lib/admin/conflicts"
 import { isValidDate, isValidTime, todayArgentina } from "@/lib/admin/format"
 import { BLOCKED_DATES_TAG } from "@/lib/blocked-dates"
 import { PRICES_TAG, parsePrices } from "@/lib/prices"
-import { EDITABLE_INQUIRY_STATUSES, EXPENSE_CATEGORY, PAYMENT_METHOD } from "@/lib/admin/labels"
+import { EXPENSE_CATEGORY, INQUIRY_STATUS, PAYMENT_METHOD } from "@/lib/admin/labels"
 import { TEST_CLIENT_PREFIX, getTestBookingSummary } from "@/lib/admin/test-booking"
 import { normalizeWhatsapp, toArgentinaTimestamp } from "@/lib/booking"
 
@@ -240,11 +240,52 @@ export async function updateInquiryStatus(_prev: ActionState, data: FormData): P
   const id = text(data, "id", 36)
   const status = text(data, "status", 40)
   if (!UUID_RE.test(id)) return fail("Consulta inválida.")
-  if (!(EDITABLE_INQUIRY_STATUSES as readonly string[]).includes(status)) return fail("Estado inválido.")
+  if (!INQUIRY_STATUS[status]) return fail("Estado inválido.")
 
   const { error } = await supabase.from("inquiries").update({ commercial_status: status }).eq("id", id)
   if (error) return dbError(error, "No se pudo cambiar el estado.")
   return done("Estado actualizado.")
+}
+
+const QUICK_APPOINTMENT_STATUSES = ["solicitado", "confirmado", "realizado", "cancelado", "rechazado"]
+
+export async function quickSetAppointmentStatus(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const id = text(data, "appointment_id", 36)
+  const status = text(data, "status", 20)
+  if (!UUID_RE.test(id)) return fail("Turno inválido.")
+  if (!QUICK_APPOINTMENT_STATUSES.includes(status)) return fail("Estado inválido.")
+
+  const { error } = await supabase.rpc("admin_set_appointment_status", { p_id: id, p_status: status })
+  if (error) return dbError(error, "No se pudo cambiar el estado del turno.")
+  return done("Estado del turno actualizado.")
+}
+
+export async function quickSetAppointmentPayment(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const id = text(data, "appointment_id", 36)
+  const payment = text(data, "payment", 20)
+  const method = text(data, "method", 20) || "efectivo"
+  const amount = money(data, "amount", false)
+  if (!UUID_RE.test(id)) return fail("Turno inválido.")
+  if (payment !== "pagado" && payment !== "pendiente") return fail("Estado de pago inválido.")
+  if (!PAYMENT_METHOD[method]) return fail("Elegí el medio de pago.")
+  if (amount === "invalid") return fail("Revisá el importe.")
+
+  const { error } = await supabase.rpc("admin_set_appointment_payment", {
+    p_id: id,
+    p_paid: payment === "pagado",
+    p_method: method,
+    p_amount: amount,
+  })
+  if (error) return dbError(error, "No se pudo actualizar el pago.")
+  revalidatePath("/admin/caja")
+  revalidatePath("/admin/cobros")
+  return done(payment === "pagado" ? "Marcado como pagado. Ya figura en ingresos." : "Pago anulado: el turno queda pendiente.")
 }
 
 export async function deleteInquiry(_prev: ActionState, data: FormData): Promise<ActionState> {
