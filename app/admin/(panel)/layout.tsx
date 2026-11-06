@@ -94,13 +94,20 @@ export default async function PanelLayout({ children }: { children: ReactNode })
   const allowed = allowedKeys(profile)
   const permitted = canAccess(profile, sectionForPath(pathname))
   const counts = isAdmin ? await navCounts(supabase, allowed) : {}
+  const displayName = profile?.full_name?.trim() || user.email?.split("@")[0] || ""
 
   return (
     <div className="min-h-dvh bg-background lg:flex">
       <aside className="flex flex-col gap-4 border-b border-border bg-deep/60 px-4 pb-3 pt-4 lg:sticky lg:top-0 lg:h-dvh lg:w-64 lg:shrink-0 lg:gap-6 lg:border-b-0 lg:border-r lg:px-4 lg:py-6">
         <div className="flex items-center justify-between gap-4 lg:flex-col lg:items-center">
           <Logo className="w-[110px] md:w-[110px] lg:w-[170px]" />
-          <div className="lg:hidden">
+          <div className="flex min-w-0 items-center gap-3 lg:hidden">
+            <p
+              className="min-w-0 truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+              title={user.email ?? undefined}
+            >
+              {displayName}
+            </p>
             <LogoutButton />
           </div>
         </div>
