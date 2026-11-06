@@ -1,8 +1,19 @@
+import Link from "next/link"
 import { Trash2 } from "lucide-react"
 import { addExpense, deleteExpense } from "@/app/admin/(panel)/crm-actions"
 import { ActionForm } from "@/components/admin/action-form"
-import { Card, EmptyState, Field, SectionTitle, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
-import { money } from "@/lib/admin/format"
+import {
+  Card,
+  EmptyState,
+  Field,
+  SectionTitle,
+  TableWrap,
+  fieldClass,
+  secondaryButtonClass,
+  tdClass,
+  thClass,
+} from "@/components/admin/ui"
+import { formatDate, money } from "@/lib/admin/format"
 import { EXPENSE_CATEGORY, PAYMENT_METHOD } from "@/lib/admin/labels"
 import { cn } from "@/lib/utils"
 
@@ -64,6 +75,52 @@ export function DayPayments({ payments }: { payments: CashPayment[] }) {
         </ul>
       ) : (
         <EmptyState>No se registraron cobros este día.</EmptyState>
+      )}
+    </section>
+  )
+}
+
+export function ExpenseHistory({ expenses }: { expenses: (CashExpense & { spent_on: string })[] }) {
+  const total = expenses.reduce((s, e) => s + Number(e.amount), 0)
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <SectionTitle>Gastos de los últimos 30 días</SectionTitle>
+        <Link href="/admin/movimientos?tipo=gastos" className="text-sm text-electric underline-offset-4 hover:underline">
+          Ver todos y filtrar
+        </Link>
+      </div>
+      {expenses.length ? (
+        <TableWrap>
+          <thead>
+            <tr>
+              <th className={thClass}>Fecha</th>
+              <th className={thClass}>Categoría</th>
+              <th className={thClass}>Detalle</th>
+              <th className={thClass}>Medio</th>
+              <th className={`${thClass} text-right`}>Importe</th>
+            </tr>
+          </thead>
+          <tbody>
+            {expenses.map((e) => (
+              <tr key={e.id}>
+                <td className={`${tdClass} whitespace-nowrap tabular-nums`}>{formatDate(`${e.spent_on}T12:00:00-03:00`)}</td>
+                <td className={tdClass}>{EXPENSE_CATEGORY[e.category] ?? e.category}</td>
+                <td className={tdClass}>{e.description || "—"}</td>
+                <td className={tdClass}>{PAYMENT_METHOD[e.method] ?? e.method}</td>
+                <td className={`${tdClass} text-right font-semibold tabular-nums`}>−{money(e.amount)}</td>
+              </tr>
+            ))}
+            <tr>
+              <td className="px-4 py-3 font-medium" colSpan={4}>
+                Total
+              </td>
+              <td className="px-4 py-3 text-right font-semibold tabular-nums">−{money(total)}</td>
+            </tr>
+          </tbody>
+        </TableWrap>
+      ) : (
+        <EmptyState>No hubo gastos en los últimos 30 días.</EmptyState>
       )}
     </section>
   )

@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { addPayment } from "@/app/admin/(panel)/crm-actions"
 import { ActionForm } from "@/components/admin/action-form"
+import { PaymentMethodForm } from "@/components/admin/payment-method-form"
 import {
   Badge,
   Card,
@@ -201,7 +202,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
                     {p.services?.wash_type ?? "—"}
                     {p.notes && <p className="text-xs text-muted-foreground">{p.notes}</p>}
                   </td>
-                  <td className={tdClass}>{PAYMENT_METHOD[p.method] ?? p.method}</td>
+                  <td className={tdClass}>
+                    <PaymentMethodForm paymentId={p.id} method={p.method} />
+                  </td>
                   <td className={`${tdClass} text-right tabular-nums`}>{money(p.amount)}</td>
                 </tr>
               ))}

@@ -1,7 +1,14 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayExpenses, DayPayments, MethodBreakdown, type CashExpense, type CashPayment } from "@/components/admin/cash-sections"
+import {
+  DayExpenses,
+  DayPayments,
+  ExpenseHistory,
+  MethodBreakdown,
+  type CashExpense,
+  type CashPayment,
+} from "@/components/admin/cash-sections"
 import { PageHeader, Stat, secondaryButtonClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
 import { activePayments } from "@/lib/admin/payments"
@@ -27,7 +34,7 @@ export default async function CashPage({ searchParams }: { searchParams: SearchP
   const day = params.dia && isValidDate(params.dia) && params.dia <= today ? params.dia : today
   const monthStart = `${day.slice(0, 7)}-01`
 
-  const [{ data: payments }, { data: expenses }, { data: monthPayments }, { data: monthExpenses }] = await Promise.all([
+  const [{ data: payments }, { data: expenses }, { data: monthPayments }, { data: monthExpenses }, { data: recentExpenses }] = await Promise.all([
     activePayments((excludeVoided) => {
       const q = supabase
         .from("payments")
@@ -52,6 +59,14 @@ export default async function CashPage({ searchParams }: { searchParams: SearchP
       return excludeVoided ? q.is("voided_at", null) : q
     }),
     supabase.from("expenses").select("amount").gte("spent_on", monthStart).lte("spent_on", day),
+    supabase
+      .from("expenses")
+      .select("id, amount, method, category, description, spent_on")
+      .gte("spent_on", addDays(today, -29))
+      .order("spent_on", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(100)
+      .returns<(CashExpense & { spent_on: string })[]>(),
   ])
 
   const income: CashPayment[] = (payments ?? []).map((p) => ({
@@ -113,6 +128,8 @@ export default async function CashPage({ searchParams }: { searchParams: SearchP
         </div>
         <DayExpenses expenses={outflow} day={day} today={today} />
       </div>
+
+      <ExpenseHistory expenses={recentExpenses ?? []} />
     </>
   )
 }

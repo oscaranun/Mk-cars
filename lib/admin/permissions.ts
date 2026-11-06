@@ -9,6 +9,7 @@ export const SECTIONS: readonly Section[] = [
   { key: "hoy", href: "/admin", label: "Hoy" },
   { key: "agenda", href: "/admin/agenda", label: "Agenda" },
   { key: "recontactar", href: "/admin/recontactar", label: "Recontactar" },
+  { key: "movimientos", href: "/admin/movimientos", label: "Movimientos", group: "admin" },
   { key: "cobros", href: "/admin/cobros", label: "Ingresos", group: "admin" },
   { key: "caja", href: "/admin/caja", label: "Egresos", group: "admin" },
   { key: "estadisticas", href: "/admin/estadisticas", label: "Estadísticas", group: "admin" },
