@@ -8,6 +8,7 @@ import { WhatsAppFloat } from "@/components/whatsapp-float"
 import { todayArgentina } from "@/lib/admin/format"
 import { getUpcomingBlockedDates } from "@/lib/blocked-dates"
 import { getVehiclePrices } from "@/lib/prices"
+import { localBusinessJsonLd, websiteJsonLd } from "@/lib/seo"
 import { getZoneServices, isZoneBookingEnabled } from "@/lib/zones/server"
 
 export const revalidate = 60
@@ -17,6 +18,12 @@ export default async function Page() {
   const zoneServices = zoneBookingEnabled ? await getZoneServices() : []
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([localBusinessJsonLd(), websiteJsonLd()]).replace(/</g, "\\u003c"),
+        }}
+      />
       <SiteHeader />
       <main>
         <Hero fromPrice={prices ? Math.min(prices.auto, prices.suv, prices.pickup) : null} />

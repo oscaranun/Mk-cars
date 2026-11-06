@@ -15,7 +15,7 @@ const description =
   "Tu auto impecable, sin salir de casa. Reservá tu lavado premium a domicilio en Gran Mendoza en un minuto."
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://mk-cars-zeta.vercel.app"),
+  metadataBase: new URL("https://www.mkcars.com.ar"),
   title,
   description,
   alternates: { canonical: "/reservar" },
