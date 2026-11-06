@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 import { PageHeader } from "@/components/admin/ui"
 import {
   AgendaSection,
@@ -22,7 +23,7 @@ export default async function AdminTodayPage() {
   const now = Date.now()
   const today = todayArgentina()
 
-  const [pending, agenda, inquiries, unpaid] = await Promise.all([
+  const [pending, agenda, inquiries, unpaid, tasks] = await Promise.all([
     supabase
       .from("appointments")
       .select("id, requested_start, address, service, status, created_at, updated_at, contact_name, clients(full_name, whatsapp)")
@@ -52,11 +53,42 @@ export default async function AdminTodayPage() {
       .order("performed_at", { ascending: true })
       .limit(20)
       .returns<UnpaidService[]>(),
+    supabase
+      .from("admin_tasks")
+      .select("id, title, due_on")
+      .is("done_at", null)
+      .lte("due_on", today)
+      .order("due_on")
+      .limit(20),
   ])
+  const dueTasks = (tasks.data ?? []) as { id: string; title: string; due_on: string }[]
 
   return (
     <>
       <PageHeader title="Hoy" description={`${longDate(new Date(now).toISOString())} · actualizado ${formatDateTime(new Date(now))}`} />
+
+      {dueTasks.length > 0 && (
+        <section aria-labelledby="hoy-tareas" className="rounded-2xl border border-border bg-card p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 id="hoy-tareas" className="text-sm font-semibold">
+              Tareas para hoy ({dueTasks.length})
+            </h2>
+            <Link href="/admin/tareas" className="text-sm text-primary underline-offset-4 hover:underline">
+              Ver tareas
+            </Link>
+          </div>
+          <ul className="mt-2 flex flex-col gap-1 text-sm">
+            {dueTasks.map((t) => (
+              <li key={t.id} className="flex justify-between gap-3">
+                <span>{t.title}</span>
+                <span className={t.due_on < today ? "text-destructive" : "text-muted-foreground"}>
+                  {t.due_on < today ? "Vencida" : "Hoy"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <PendingSection items={pending.data ?? []} now={now} />
 

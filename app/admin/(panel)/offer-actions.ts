@@ -168,6 +168,20 @@ export async function createManualAppointment(_prev: ActionState, data: FormData
     return fail("Indicá una duración estimada válida (entre 15 y 540 minutos).")
   }
 
+  if (data.get("ignore_duplicate") !== "on") {
+    const { data: existing } = await supabase
+      .from("appointments")
+      .select("id, status, confirmed_start, requested_start, clients!inner(whatsapp)")
+      .eq("clients.whatsapp", whatsapp)
+      .in("status", ["solicitado", "reprogramado", "esperando_cliente", "confirmado"])
+      .limit(1)
+    if (existing && existing.length > 0) {
+      return fail(
+        "Este cliente ya tiene un turno activo. Revisalo en el Tablero antes de crear otro, o marcá “Crear igual” si es un turno distinto.",
+      )
+    }
+  }
+
   const { data: id, error } = await supabase.rpc("admin_create_appointment", {
     p: {
       duration: String(duration),

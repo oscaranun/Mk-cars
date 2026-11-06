@@ -6,6 +6,7 @@ import { LogOut } from "lucide-react"
 import { SECTIONS, USERS_SECTION, allowedKeys, canAccess, sectionForPath } from "@/lib/admin/permissions"
 import { logout } from "@/app/admin/actions"
 import { AdminNav } from "@/components/admin/admin-nav"
+import { GlobalSearch } from "@/components/admin/global-search"
 import { Logo } from "@/components/logo"
 import { requireAdmin } from "@/lib/admin/auth"
 import { PENDING_APPOINTMENT_STATUSES } from "@/lib/admin/labels"
@@ -103,6 +104,7 @@ export default async function PanelLayout({ children }: { children: ReactNode })
             <LogoutButton />
           </div>
         </div>
+        {isAdmin && <GlobalSearch />}
         {isAdmin && <AdminNav allowed={allowed} counts={counts} />}
         <div className="mt-auto hidden flex-col gap-3 lg:flex">
           <p className="truncate text-xs text-muted-foreground" title={user.email ?? undefined}>

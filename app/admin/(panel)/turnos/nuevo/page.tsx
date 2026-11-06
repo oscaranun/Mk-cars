@@ -86,6 +86,10 @@ export default async function NewManualAppointmentPage() {
           <Field label="Nota interna (no la ve el cliente)" htmlFor="internal_note">
             <textarea id="internal_note" name="internal_note" rows={3} maxLength={4000} className={fieldClass} />
           </Field>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <input type="checkbox" name="ignore_duplicate" className="size-4 accent-[var(--primary)]" />
+            Crear igual aunque el cliente ya tenga un turno activo
+          </label>
         </ActionForm>
       </Card>
     </>

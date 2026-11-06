@@ -23,12 +23,15 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
   const { supabase } = await requireAdmin()
   const range = resolveRange(params, 30)
 
-  const [inquiries, newClients, services, payments, allServices, outstanding] = await Promise.all([
+  const spanMs = new Date(range.toISO).getTime() - new Date(range.fromISO).getTime()
+  const prevFromISO = new Date(new Date(range.fromISO).getTime() - spanMs).toISOString()
+
+  const [inquiries, newClients, services, payments, allServices, outstanding, expenses, prevPayments, prevServices] = await Promise.all([
     supabase.from("inquiries").select("commercial_status, source").gte("created_at", range.fromISO).lt("created_at", range.toISO).limit(5000),
     supabase.from("clients").select("id", { count: "exact", head: true }).gte("created_at", range.fromISO).lt("created_at", range.toISO),
     supabase
       .from("services")
-      .select("final_price, vehicle_category, wash_type")
+      .select("final_price, vehicle_category, wash_type, client_id, clients(full_name)")
       .gte("performed_at", range.fromISO)
       .lt("performed_at", range.toISO)
       .limit(5000),
@@ -38,6 +41,12 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
     }),
     supabase.from("services").select("client_id").limit(10000),
     supabase.from("services").select("final_price, amount_paid").neq("payment_status", "cobrado").limit(5000),
+    supabase.from("expenses").select("amount").gte("spent_on", range.from).lte("spent_on", range.to).limit(5000),
+    activePayments((excludeVoided) => {
+      const q = supabase.from("payments").select("amount").gte("paid_at", prevFromISO).lt("paid_at", range.fromISO).limit(5000)
+      return excludeVoided ? q.is("voided_at", null) : q
+    }),
+    supabase.from("services").select("id", { count: "exact", head: true }).gte("performed_at", prevFromISO).lt("performed_at", range.fromISO),
   ])
 
   const inq = inquiries.data ?? []
@@ -59,6 +68,23 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
   const byStatus = countBy(inq, (i) => INQUIRY_STATUS[i.commercial_status] ?? i.commercial_status)
   const byVehicle = countBy(svc, (s) => (s.vehicle_category ? VEHICLE_CATEGORY[s.vehicle_category] : null))
   const byWash = countBy(svc, (s) => s.wash_type)
+  const spent = (expenses.data ?? []).reduce((sum, e) => sum + Number(e.amount), 0)
+  const profit = collected - spent
+  const prevCollected = (prevPayments.data ?? []).reduce((sum, p) => sum + Number(p.amount), 0)
+  const prevWashes = prevServices.count ?? 0
+  const delta = (now: number, before: number) =>
+    before === 0 ? (now > 0 ? "nuevo" : "sin cambios") : `${now >= before ? "+" : ""}${Math.round(((now - before) / before) * 100)}% vs período anterior`
+
+  const clientTotals = new Map<string, number>()
+  for (const s of svc as unknown as { final_price: number; clients: { full_name: string } | null }[]) {
+    const name = s.clients?.full_name ?? "Sin cliente"
+    clientTotals.set(name, (clientTotals.get(name) ?? 0) + Number(s.final_price))
+  }
+  const topClients = [...clientTotals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8)
+  const revenueByWash = [...svc.reduce((m, s) => m.set(s.wash_type, (m.get(s.wash_type) ?? 0) + Number(s.final_price)), new Map<string, number>())].sort(
+    (a, b) => b[1] - a[1],
+  )
+
   const byMethod = Object.keys(PAYMENT_METHOD).map(
     (m) => [PAYMENT_METHOD[m], pay.filter((p) => p.method === m).reduce((sum, p) => sum + Number(p.amount), 0)] as [string, number],
   )
@@ -85,6 +111,10 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
         <Stat label="Ticket promedio" value={money(avgTicket)} hint="Precio final por lavado" />
         <Stat label="Saldo pendiente" value={money(pendingBalance)} hint="Total actual" />
         <Stat label="Clientes recurrentes" value={recurring} hint={`de ${withWashes} con al menos un lavado`} />
+        <Stat label="Gastos" value={money(spent)} hint="Egresos del período" />
+        <Stat label="Ganancia" value={money(profit)} hint="Cobrado menos gastos" />
+        <Stat label="Cobrado vs anterior" value={money(collected)} hint={delta(collected, prevCollected)} />
+        <Stat label="Lavados vs anterior" value={svc.length} hint={delta(svc.length, prevWashes)} />
       </dl>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -93,6 +123,8 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
         <Breakdown title="Lavados por tipo de vehículo" rows={byVehicle} />
         <Breakdown title="Lavados por tipo de servicio" rows={byWash} />
         <Breakdown title="Cobrado por medio de pago" rows={byMethod} format={money} />
+        <Breakdown title="Facturación por servicio" rows={revenueByWash} format={money} />
+        <Breakdown title="Mejores clientes" rows={topClients} format={money} />
       </div>
     </>
   )
