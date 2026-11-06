@@ -11,6 +11,7 @@ import {
   type PendingAppt,
   type UnpaidService,
 } from "@/components/admin/today-sections"
+import { WelcomeBanner } from "@/components/admin/welcome-banner"
 import { requireAdmin } from "@/lib/admin/auth"
 import { addDays, formatDateTime, startOfArgentinaDay, todayArgentina } from "@/lib/admin/format"
 import { PENDING_APPOINTMENT_STATUSES } from "@/lib/admin/labels"
@@ -19,11 +20,12 @@ import { longDate } from "@/lib/admin/whatsapp-messages"
 export const metadata: Metadata = { title: "Hoy" }
 
 export default async function AdminTodayPage() {
-  const { supabase } = await requireAdmin()
+  const { supabase, user, profile } = await requireAdmin()
   const now = Date.now()
   const today = todayArgentina()
+  const displayName = profile?.full_name?.trim() || user.email?.split("@")[0] || "Equipo MK Cars"
 
-  const [pending, agenda, inquiries, unpaid, tasks] = await Promise.all([
+  const [pending, agenda, inquiries, unpaid, tasks, myChanges] = await Promise.all([
     supabase
       .from("appointments")
       .select("id, requested_start, address, service, status, created_at, updated_at, contact_name, clients(full_name, whatsapp)")
@@ -60,11 +62,18 @@ export default async function AdminTodayPage() {
       .lte("due_on", today)
       .order("due_on")
       .limit(20),
+    supabase
+      .from("activity_log")
+      .select("id", { count: "exact", head: true })
+      .eq("actor_id", user.id)
+      .gte("created_at", startOfArgentinaDay(today)),
   ])
   const dueTasks = (tasks.data ?? []) as { id: string; title: string; due_on: string }[]
 
   return (
     <>
+      <WelcomeBanner name={displayName} changesToday={myChanges.count ?? 0} now={new Date(now)} />
+
       <PageHeader title="Hoy" description={`${longDate(new Date(now).toISOString())} · actualizado ${formatDateTime(new Date(now))}`} />
 
       {dueTasks.length > 0 && (

@@ -68,7 +68,6 @@ export async function moveAppointment(_prev: ActionState, data: FormData): Promi
   if (!UUID_RE.test(id) || !BOARD_STATUSES.includes(status)) return fail("Movimiento inválido.")
   const { error } = await s.supabase.rpc("admin_set_appointment_status", { p_id: id, p_status: status })
   if (error) return dbFail(error, "No se pudo mover el turno.")
-  await log(s, "turno", id, "cambio de estado", status)
   return ok("Turno actualizado.")
 }
 
@@ -80,7 +79,6 @@ export async function setVehiclePlate(_prev: ActionState, data: FormData): Promi
   if (!UUID_RE.test(id)) return fail("Vehículo inválido.")
   const { error } = await s.supabase.from("vehicles").update({ plate: plate || null }).eq("id", id)
   if (error) return dbFail(error, "No se pudo guardar la patente.")
-  await log(s, "vehiculo", id, "patente", plate || "(vacía)")
   return ok("Patente guardada.")
 }
 
@@ -104,7 +102,6 @@ export async function savePriceList(_prev: ActionState, data: FormData): Promise
   }
   const { error } = await s.supabase.from("settings").update({ service_prices: rows }).eq("id", 1)
   if (error) return dbFail(error, "No se pudo guardar la lista de precios.")
-  await log(s, "precios", null, "lista actualizada", `${rows.length} servicios`)
   return ok("Lista de precios guardada.")
 }
 
@@ -115,7 +112,6 @@ export async function saveLoyalty(_prev: ActionState, data: FormData): Promise<A
   if (!every) return fail("Elegí un número entre 2 y 50.")
   const { error } = await s.supabase.from("settings").update({ loyalty_every: every }).eq("id", 1)
   if (error) return dbFail(error, "No se pudo guardar.")
-  await log(s, "fidelidad", null, "regla actualizada", `lavado gratis cada ${every}`)
   return ok("Regla de fidelidad guardada.")
 }
 

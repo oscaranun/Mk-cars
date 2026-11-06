@@ -107,9 +107,14 @@ export default async function PanelLayout({ children }: { children: ReactNode })
         {isAdmin && <GlobalSearch />}
         {isAdmin && <AdminNav allowed={allowed} counts={counts} />}
         <div className="mt-auto hidden flex-col gap-3 lg:flex">
-          <p className="truncate text-xs text-muted-foreground" title={user.email ?? undefined}>
-            {user.email}
-          </p>
+          <div className="flex min-w-0 flex-col">
+            {profile?.full_name?.trim() && (
+              <p className="truncate text-sm font-semibold uppercase tracking-wide text-foreground">{profile.full_name.trim()}</p>
+            )}
+            <p className="truncate text-xs text-muted-foreground" title={user.email ?? undefined}>
+              {user.email}
+            </p>
+          </div>
           <LogoutButton />
         </div>
       </aside>
