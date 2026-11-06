@@ -288,6 +288,24 @@ export async function quickSetAppointmentPayment(_prev: ActionState, data: FormD
   return done(payment === "pagado" ? "Marcado como pagado. Ya figura en ingresos." : "Pago anulado: el turno queda pendiente.")
 }
 
+export async function updatePaymentMethod(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const id = text(data, "payment_id", 36)
+  const method = text(data, "method", 20)
+  if (!UUID_RE.test(id)) return fail("Pago inválido.")
+  if (!PAYMENT_METHOD[method]) return fail("Elegí el medio de pago.")
+
+  const { data: updated, error } = await supabase.from("payments").update({ method }).eq("id", id).select("id")
+  if (error) return dbError(error, "No se pudo cambiar el medio de pago.")
+  if (!updated?.length) return fail("No se encontró el pago.")
+  revalidatePath("/admin/cobros")
+  revalidatePath("/admin/caja")
+  revalidatePath("/admin/movimientos")
+  return done("Medio actualizado.")
+}
+
 export async function deleteInquiry(_prev: ActionState, data: FormData): Promise<ActionState> {
   const supabase = await admin()
   if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")

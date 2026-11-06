@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
+  ArrowLeftRight,
   BarChart3,
   Briefcase,
   Calculator,
@@ -31,6 +32,7 @@ const ICONS: Record<string, LucideIcon> = {
   recontactar: RefreshCcw,
   consultas: MessagesSquare,
   servicios: FileText,
+  movimientos: ArrowLeftRight,
   cobros: Wallet,
   caja: Calculator,
   estadisticas: BarChart3,
