@@ -2,7 +2,15 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, MessageCircle } from "lucide-react"
-import { completeAppointment, manageAppointment, markWhatsappSent, reviewAppointmentVehicle, updateAppointmentContactName } from "@/app/admin/(panel)/crm-actions"
+import {
+  completeAppointment,
+  manageAppointment,
+  markWhatsappSent,
+  removeVehicleFromAppointment,
+  reviewAppointmentVehicle,
+  updateAppointmentContactName,
+} from "@/app/admin/(panel)/crm-actions"
+import { AppointmentVehicleTools } from "@/components/admin/appointment-vehicle-tools"
 import { findConflicts, type ConflictCheck } from "@/lib/admin/conflicts"
 import { WhatsappComposer } from "@/components/admin/whatsapp-composer"
 import { buildConfirmationMessage, buildProposalMessage, type BookingMessageData } from "@/lib/admin/whatsapp-messages"
@@ -49,12 +57,14 @@ type Appointment = {
   cancel_reason: string | null
   created_at: string
   contact_name: string | null
+  vehicle_id: string | null
   clients: { id: string; full_name: string; whatsapp: string; email: string | null } | null
   vehicles: { category: string; brand: string | null; model: string | null } | null
   inquiries: { notes: string | null } | null
   services: { id: string; performed_at: string; final_price: number; amount_paid: number }[]
   appointment_vehicles: {
     position: number
+    vehicle_id: string
     category: string | null
     price_applied: number | null
     classification: string | null
@@ -102,10 +112,10 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
       .from("appointments")
       .select(
         `id, service, extras, address, requested_start, confirmed_start, confirmed_at, duration_minutes, status, agreed_price,
-         operator, water_supply, cancel_reason, created_at, contact_name,
+         operator, water_supply, cancel_reason, created_at, contact_name, vehicle_id,
          clients(id, full_name, whatsapp, email), vehicles(category, brand, model), inquiries(notes),
          services(id, performed_at, final_price, amount_paid),
-         appointment_vehicles(position, category, price_applied, classification, needs_review, vehicles(category, brand, model)),
+         appointment_vehicles(position, vehicle_id, category, price_applied, classification, needs_review, vehicles(category, brand, model)),
          appointment_proposals(id, original_start, proposed_start, duration_minutes, status, proposed_at, responded_at),
          appointment_messages(id, kind, proposal_id, marked_sent_at, marked_sent_by_email)`,
       )
@@ -123,12 +133,22 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
   if (!appt) notFound()
 
   // Separate query: the columns only exist once migration 011 is installed.
-  const { data: paymentSummary } = await supabase
-    .from("appointments")
-    .select("amount_paid, payment_status")
-    .eq("id", id)
-    .maybeSingle()
-    .returns<{ amount_paid: number; payment_status: string }>()
+  const [{ data: paymentSummary }, { data: clientVehicleRows }] = await Promise.all([
+    supabase
+      .from("appointments")
+      .select("amount_paid, payment_status")
+      .eq("id", id)
+      .maybeSingle()
+      .returns<{ amount_paid: number; payment_status: string }>(),
+    appt.clients
+      ? supabase
+          .from("vehicles")
+          .select("id, category, brand, model, plate")
+          .eq("client_id", appt.clients.id)
+          .order("created_at")
+          .returns<{ id: string; category: string; brand: string | null; model: string | null; plate: string | null }[]>()
+      : Promise.resolve({ data: [] as { id: string; category: string; brand: string | null; model: string | null; plate: string | null }[] }),
+  ])
 
   const displayName = (appt.contact_name ?? appt.clients?.full_name ?? "").trim()
   const status = appt.status
@@ -162,6 +182,8 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
   const lineTotal = lineVehicles.reduce((sum, v) => sum + (v.price_applied ?? 0), 0)
   const reviewCount = lineVehicles.filter((v) => v.needs_review).length
   const defaultPrice = appt.agreed_price ?? (lineTotal > 0 ? lineTotal : "")
+  const usedVehicleIds = new Set(lineVehicles.length ? lineVehicles.map((v) => v.vehicle_id) : appt.vehicle_id ? [appt.vehicle_id] : [])
+  const availableVehicles = (clientVehicleRows ?? []).filter((v) => !usedVehicleIds.has(v.id))
 
   const conflictCheck = isRequest
     ? await findConflicts(supabase, { id: appt.id, start: appt.requested_start, durationMinutes: appt.duration_minutes, operator: appt.operator })
@@ -298,7 +320,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                         {v.price_applied != null ? money(v.price_applied) : "—"}
                       </span>
                       {canEditVehicles && (
-                        <div className="w-full">
+                        <div className="flex w-full flex-wrap items-end gap-2">
                           <ActionForm
                             action={reviewAppointmentVehicle}
                             submitLabel={v.needs_review ? "Verificar" : "Cambiar"}
@@ -317,6 +339,18 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                               </select>
                             </Field>
                           </ActionForm>
+                          {lineVehicles.length > 1 && (
+                            <ActionForm
+                              action={removeVehicleFromAppointment}
+                              submitLabel="Quitar del turno"
+                              submitClassName={secondaryButtonClass}
+                              confirmText={`¿Quitar ${name} de este turno? Sigue guardado en la ficha del cliente.`}
+                              inline
+                            >
+                              <input type="hidden" name="appointment_id" value={appt.id} />
+                              <input type="hidden" name="position" value={v.position} />
+                            </ActionForm>
+                          )}
                         </div>
                       )}
                     </li>
@@ -329,6 +363,15 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                 </p>
               )}
             </div>
+          )}
+
+          {appt.clients && (
+            <AppointmentVehicleTools
+              appointmentId={appt.id}
+              clientId={appt.clients.id}
+              canEdit={canEditVehicles}
+              availableVehicles={availableVehicles}
+            />
           )}
 
           {appt.inquiries?.notes && (

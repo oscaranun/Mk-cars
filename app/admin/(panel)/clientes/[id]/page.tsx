@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ArrowLeft, MessageCircle } from "lucide-react"
+import { ArrowLeft, CalendarPlus, MessageCircle } from "lucide-react"
 import { addVehicle, splitInquiryToNewClient, updateClient } from "@/app/admin/(panel)/crm-actions"
 import { addPackage, setVehiclePlate, usePackageWash } from "@/app/admin/(panel)/pro-actions"
 import { ActionForm } from "@/components/admin/action-form"
@@ -126,10 +126,16 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               Cliente desde {formatDate(client.created_at)} · Origen: {client.source}
             </p>
           </div>
-          <a href={whatsappLink(client.whatsapp)} target="_blank" rel="noopener noreferrer" className={secondaryButtonClass}>
-            <MessageCircle className="size-4 text-whatsapp" aria-hidden="true" />
-            Escribir por WhatsApp
-          </a>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/admin/turnos/nuevo?cliente=${client.id}`} className={secondaryButtonClass}>
+              <CalendarPlus className="size-4" aria-hidden="true" />
+              Nuevo turno
+            </Link>
+            <a href={whatsappLink(client.whatsapp)} target="_blank" rel="noopener noreferrer" className={secondaryButtonClass}>
+              <MessageCircle className="size-4 text-whatsapp" aria-hidden="true" />
+              Escribir por WhatsApp
+            </a>
+          </div>
         </div>
       </div>
 
@@ -224,6 +230,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           )}
           <ActionForm action={addVehicle} submitLabel="Agregar vehículo" resetOnSuccess className="border-t border-border pt-4">
             <input type="hidden" name="client_id" value={client.id} />
+            <p className="text-sm font-medium">Agregar otro vehículo (por ejemplo, el de un familiar)</p>
             <div className="grid gap-3 sm:grid-cols-3">
               <Field label="Tipo" htmlFor="category">
                 <select id="category" name="category" required defaultValue="" className={fieldClass}>

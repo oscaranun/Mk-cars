@@ -8,7 +8,7 @@ import { conflictSummary, findConflicts } from "@/lib/admin/conflicts"
 import { isValidDate, isValidTime, todayArgentina } from "@/lib/admin/format"
 import { BLOCKED_DATES_TAG } from "@/lib/blocked-dates"
 import { PRICES_TAG, parsePrices } from "@/lib/prices"
-import { EXPENSE_CATEGORY, INQUIRY_STATUS, PAYMENT_METHOD } from "@/lib/admin/labels"
+import { EXPENSE_CATEGORY, INQUIRY_STATUS, PAYMENT_METHOD, VEHICLE_CATEGORY } from "@/lib/admin/labels"
 import { TEST_CLIENT_PREFIX, getTestBookingSummary } from "@/lib/admin/test-booking"
 import { normalizeWhatsapp, toArgentinaTimestamp } from "@/lib/booking"
 
@@ -695,4 +695,140 @@ export async function reviewAppointmentVehicle(_prev: ActionState, data: FormDat
   const { error: vehicleError } = await supabase.from("vehicles").update({ category }).eq("id", line.vehicle_id)
   if (vehicleError) return dbError(vehicleError, "Se actualizó el turno pero no la ficha del vehículo.")
   return done("Categoría verificada.")
+  }
+
+const EDITABLE_VEHICLE_STATUSES = ["solicitado", "reprogramado", "esperando_cliente", "confirmado"]
+const VEHICLE_CATEGORIES = ["auto", "suv", "pickup"] as const
+type VehicleCategory = (typeof VEHICLE_CATEGORIES)[number]
+const MAX_APPOINTMENT_VEHICLES = 10
+const FALLBACK_DURATIONS: Record<string, number> = { auto: 60, suv: 75, pickup: 90 }
+
+const isVehicleCategory = (value: string): value is VehicleCategory => (VEHICLE_CATEGORIES as readonly string[]).includes(value)
+
+function serviceLabelFor(current: string, categories: string[]) {
+  if (!current.startsWith("Lavado a domicilio")) return current
+  return categories.length === 1
+    ? `Lavado a domicilio · ${VEHICLE_CATEGORY[categories[0]] ?? categories[0]}`
+    : `Lavado a domicilio · ${categories.length} vehículos`
+}
+
+export async function addVehicleToAppointment(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const appointmentId = text(data, "appointment_id", 36)
+  const existingId = text(data, "vehicle_id", 36)
+  const newCategory = text(data, "category", 10)
+  if (!UUID_RE.test(appointmentId)) return fail("Turno inválido.")
+  if (existingId && !UUID_RE.test(existingId)) return fail("Vehículo inválido.")
+  if (!existingId && !isVehicleCategory(newCategory)) return fail("Elegí el tipo del vehículo nuevo.")
+
+  const [{ data: appt }, { data: settings }, { data: lineRows }] = await Promise.all([
+    supabase.from("appointments").select("status, client_id, vehicle_id, service, duration_minutes").eq("id", appointmentId).maybeSingle(),
+    supabase.from("settings").select("vehicle_prices, duration_defaults").eq("id", 1).maybeSingle(),
+    supabase.from("appointment_vehicles").select("position, vehicle_id, category").eq("appointment_id", appointmentId),
+  ])
+  if (!appt) return fail("Turno inexistente.")
+  if (!EDITABLE_VEHICLE_STATUSES.includes(appt.status)) return fail("Este turno ya no admite cambios de vehículo.")
+  const prices = parsePrices(settings?.vehicle_prices)
+  if (!prices) return fail("No se pudieron leer los precios. No se guardó el cambio.")
+  const durations: Record<string, number> = { ...FALLBACK_DURATIONS, ...(settings?.duration_defaults ?? {}) }
+
+  const lines = [...(lineRows ?? [])]
+  // Older single-vehicle turnos have no line rows: register the original vehicle first so the list stays complete.
+  if (lines.length === 0 && appt.vehicle_id) {
+    const { data: original } = await supabase.from("vehicles").select("category").eq("id", appt.vehicle_id).maybeSingle()
+    if (original && isVehicleCategory(original.category)) {
+      const { error } = await supabase.from("appointment_vehicles").insert({
+        appointment_id: appointmentId,
+        vehicle_id: appt.vehicle_id,
+        position: 1,
+        category: original.category,
+        price_applied: prices[original.category],
+        classification: "manual",
+      })
+      if (error) return dbError(error, "No se pudo preparar la lista de vehículos del turno.")
+      lines.push({ position: 1, vehicle_id: appt.vehicle_id, category: original.category })
+    }
+  }
+  if (lines.length >= MAX_APPOINTMENT_VEHICLES) return fail(`Un turno admite hasta ${MAX_APPOINTMENT_VEHICLES} vehículos.`)
+
+  let vehicleId: string
+  let category: VehicleCategory
+  if (existingId) {
+    if (lines.some((l) => l.vehicle_id === existingId)) return fail("Ese vehículo ya está en este turno.")
+    const { data: vehicle } = await supabase
+      .from("vehicles")
+      .select("id, category")
+      .eq("id", existingId)
+      .eq("client_id", appt.client_id)
+      .maybeSingle()
+    if (!vehicle || !isVehicleCategory(vehicle.category)) return fail("El vehículo elegido no pertenece a este cliente.")
+    vehicleId = vehicle.id
+    category = vehicle.category
+  } else {
+    category = newCategory as VehicleCategory
+    const { data: created, error } = await supabase
+      .from("vehicles")
+      .insert({ client_id: appt.client_id, category, brand: text(data, "brand", 60) || null, model: text(data, "model", 60) || null })
+      .select("id")
+      .single()
+    if (error || !created) return error ? dbError(error, "No se pudo crear el vehículo.") : fail("No se pudo crear el vehículo.")
+    vehicleId = created.id
+  }
+
+  const position = Math.max(0, ...lines.map((l) => l.position)) + 1
+  const { error: lineError } = await supabase.from("appointment_vehicles").insert({
+    appointment_id: appointmentId,
+    vehicle_id: vehicleId,
+    position,
+    category,
+    price_applied: prices[category],
+    classification: "manual",
+  })
+  if (lineError) return dbError(lineError, "No se pudo agregar el vehículo al turno.")
+
+  const duration = Math.min(540, appt.duration_minutes + (durations[category] ?? 60))
+  const categories = [...lines.map((l) => l.category ?? category), category]
+  const { error: apptError } = await supabase
+    .from("appointments")
+    .update({ duration_minutes: duration, service: serviceLabelFor(appt.service, categories) })
+    .eq("id", appointmentId)
+  if (apptError) return dbError(apptError, "Se agregó el vehículo pero no se actualizó la duración del turno.")
+  return done(`Vehículo agregado. Duración estimada: ${duration} min. Revisá el precio acordado.`)
+}
+
+export async function removeVehicleFromAppointment(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const appointmentId = text(data, "appointment_id", 36)
+  const position = Number(text(data, "position", 2))
+  if (!UUID_RE.test(appointmentId)) return fail("Turno inválido.")
+  if (!Number.isInteger(position) || position < 1 || position > MAX_APPOINTMENT_VEHICLES) return fail("Vehículo inválido.")
+
+  const [{ data: appt }, { data: settings }, { data: lineRows }] = await Promise.all([
+    supabase.from("appointments").select("status, service, duration_minutes").eq("id", appointmentId).maybeSingle(),
+    supabase.from("settings").select("duration_defaults").eq("id", 1).maybeSingle(),
+    supabase.from("appointment_vehicles").select("position, category").eq("appointment_id", appointmentId),
+  ])
+  if (!appt) return fail("Turno inexistente.")
+  if (!EDITABLE_VEHICLE_STATUSES.includes(appt.status)) return fail("Este turno ya no admite cambios de vehículo.")
+  const lines = lineRows ?? []
+  const target = lines.find((l) => l.position === position)
+  if (!target) return fail("Vehículo no encontrado en el turno.")
+  if (lines.length <= 1) return fail("El turno tiene que tener al menos un vehículo.")
+  const durations: Record<string, number> = { ...FALLBACK_DURATIONS, ...(settings?.duration_defaults ?? {}) }
+
+  const { error } = await supabase.from("appointment_vehicles").delete().eq("appointment_id", appointmentId).eq("position", position)
+  if (error) return dbError(error, "No se pudo quitar el vehículo.")
+
+  const duration = Math.max(15, appt.duration_minutes - (durations[target.category ?? ""] ?? 60))
+  const remaining = lines.filter((l) => l.position !== position).map((l) => l.category ?? "auto")
+  const { error: apptError } = await supabase
+    .from("appointments")
+    .update({ duration_minutes: duration, service: serviceLabelFor(appt.service, remaining) })
+    .eq("id", appointmentId)
+  if (apptError) return dbError(apptError, "Se quitó el vehículo pero no se actualizó la duración del turno.")
+  return done(`Vehículo quitado del turno. Sigue en la ficha del cliente. Duración estimada: ${duration} min.`)
 }
