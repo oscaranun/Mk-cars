@@ -110,6 +110,25 @@ export default async function EditIncomePage({ params }: { params: Promise<{ id:
                 <input id="reason" name="reason" required minLength={3} maxLength={300} placeholder="Ej: el cliente pagó por transferencia" className={fieldClass} />
               </Field>
             </div>
+            {payment.appointment_id && payment.kind !== "propina" && (
+              <fieldset className="flex flex-col gap-2">
+                <legend className="mb-2 text-sm font-medium text-muted-foreground">Si cambiaste el importe, ¿qué pasó?</legend>
+                <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-border p-3 has-[:checked]:border-primary">
+                  <input type="radio" name="price_mode" value="saldo" defaultChecked className="mt-1 size-4 accent-primary" />
+                  <span className="flex flex-col">
+                    <span className="text-sm font-medium">Pagó de menos</span>
+                    <span className="text-xs text-muted-foreground">El precio del servicio no cambia y la diferencia queda como saldo pendiente.</span>
+                  </span>
+                </label>
+                <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-border p-3 has-[:checked]:border-primary">
+                  <input type="radio" name="price_mode" value="precio" className="mt-1 size-4 accent-primary" />
+                  <span className="flex flex-col">
+                    <span className="text-sm font-medium">Estaba mal cargado el precio</span>
+                    <span className="text-xs text-muted-foreground">El precio final pasa a ser lo cobrado y no queda saldo pendiente.</span>
+                  </span>
+                </label>
+              </fieldset>
+            )}
             <p className="text-xs text-muted-foreground">
               Si el día ya fue cerrado, se crea una rectificación y el original queda anulado en el historial.
             </p>
