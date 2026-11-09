@@ -51,7 +51,7 @@ function dbError(error: PostgrestError, fallback: string): ActionState {
   console.error("[admin] db error:", error.code, error.message)
   if (error.code === "P0001" || error.code === "22023") return fail(error.message)
   if (error.code === "42501") return fail("No tenés permisos para esta acción.")
-  if (error.code === "42883") return fail("Falta aplicar la actualización de base de datos (script 021).")
+  if (error.code === "42883" || error.code === "PGRST202") return fail("Falta aplicar la actualización de base de datos (script 021).")
   return fail(fallback)
 }
 
@@ -264,7 +264,7 @@ export async function updatePaymentRecord(_prev: ActionState, data: FormData): P
   if (reason.length < 3) return fail("Indicá el motivo de la corrección.")
 
   const { data: newId, error } = await supabase.rpc("admin_update_payment", {
-    p_id: id,
+    p_payment_id: id,
     p_paid_at: paidAt,
     p_amount: amount,
     p_method: method,
