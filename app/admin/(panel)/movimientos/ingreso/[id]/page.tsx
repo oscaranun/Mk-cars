@@ -76,7 +76,7 @@ export default async function EditIncomePage({ params }: { params: Promise<{ id:
             {payment.kind === "propina" && <Badge tone="info">Adicional / propina</Badge>}
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Fecha y hora" htmlFor="paid_at">
-                <input id="paid_at" name="paid_at" type="datetime-local" required defaultValue={toLocalInput(payment.paid_at)} className={fieldClass} />
+                <input id="paid_at" name="paid_at" type="datetime-local" required defaultValue={toLocalInput(payment.paid_at)} className={`${fieldClass} min-w-0 max-w-full appearance-none`} />
               </Field>
               <Field label="Importe" htmlFor="amount">
                 <input id="amount" name="amount" type="number" inputMode="decimal" min="1" step="0.01" required defaultValue={Number(payment.amount)} className={fieldClass} />

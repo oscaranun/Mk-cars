@@ -37,6 +37,16 @@ function paidAtFrom(data: FormData) {
   return toArgentinaTimestamp(date, "12:00")
 }
 
+/** `datetime-local` value ("YYYY-MM-DDTHH:mm[:ss]") interpreted as Argentina time. */
+function paidAtFromLocalInput(data: FormData) {
+  const raw = text(data, "paid_at", 25)
+  if (!raw) return null
+  const [date, timeRaw = ""] = raw.split("T")
+  const time = timeRaw.slice(0, 5)
+  if (!isValidDate(date) || !isValidTime(time)) return "invalid" as const
+  return toArgentinaTimestamp(date, time)
+}
+
 function dbError(error: PostgrestError, fallback: string): ActionState {
   console.error("[admin] db error:", error.code, error.message)
   if (error.code === "P0001" || error.code === "22023") return fail(error.message)
@@ -243,7 +253,7 @@ export async function updatePaymentRecord(_prev: ActionState, data: FormData): P
   const id = text(data, "payment_id", 36)
   const amount = money(data, "amount")
   const method = text(data, "method", 20)
-  const paidAt = paidAtFrom(data)
+  const paidAt = paidAtFromLocalInput(data) ?? paidAtFrom(data)
   const appointmentId = text(data, "appointment_id", 36)
   const reason = text(data, "reason", 300)
   if (!UUID_RE.test(id)) return fail("Movimiento inválido.")
