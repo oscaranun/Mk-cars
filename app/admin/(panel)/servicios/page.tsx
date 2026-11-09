@@ -1,5 +1,8 @@
 import type { Metadata } from "next"
+import { quickSetServiceState } from "@/app/admin/(panel)/edit-actions"
+import { ActionForm } from "@/components/admin/action-form"
 import {
+  primaryButtonClass,
   Badge,
   EmptyState,
   ExportLink,
@@ -40,6 +43,7 @@ type AwaitingRow = {
   confirmed_start: string
   service: string
   address: string
+  payment_status: string
   clients: { full_name: string } | null
 }
 
@@ -65,7 +69,7 @@ export default async function ServicesPage({ searchParams }: { searchParams: Sea
     query.returns<ServiceRow[]>(),
     supabase
       .from("appointments")
-      .select("id, confirmed_start, service, address, clients(full_name)")
+      .select("id, confirmed_start, service, address, payment_status, clients(full_name)")
       .eq("status", "confirmado")
       .lt("confirmed_start", new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())
       .order("confirmed_start", { ascending: true })
@@ -89,12 +93,27 @@ export default async function ServicesPage({ searchParams }: { searchParams: Sea
         {awaiting?.length ? (
           <ul className="grid gap-2 md:grid-cols-2">
             {awaiting.map((a) => (
-              <li key={a.id} className="flex flex-col gap-1 rounded-2xl border border-border bg-card p-4">
-                <TextLink href={`/admin/turnos/${a.id}`}>{a.clients?.full_name ?? "Cliente"}</TextLink>
-                <span className="text-sm tabular-nums text-muted-foreground">
-                  {formatDateTime(a.confirmed_start)} · {a.service}
-                </span>
-                <span className="text-sm text-muted-foreground">{a.address}</span>
+              <li key={a.id} className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-4">
+                <div className="flex flex-col gap-1">
+                  <TextLink href={`/admin/turnos/${a.id}`}>{a.clients?.full_name ?? "Cliente"}</TextLink>
+                  <span className="text-sm tabular-nums text-muted-foreground">
+                    {formatDateTime(a.confirmed_start)} · {a.service}
+                  </span>
+                  <span className="text-sm text-muted-foreground">{a.address}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone={a.payment_status === "pagado" ? "success" : a.payment_status === "parcial" ? "info" : "warning"}>
+                    {a.payment_status === "pagado"
+                      ? "Pagado · falta marcar realizado"
+                      : a.payment_status === "parcial"
+                        ? "Pago parcial"
+                        : "Pago pendiente"}
+                  </Badge>
+                </div>
+                <ActionForm action={quickSetServiceState} submitLabel="Marcar como realizado" submitClassName={primaryButtonClass}>
+                  <input type="hidden" name="appointment_id" value={a.id} />
+                  <input type="hidden" name="state" value="realizado" />
+                </ActionForm>
               </li>
             ))}
           </ul>
