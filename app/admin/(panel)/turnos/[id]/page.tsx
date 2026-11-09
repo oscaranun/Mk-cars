@@ -32,6 +32,7 @@ import {
   fieldClass,
   secondaryButtonClass,
 } from "@/components/admin/ui"
+import { CorrectionHistory } from "@/components/admin/correction-history"
 import { requireAdmin } from "@/lib/admin/auth"
 import { argentinaParts, formatDateTime, formatWhatsapp, money, todayArgentina, whatsappLink } from "@/lib/admin/format"
 import { APPOINTMENT_STATUS, VEHICLE_CATEGORY, WATER_SUPPLY, appointmentTone } from "@/lib/admin/labels"
@@ -695,6 +696,8 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
           {appt.clients && isTestClientName(appt.clients.full_name) && (
             <TestBookingDelete supabase={supabase} clientId={appt.clients.id} />
           )}
+
+          <CorrectionHistory appointmentId={appt.id} />
 
           <AppointmentDelete supabase={supabase} appointmentId={appt.id} />
         </div>

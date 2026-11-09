@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
-import { Trash2 } from "lucide-react"
-import { deleteExpense } from "@/app/admin/(panel)/crm-actions"
-import { ActionForm } from "@/components/admin/action-form"
+import Link from "next/link"
+import { Pencil } from "lucide-react"
 import { PaymentMethodForm } from "@/components/admin/payment-method-form"
 import {
   Badge,
@@ -32,6 +31,7 @@ type PaymentRow = {
   paid_at: string
   notes: string | null
   services: { wash_type: string; clients: { id: string; full_name: string } | null } | null
+  appointments: { clients: { id: string; full_name: string } | null } | null
 }
 
 type ExpenseRow = {
@@ -64,7 +64,7 @@ export default async function MovementsPage({ searchParams }: { searchParams: Se
       : activePayments((excludeVoided) => {
           let q = supabase
             .from("payments")
-            .select("id, amount, method, paid_at, notes, services(wash_type, clients(id, full_name))")
+            .select("id, amount, method, paid_at, notes, services(wash_type, clients(id, full_name)), appointments(clients(id, full_name))")
             .gte("paid_at", range.fromISO)
             .lt("paid_at", range.toISO)
             .order("paid_at", { ascending: false })
@@ -75,7 +75,7 @@ export default async function MovementsPage({ searchParams }: { searchParams: Se
         }),
     type === "ingresos"
       ? Promise.resolve({ data: [] as ExpenseRow[] })
-      : (() => {
+      : activePayments((excludeVoided) => {
           let q = supabase
             .from("expenses")
             .select("id, amount, method, category, description, spent_on")
@@ -85,8 +85,9 @@ export default async function MovementsPage({ searchParams }: { searchParams: Se
             .limit(2000)
           if (method) q = q.eq("method", method)
           if (category) q = q.eq("category", category)
+          if (excludeVoided) q = q.is("voided_at", null)
           return q.returns<ExpenseRow[]>()
-        })(),
+        }),
   ])
 
   const movements: Movement[] = [
@@ -96,9 +97,9 @@ export default async function MovementsPage({ searchParams }: { searchParams: Se
       date: p.paid_at,
       amount: Number(p.amount),
       method: p.method,
-      title: p.services?.clients?.full_name ?? "Cliente",
+      title: p.services?.clients?.full_name ?? p.appointments?.clients?.full_name ?? "Cliente",
       detail: [p.services?.wash_type, p.notes].filter(Boolean).join(" · "),
-      clientId: p.services?.clients?.id ?? null,
+      clientId: p.services?.clients?.id ?? p.appointments?.clients?.id ?? null,
     })),
     ...(expenses ?? []).map((e): Movement => ({
       kind: "gasto",
@@ -213,16 +214,13 @@ export default async function MovementsPage({ searchParams }: { searchParams: Se
                       {m.kind === "gasto" ? "−" : "+"}
                       {money(m.amount)}
                     </span>
-                    {m.kind === "gasto" && (
-                      <ActionForm
-                        action={deleteExpense}
-                        submitLabel={<Trash2 className="size-4" aria-label="Eliminar gasto" />}
-                        submitClassName={cn(secondaryButtonClass, "size-11 px-0")}
-                        confirmText="¿Eliminar este gasto?"
-                      >
-                        <input type="hidden" name="id" value={m.id} />
-                      </ActionForm>
-                    )}
+                    <Link
+                      href={`/admin/movimientos/${m.kind === "ingreso" ? "ingreso" : "egreso"}/${m.id}`}
+                      className={cn(secondaryButtonClass, "size-11 px-0")}
+                    >
+                      <Pencil className="size-4" aria-hidden="true" />
+                      <span className="sr-only">Editar {m.kind === "ingreso" ? "ingreso" : "gasto"}</span>
+                    </Link>
                   </div>
                 </td>
               </tr>
