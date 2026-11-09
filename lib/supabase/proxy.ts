@@ -26,7 +26,7 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = nextWithPathname(request)
 
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    cookieOptions: { secure: process.env.NODE_ENV === "production" },
+    cookieOptions: { secure: process.env.NODE_ENV === "production", maxAge: 400 * 24 * 60 * 60 },
     cookies: {
       getAll() {
         return request.cookies.getAll()
@@ -47,6 +47,14 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = "/admin/login"
     return NextResponse.redirect(url)
+  }
+
+  if (pathname === "/admin/login" && user) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/admin"
+    const redirect = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie))
+    return redirect
   }
 
   return supabaseResponse
