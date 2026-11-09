@@ -1,9 +1,17 @@
 import Link from "next/link"
-import { quickSetAppointmentPayment, quickSetAppointmentStatus } from "@/app/admin/(panel)/crm-actions"
+import {
+  quickAddTip,
+  quickAdjustPrice,
+  quickReschedule,
+  quickSetCollected,
+  quickSetServiceState,
+  quickSetTurnStatus,
+} from "@/app/admin/(panel)/edit-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { Badge, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
-import { money } from "@/lib/admin/format"
+import { argentinaParts, money, todayArgentina } from "@/lib/admin/format"
 import { APPOINTMENT_STATUS, PAYMENT_METHOD, appointmentTone } from "@/lib/admin/labels"
+import { cn } from "@/lib/utils"
 
 export type QuickAppointment = {
   id: string
@@ -12,95 +20,217 @@ export type QuickAppointment = {
   amount_paid: number | string
   agreed_price: number | string | null
   discount: number | string | null
+  adjusted_price?: number | string | null
+  requested_start?: string | null
+  confirmed_start?: string | null
+  preparing_since?: string | null
+  services?: { final_price: number | string | null } | { final_price: number | string | null }[] | null
 }
 
-const QUICK_STATUSES = ["solicitado", "confirmado", "realizado", "cancelado", "rechazado"] as const
+const TURN_OPTIONS = [
+  ["solicitado", "Solicitado"],
+  ["esperando_cliente", "Propuesta enviada"],
+  ["confirmado", "Confirmado"],
+  ["cancelado", "Cancelado"],
+] as const
+
+const SERVICE_OPTIONS = [
+  ["pendiente", "Pendiente"],
+  ["en_proceso", "En proceso"],
+  ["realizado", "Realizado"],
+] as const
+
+const compactField = cn(fieldClass, "min-w-0 flex-1")
+const saveClass = cn(secondaryButtonClass, "shrink-0")
+
+function serviceState(a: QuickAppointment) {
+  if (a.status === "realizado") return "realizado"
+  if (a.preparing_since) return "en_proceso"
+  return "pendiente"
+}
+
+function turnValue(status: string) {
+  if (status === "realizado") return "confirmado"
+  if (status === "reprogramado") return "esperando_cliente"
+  if (status === "rechazado") return "cancelado"
+  return status
+}
 
 export function QuickAppointmentControls({ appointment, index }: { appointment: QuickAppointment; index?: number }) {
-  const paid = appointment.payment_status === "pagado"
-  const price = Math.max(Number(appointment.agreed_price ?? 0) - Number(appointment.discount ?? 0), 0)
-  const statusValue = (QUICK_STATUSES as readonly string[]).includes(appointment.status) ? appointment.status : ""
   const id = appointment.id
-  const locked = paid && (appointment.status === "realizado" || appointment.status === "confirmado")
-
-  const forms = (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
-      <ActionForm action={quickSetAppointmentStatus} submitLabel="Guardar" submitClassName={secondaryButtonClass} inline>
-        <input type="hidden" name="appointment_id" value={id} />
-        <label htmlFor={`appt-status-${id}`} className="sr-only">
-          Estado del turno
-        </label>
-        <select id={`appt-status-${id}`} name="status" defaultValue={statusValue} required className={`${fieldClass} lg:w-44`}>
-          {!statusValue && (
-            <option value="" disabled>
-              Cambiar estado…
-            </option>
-          )}
-          {QUICK_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {APPOINTMENT_STATUS[s]}
-            </option>
-          ))}
-        </select>
-      </ActionForm>
-
-      <ActionForm action={quickSetAppointmentPayment} submitLabel="Guardar pago" submitClassName={secondaryButtonClass} inline>
-        <input type="hidden" name="appointment_id" value={id} />
-        <label htmlFor={`appt-pay-${id}`} className="sr-only">
-          Estado del pago
-        </label>
-        <select id={`appt-pay-${id}`} name="payment" defaultValue={paid ? "pagado" : "pendiente"} className={`${fieldClass} lg:w-36`}>
-          <option value="pendiente">Pendiente</option>
-          <option value="pagado">Pagado</option>
-        </select>
-        <label htmlFor={`appt-method-${id}`} className="sr-only">
-          Medio de pago
-        </label>
-        <select id={`appt-method-${id}`} name="method" defaultValue="efectivo" className={`${fieldClass} lg:w-40`}>
-          {Object.entries(PAYMENT_METHOD).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <label htmlFor={`appt-amount-${id}`} className="sr-only">
-          Importe total
-        </label>
-        <input
-          id={`appt-amount-${id}`}
-          name="amount"
-          inputMode="decimal"
-          placeholder={price ? `Importe (${money(price)})` : "Importe"}
-          className={`${fieldClass} lg:w-40`}
-        />
-      </ActionForm>
-    </div>
-  )
+  const agreed = Math.max(Number(appointment.agreed_price ?? 0) - Number(appointment.discount ?? 0), 0)
+  const service = Array.isArray(appointment.services) ? appointment.services[0] : appointment.services
+  const final = Number(service?.final_price ?? appointment.adjusted_price ?? agreed)
+  const paid = Number(appointment.amount_paid ?? 0)
+  const balance = Math.max(final - paid, 0)
+  const adjusted = final !== agreed
+  const start = appointment.confirmed_start ?? appointment.requested_start ?? null
+  const startParts = start ? argentinaParts(start) : null
+  const state = serviceState(appointment)
+  const payTone = appointment.payment_status === "pagado" ? "success" : appointment.payment_status === "parcial" ? "info" : "warning"
+  const payLabel = appointment.payment_status === "pagado" ? "Pagado" : appointment.payment_status === "parcial" ? "Parcial" : "Pago pendiente"
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl bg-surface px-4 py-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-medium">Turno{index ? ` ${index}` : ""}</span>
         <Badge tone={appointmentTone(appointment.status)}>{APPOINTMENT_STATUS[appointment.status] ?? appointment.status}</Badge>
-        <Badge tone={paid ? "success" : appointment.payment_status === "parcial" ? "info" : "warning"}>
-          {paid ? `Pagado${Number(appointment.amount_paid) ? ` · ${money(appointment.amount_paid)}` : ""}` : appointment.payment_status === "parcial" ? `Pago parcial (${money(appointment.amount_paid)})` : "Pago pendiente"}
-        </Badge>
-        <Link href={`/admin/turnos/${id}`} className="text-electric underline-offset-4 hover:underline">
+        <Badge tone={payTone}>{payLabel}</Badge>
+        <Link href={`/admin/turnos/${id}`} className="ml-auto text-electric underline-offset-4 hover:underline">
           Ver turno
         </Link>
       </div>
 
-      {locked ? (
-        <details className="group">
-          <summary className="w-fit cursor-pointer text-sm text-electric underline-offset-4 hover:underline">
-            <span className="group-open:hidden">Corregir estado o pago</span>
-            <span className="hidden group-open:inline">Cerrar corrección</span>
-          </summary>
-          <div className="pt-3">{forms}</div>
-        </details>
-      ) : (
-        forms
-      )}
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
+        <div>
+          <dt className="text-xs text-muted-foreground">Acordado</dt>
+          <dd className="tabular-nums">{money(agreed)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Precio final</dt>
+          <dd className={cn("tabular-nums", adjusted && "font-semibold text-electric")}>{money(final)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Cobrado</dt>
+          <dd className="tabular-nums text-emerald-300">{money(paid)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Saldo</dt>
+          <dd className={cn("tabular-nums", balance > 0 ? "text-amber-300" : "text-muted-foreground")}>{money(balance)}</dd>
+        </div>
+      </dl>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <ActionForm action={quickSetTurnStatus} submitLabel="Guardar" submitClassName={saveClass} inline className="flex-nowrap">
+          <input type="hidden" name="appointment_id" value={id} />
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted-foreground">
+            Turno
+            <select name="status" defaultValue={turnValue(appointment.status)} className={compactField}>
+              {TURN_OPTIONS.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </ActionForm>
+
+        <ActionForm action={quickSetServiceState} submitLabel="Guardar" submitClassName={saveClass} inline className="flex-nowrap">
+          <input type="hidden" name="appointment_id" value={id} />
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted-foreground">
+            Servicio
+            <select name="state" defaultValue={state} className={compactField}>
+              {SERVICE_OPTIONS.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </ActionForm>
+      </div>
+
+      <details className="group rounded-xl border border-border/60">
+        <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm text-electric">
+          <span className="group-open:hidden">Editar fecha, precio y cobro</span>
+          <span className="hidden group-open:inline">Cerrar edición</span>
+        </summary>
+
+        <div className="flex flex-col gap-4 border-t border-border/60 p-3">
+          <ActionForm action={quickReschedule} submitLabel="Guardar fecha" submitClassName={saveClass} inline>
+            <input type="hidden" name="appointment_id" value={id} />
+            <p className="basis-full text-xs font-medium text-muted-foreground">
+              Fecha y horario <span className="font-normal">(se aceptan fechas pasadas)</span>
+            </p>
+            <label className="sr-only" htmlFor={`date-${id}`}>
+              Fecha
+            </label>
+            <input id={`date-${id}`} name="date" type="date" required defaultValue={startParts?.date ?? ""} className={compactField} />
+            <label className="sr-only" htmlFor={`time-${id}`}>
+              Hora
+            </label>
+            <input id={`time-${id}`} name="time" type="time" required defaultValue={startParts?.time ?? ""} className={cn(fieldClass, "w-32")} />
+            <label className="sr-only" htmlFor={`reason-date-${id}`}>
+              Motivo del cambio
+            </label>
+            <input id={`reason-date-${id}`} name="reason" placeholder="Motivo (opcional)" className={cn(fieldClass, "basis-full")} />
+          </ActionForm>
+
+          <ActionForm action={quickAdjustPrice} submitLabel="Ajustar precio" submitClassName={saveClass} inline>
+            <input type="hidden" name="appointment_id" value={id} />
+            <p className="basis-full text-xs font-medium text-muted-foreground">
+              Precio final <span className="font-normal">(el acordado de {money(agreed)} se conserva)</span>
+            </p>
+            <label className="sr-only" htmlFor={`price-${id}`}>
+              Precio final
+            </label>
+            <input id={`price-${id}`} name="price" inputMode="decimal" required defaultValue={final || ""} className={compactField} />
+            <label className="sr-only" htmlFor={`reason-price-${id}`}>
+              Motivo del ajuste
+            </label>
+            <input id={`reason-price-${id}`} name="reason" required minLength={3} placeholder="Motivo del ajuste" className={cn(fieldClass, "basis-full")} />
+          </ActionForm>
+
+          <ActionForm action={quickSetCollected} submitLabel="Guardar cobro" submitClassName={saveClass} inline>
+            <input type="hidden" name="appointment_id" value={id} />
+            <p className="basis-full text-xs font-medium text-muted-foreground">
+              Importe cobrado <span className="font-normal">(total del servicio, sin propinas)</span>
+            </p>
+            <label className="sr-only" htmlFor={`paid-${id}`}>
+              Importe cobrado
+            </label>
+            <input id={`paid-${id}`} name="amount" inputMode="decimal" required defaultValue={paid || final || ""} className={compactField} />
+            <label className="sr-only" htmlFor={`method-${id}`}>
+              Medio de pago
+            </label>
+            <select id={`method-${id}`} name="method" defaultValue="efectivo" className={cn(fieldClass, "w-36")}>
+              {Object.entries(PAYMENT_METHOD).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <label className="sr-only" htmlFor={`paid-date-${id}`}>
+              Fecha de cobro
+            </label>
+            <input id={`paid-date-${id}`} name="date" type="date" max={todayArgentina()} className={compactField} />
+            <label className="sr-only" htmlFor={`reason-paid-${id}`}>
+              Motivo de la corrección
+            </label>
+            <input
+              id={`reason-paid-${id}`}
+              name="reason"
+              placeholder={paid ? "Motivo (obligatorio si baja el importe)" : "Observación (opcional)"}
+              className={cn(fieldClass, "basis-full")}
+            />
+          </ActionForm>
+
+          <ActionForm action={quickAddTip} submitLabel="Sumar adicional" submitClassName={saveClass} inline resetOnSuccess>
+            <input type="hidden" name="appointment_id" value={id} />
+            <p className="basis-full text-xs font-medium text-muted-foreground">
+              Propina o adicional <span className="font-normal">(se registra aparte del precio)</span>
+            </p>
+            <label className="sr-only" htmlFor={`tip-${id}`}>
+              Importe adicional
+            </label>
+            <input id={`tip-${id}`} name="amount" inputMode="decimal" required placeholder="Importe" className={compactField} />
+            <label className="sr-only" htmlFor={`tip-method-${id}`}>
+              Medio de pago del adicional
+            </label>
+            <select id={`tip-method-${id}`} name="method" defaultValue="efectivo" className={cn(fieldClass, "w-36")}>
+              {Object.entries(PAYMENT_METHOD).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <label className="sr-only" htmlFor={`tip-notes-${id}`}>
+              Detalle del adicional
+            </label>
+            <input id={`tip-notes-${id}`} name="notes" placeholder="Detalle (ej. propina)" className={cn(fieldClass, "basis-full")} />
+          </ActionForm>
+        </div>
+      </details>
     </div>
   )
 }
