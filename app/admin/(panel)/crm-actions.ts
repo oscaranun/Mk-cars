@@ -454,7 +454,6 @@ export async function manageAppointment(_prev: ActionState, data: FormData): Pro
   } else if (action === "propose") {
     start = dateTime(data, "date", "time")
     if (!start) return fail("Indicá una fecha y hora válidas.")
-    if (new Date(start).getTime() < Date.now() - 60 * 60 * 1000) return fail("La fecha ya pasó.")
     check = { start, duration: duration ?? current.duration_minutes }
   } else if (action === "client_accepted") {
     const pending = (current.appointment_proposals ?? []).find((p: { status: string }) => p.status === "pendiente")
@@ -527,13 +526,10 @@ async function acceptSentOffer(
 
   let slot: OfferSlot | undefined
   if (chosen) slot = chosen
+  else if (slots.length === 1) slot = slots[0]
   else if (upcoming.length === 1) slot = upcoming[0]
-  else if (upcoming.length > 1) return fail("La propuesta tiene varios horarios: abrí el turno y elegí cuál aceptó el cliente.")
-  else return fail('Los horarios ofrecidos ya pasaron. Usá "Proponer otro horario" con el horario acordado.')
-
-  if (new Date(slot.start).getTime() < now) {
-    return fail('Ese horario ya pasó. Usá "Proponer otro horario" con el horario acordado.')
-  }
+  else if (slots.length > 1) return fail("La propuesta tiene varios horarios: abrí el turno y elegí cuál aceptó el cliente.")
+  else return fail('La propuesta no tiene horarios. Usá "Proponer otro horario" con el horario acordado.')
 
   const { error: acceptError } = await supabase.rpc("respond_appointment_offer", {
     p_token: offer.token,

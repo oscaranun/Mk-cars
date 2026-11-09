@@ -116,7 +116,6 @@ export async function quickSetTurnStatus(_prev: ActionState, data: FormData): Pr
 
   if (status === "esperando_cliente") {
     if (!start) return fail("Cargá primero la fecha y el horario del turno.")
-    if (new Date(start).getTime() < Date.now()) return fail("Para enviar una propuesta, el horario tiene que ser futuro.")
     const blocked = await checkFutureSlot(supabase, id, start, current)
     if (blocked) return blocked
     const { error } = await supabase.rpc("manage_appointment", {
