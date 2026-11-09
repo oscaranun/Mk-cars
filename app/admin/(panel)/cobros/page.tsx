@@ -1,4 +1,6 @@
 import type { Metadata } from "next"
+import Link from "next/link"
+import { Pencil } from "lucide-react"
 import { addPayment } from "@/app/admin/(panel)/crm-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { PaymentMethodForm } from "@/components/admin/payment-method-form"
@@ -15,6 +17,7 @@ import {
   TableWrap,
   TextLink,
   fieldClass,
+  secondaryButtonClass,
   tdClass,
   thClass,
 } from "@/components/admin/ui"
@@ -43,6 +46,7 @@ type PaymentRow = {
   paid_at: string
   notes: string | null
   services: { wash_type: string; clients: { id: string; full_name: string } | null } | null
+  appointments: { service: string | null; clients: { id: string; full_name: string } | null } | null
 }
 
 type SearchParams = Promise<{ desde?: string; hasta?: string; medio?: string; servicio?: string }>
@@ -56,7 +60,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   const paymentsQuery = activePayments((excludeVoided) => {
     let q = supabase
       .from("payments")
-      .select("id, amount, method, paid_at, notes, services(wash_type, clients(id, full_name))")
+      .select(
+        "id, amount, method, paid_at, notes, services(wash_type, clients(id, full_name)), appointments(service, clients(id, full_name))",
+      )
       .gte("paid_at", range.fromISO)
       .lt("paid_at", range.toISO)
       .order("paid_at", { ascending: false })
@@ -188,26 +194,34 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
               </tr>
             </thead>
             <tbody>
-              {payments.map((p) => (
-                <tr key={p.id}>
-                  <td className={`${tdClass} tabular-nums`}>{formatDate(p.paid_at)}</td>
-                  <td className={tdClass}>
-                    {p.services?.clients ? (
-                      <TextLink href={`/admin/clientes/${p.services.clients.id}`}>{p.services.clients.full_name}</TextLink>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className={tdClass}>
-                    {p.services?.wash_type ?? "—"}
-                    {p.notes && <p className="text-xs text-muted-foreground">{p.notes}</p>}
-                  </td>
-                  <td className={tdClass}>
-                    <PaymentMethodForm paymentId={p.id} method={p.method} />
-                  </td>
-                  <td className={`${tdClass} text-right tabular-nums`}>{money(p.amount)}</td>
-                </tr>
-              ))}
+              {payments.map((p) => {
+                const client = p.services?.clients ?? p.appointments?.clients ?? null
+                const service = p.services?.wash_type ?? p.appointments?.service ?? null
+                return (
+                  <tr key={p.id}>
+                    <td className={`${tdClass} tabular-nums`}>{formatDate(p.paid_at)}</td>
+                    <td className={tdClass}>
+                      {client ? <TextLink href={`/admin/clientes/${client.id}`}>{client.full_name}</TextLink> : "Sin cliente"}
+                    </td>
+                    <td className={tdClass}>
+                      {service ?? "Sin servicio"}
+                      {p.notes && <p className="text-xs text-muted-foreground">{p.notes}</p>}
+                    </td>
+                    <td className={tdClass}>
+                      <PaymentMethodForm paymentId={p.id} method={p.method} />
+                    </td>
+                    <td className={`${tdClass} text-right tabular-nums`}>
+                      <div className="flex items-center justify-end gap-2">
+                        <span>{money(p.amount)}</span>
+                        <Link href={`/admin/movimientos/ingreso/${p.id}`} className={cn(secondaryButtonClass, "size-11 px-0")}>
+                          <Pencil className="size-4" aria-hidden="true" />
+                          <span className="sr-only">Editar cobro</span>
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </TableWrap>
         ) : (

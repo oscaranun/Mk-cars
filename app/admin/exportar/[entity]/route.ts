@@ -192,21 +192,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { data, error } = await activePayments((excludeVoided) => {
       const q = supabase
         .from("payments")
-        .select("paid_at, amount, method, notes, services(wash_type, clients(full_name))")
+        .select("paid_at, amount, method, notes, services(wash_type, clients(full_name)), appointments(service, clients(full_name))")
         .gte("paid_at", range.fromISO)
         .lt("paid_at", range.toISO)
         .order("paid_at", { ascending: false })
         .limit(10000)
       return (excludeVoided ? q.is("voided_at", null) : q).returns<
-        { paid_at: string; amount: number; method: string; notes: string | null; services: { wash_type: string; clients: { full_name: string } | null } | null }[]
+        {
+          paid_at: string
+          amount: number
+          method: string
+          notes: string | null
+          services: { wash_type: string; clients: { full_name: string } | null } | null
+          appointments: { service: string | null; clients: { full_name: string } | null } | null
+        }[]
       >()
     })
     if (error) return new Response("Error al exportar", { status: 500 })
     csv = toCsv(
       (data ?? []).map((p) => ({
         paid_at: argentinaParts(p.paid_at).date,
-        client: p.services?.clients?.full_name,
-        wash: p.services?.wash_type,
+        client: p.services?.clients?.full_name ?? p.appointments?.clients?.full_name,
+        wash: p.services?.wash_type ?? p.appointments?.service,
         method: PAYMENT_METHOD[p.method] ?? p.method,
         amount: p.amount,
         notes: p.notes,
