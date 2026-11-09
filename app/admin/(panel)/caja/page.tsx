@@ -23,6 +23,7 @@ type PaymentRow = {
   method: string
   paid_at: string
   services: { wash_type: string; clients: { full_name: string } | null } | null
+  appointments: { service: string | null; clients: { full_name: string } | null } | null
 }
 
 type SearchParams = Promise<{ dia?: string }>
@@ -38,7 +39,7 @@ export default async function CashPage({ searchParams }: { searchParams: SearchP
     activePayments((excludeVoided) => {
       const q = supabase
         .from("payments")
-        .select("id, amount, method, paid_at, services(wash_type, clients(full_name))")
+        .select("id, amount, method, paid_at, services(wash_type, clients(full_name)), appointments(service, clients(full_name))")
         .gte("paid_at", startOfArgentinaDay(day))
         .lt("paid_at", startOfArgentinaDay(addDays(day, 1)))
         .order("paid_at", { ascending: true })
@@ -74,8 +75,8 @@ export default async function CashPage({ searchParams }: { searchParams: SearchP
     amount: Number(p.amount),
     method: p.method,
     paid_at: p.paid_at,
-    client: p.services?.clients?.full_name ?? "Cliente",
-    service: p.services?.wash_type ?? "Servicio",
+    client: p.services?.clients?.full_name ?? p.appointments?.clients?.full_name ?? "Cliente",
+    service: p.services?.wash_type ?? p.appointments?.service ?? "Servicio",
   }))
   const outflow = expenses ?? []
 
