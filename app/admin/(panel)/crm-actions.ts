@@ -458,7 +458,7 @@ export async function manageAppointment(_prev: ActionState, data: FormData): Pro
     check = { start, duration: duration ?? current.duration_minutes }
   } else if (action === "client_accepted") {
     const pending = (current.appointment_proposals ?? []).find((p: { status: string }) => p.status === "pendiente")
-    if (!pending) return fail("No hay una propuesta pendiente para aceptar.")
+    if (!pending) return acceptSentOffer(supabase, id, text(data, "slot", 40))
     check = { start: pending.proposed_start, duration: pending.duration_minutes }
   }
 
@@ -497,6 +497,53 @@ export async function manageAppointment(_prev: ActionState, data: FormData): Pro
     cancel: "Turno cancelado.",
   }
   return done(messages[action])
+}
+
+type OfferSlot = { start: string; duration: number }
+
+/**
+ * Quotes sent with the offer link (price + time slots) live in appointment_offers, not in
+ * appointment_proposals. When the client accepts by WhatsApp instead of the link, the operator
+ * records it here through the same DB function the link uses, so price and slot stay consistent.
+ */
+async function acceptSentOffer(
+  supabase: NonNullable<Awaited<ReturnType<typeof admin>>>,
+  appointmentId: string,
+  chosenSlot: string,
+): Promise<ActionState> {
+  const { data: offer, error } = await supabase
+    .from("appointment_offers")
+    .select("token, version, status, slots")
+    .eq("appointment_id", appointmentId)
+    .maybeSingle<{ token: string; version: number; status: string; slots: OfferSlot[] | null }>()
+  if (error) return dbError(error, "No se pudo leer la propuesta.")
+  if (!offer || offer.status === "anulada") return fail("No hay una propuesta pendiente para aceptar.")
+  if (offer.status === "aceptada") return fail("Esta propuesta ya fue aceptada.")
+
+  const now = Date.now()
+  const slots = (offer.slots ?? []).filter((s) => s?.start)
+  const upcoming = slots.filter((s) => new Date(s.start).getTime() >= now)
+  const chosen = chosenSlot ? slots.find((s) => new Date(s.start).getTime() === new Date(chosenSlot).getTime()) : null
+
+  let slot: OfferSlot | undefined
+  if (chosen) slot = chosen
+  else if (upcoming.length === 1) slot = upcoming[0]
+  else if (upcoming.length > 1) return fail("La propuesta tiene varios horarios: abrí el turno y elegí cuál aceptó el cliente.")
+  else return fail('Los horarios ofrecidos ya pasaron. Usá "Proponer otro horario" con el horario acordado.')
+
+  if (new Date(slot.start).getTime() < now) {
+    return fail('Ese horario ya pasó. Usá "Proponer otro horario" con el horario acordado.')
+  }
+
+  const { error: acceptError } = await supabase.rpc("respond_appointment_offer", {
+    p_token: offer.token,
+    p_action: "aceptar",
+    p_version: offer.version,
+    p_start: slot.start,
+    p_message: null,
+  })
+  if (acceptError) return dbError(acceptError, "No se pudo registrar la aceptación.")
+  return done("Aceptación registrada. Turno confirmado: enviá la confirmación definitiva por WhatsApp.")
 }
 
 /** Manual record only: opening WhatsApp never marks a message as sent, and delivery cannot be verified. */
