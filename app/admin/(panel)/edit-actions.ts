@@ -261,6 +261,34 @@ export async function updatePaymentRecord(_prev: ActionState, data: FormData): P
   if (!paidAt || paidAt === "invalid") return fail("Indicá la fecha.")
   if (appointmentId && !UUID_RE.test(appointmentId)) return fail("El servicio vinculado no es válido.")
   if (reason.length < 3) return fail("Indicá el motivo de la corrección.")
+  const fixPrice = text(data, "price_mode", 10) === "precio" && Boolean(appointmentId)
+
+  // "Estaba mal cargado": the service price becomes what was actually collected, so no balance remains.
+  // The price is moved before or after the payment edit so it never ends below the amount already paid.
+  let priceTarget: number | null = null
+  let adjustAfter = false
+  if (fixPrice) {
+    const { data: paidRows, error: paidError } = await supabase
+      .from("payments")
+      .select("id, amount")
+      .eq("appointment_id", appointmentId)
+      .eq("kind", "servicio")
+      .is("voided_at", null)
+    if (paidError) return dbError(paidError, "No se pudo leer lo cobrado del servicio.")
+    const rows = paidRows ?? []
+    const paidNow = rows.reduce((sum, r) => sum + Number(r.amount), 0)
+    const others = rows.filter((r) => r.id !== id).reduce((sum, r) => sum + Number(r.amount), 0)
+    priceTarget = Math.round((others + amount) * 100) / 100
+    adjustAfter = priceTarget < paidNow
+    if (!adjustAfter) {
+      const { error: priceError } = await supabase.rpc("admin_adjust_final_price", {
+        p_id: appointmentId,
+        p_price: priceTarget,
+        p_reason: reason,
+      })
+      if (priceError) return dbError(priceError, "No se pudo ajustar el precio del servicio.")
+    }
+  }
 
   const { data: newId, error } = await supabase.rpc("admin_update_payment", {
     p_payment_id: id,
@@ -273,10 +301,22 @@ export async function updatePaymentRecord(_prev: ActionState, data: FormData): P
     p_reason: reason,
   })
   if (error) return dbError(error, "No se pudo corregir el ingreso.")
-  return done(
+  if (fixPrice && adjustAfter && priceTarget !== null) {
+    const { error: priceError } = await supabase.rpc("admin_adjust_final_price", {
+      p_id: appointmentId,
+      p_price: priceTarget,
+      p_reason: reason,
+    })
+    if (priceError) return dbError(priceError, "El ingreso se corrigió, pero no se pudo ajustar el precio del servicio.")
+  }
+  const base =
     newId && newId !== id
       ? "El día estaba cerrado: se registró una rectificación y el original quedó anulado."
-      : "Ingreso corregido. El saldo del servicio se recalculó.",
+      : "Ingreso corregido."
+  return done(
+    fixPrice
+      ? `${base} El precio del servicio quedó en lo cobrado, sin saldo pendiente.`
+      : `${base} El saldo del servicio se recalculó.`,
   )
 }
 
