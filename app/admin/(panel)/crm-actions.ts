@@ -712,46 +712,68 @@ export async function reviewAppointmentVehicle(_prev: ActionState, data: FormDat
   const category = text(data, "category", 10)
   if (!UUID_RE.test(appointmentId)) return fail("Turno inválido.")
   if (!Number.isInteger(position) || position < 1 || position > 10) return fail("Vehículo inválido.")
-  if (!["auto", "suv", "pickup"].includes(category)) return fail("Elegí el tipo de vehículo.")
+  if (!isVehicleCategory(category)) return fail("Elegí el tipo de vehículo.")
+  const label = category === "otro" ? text(data, "category_label", 40) : ""
+  if (category === "otro" && label.length < 2) return fail("Indicá qué vehículo es (por ejemplo: Moto, Cuatriciclo).")
+  const priceInput = money(data, "price", category === "otro")
+  if (priceInput === "invalid") return fail(category === "otro" ? "Indicá el precio de este vehículo." : "El precio no es válido.")
 
-  const [{ data: appt }, { data: settings }] = await Promise.all([
-    supabase.from("appointments").select("status").eq("id", appointmentId).maybeSingle(),
+  const [{ data: appt }, { data: settings }, { data: current }] = await Promise.all([
+    supabase.from("appointments").select("status, agreed_price").eq("id", appointmentId).maybeSingle(),
     supabase.from("settings").select("vehicle_prices").eq("id", 1).maybeSingle(),
+    supabase.from("appointment_vehicles").select("price_applied").eq("appointment_id", appointmentId).eq("position", position).maybeSingle(),
   ])
   if (!appt) return fail("Turno inexistente.")
-  if (!["solicitado", "reprogramado", "esperando_cliente", "confirmado"].includes(appt.status)) {
-    return fail("Este turno ya no admite cambios de vehículo.")
+  if (!EDITABLE_VEHICLE_STATUSES.includes(appt.status)) return fail("Este turno ya no admite cambios de vehículo.")
+  if (!current) return fail("Vehículo no encontrado en el turno.")
+  let price = priceInput
+  if (price == null) {
+    const prices = parsePrices(settings?.vehicle_prices)
+    if (!prices) return fail("No se pudieron leer los precios. No se guardó el cambio.")
+    price = prices[category as Exclude<VehicleCategory, "otro">]
   }
-  const prices = parsePrices(settings?.vehicle_prices)
-  if (!prices) return fail("No se pudieron leer los precios. No se guardó el cambio.")
 
   const { data: line, error } = await supabase
     .from("appointment_vehicles")
-    .update({ category, price_applied: prices[category as keyof typeof prices], needs_review: false })
+    .update({ category, price_applied: price, needs_review: false })
     .eq("appointment_id", appointmentId)
     .eq("position", position)
     .select("vehicle_id")
     .maybeSingle()
-  if (error) return dbError(error, "No se pudo guardar la categoría.")
+  if (error) return dbError(error, "No se pudo guardar el vehículo.")
   if (!line) return fail("Vehículo no encontrado en el turno.")
 
-  const { error: vehicleError } = await supabase.from("vehicles").update({ category }).eq("id", line.vehicle_id)
+  const { error: vehicleError } = await supabase
+    .from("vehicles")
+    .update({ category, category_label: category === "otro" ? label : null })
+    .eq("id", line.vehicle_id)
   if (vehicleError) return dbError(vehicleError, "Se actualizó el turno pero no la ficha del vehículo.")
-  return done("Categoría verificada.")
+
+  const delta = price - (current.price_applied ?? 0)
+  if (appt.agreed_price != null && delta !== 0) {
+    const { error: apptError } = await supabase
+      .from("appointments")
+      .update({ agreed_price: Math.max(0, appt.agreed_price + delta) })
+      .eq("id", appointmentId)
+    if (apptError) return dbError(apptError, "Se guardó el vehículo pero no se actualizó el precio acordado.")
   }
+  return done(delta !== 0 && appt.agreed_price != null ? "Vehículo actualizado. Se ajustó el precio acordado." : "Vehículo actualizado.")
+}
 
 const EDITABLE_VEHICLE_STATUSES = ["solicitado", "reprogramado", "esperando_cliente", "confirmado"]
-const VEHICLE_CATEGORIES = ["auto", "suv", "pickup"] as const
+const VEHICLE_CATEGORIES = ["auto", "suv", "pickup", "otro"] as const
 type VehicleCategory = (typeof VEHICLE_CATEGORIES)[number]
 const MAX_APPOINTMENT_VEHICLES = 10
-const FALLBACK_DURATIONS: Record<string, number> = { auto: 60, suv: 75, pickup: 90 }
+const FALLBACK_DURATIONS: Record<string, number> = { auto: 60, suv: 75, pickup: 90, otro: 45 }
 
-const isVehicleCategory = (value: string): value is VehicleCategory => (VEHICLE_CATEGORIES as readonly string[]).includes(value)
+function isVehicleCategory(value: string): value is VehicleCategory {
+  return (VEHICLE_CATEGORIES as readonly string[]).includes(value)
+}
 
 function serviceLabelFor(current: string, categories: string[]) {
   if (!current.startsWith("Lavado a domicilio")) return current
   return categories.length === 1
-    ? `Lavado a domicilio · ${VEHICLE_CATEGORY[categories[0]] ?? categories[0]}`
+    ? `Lavado a domicilio · ${VEHICLE_CATEGORY[categories[0]] ?? "Otro"}`
     : `Lavado a domicilio · ${categories.length} vehículos`
 }
 
@@ -765,9 +787,19 @@ export async function addVehicleToAppointment(_prev: ActionState, data: FormData
   if (!UUID_RE.test(appointmentId)) return fail("Turno inválido.")
   if (existingId && !UUID_RE.test(existingId)) return fail("Vehículo inválido.")
   if (!existingId && !isVehicleCategory(newCategory)) return fail("Elegí el tipo del vehículo nuevo.")
+  const newLabel = text(data, "category_label", 40)
+  if (!existingId && newCategory === "otro" && newLabel.length < 2) {
+    return fail("Indicá qué vehículo es (por ejemplo: Moto, Cuatriciclo).")
+  }
+  const priceInput = money(data, "price", false)
+  if (priceInput === "invalid") return fail("El precio del vehículo no es válido.")
 
   const [{ data: appt }, { data: settings }, { data: lineRows }] = await Promise.all([
-    supabase.from("appointments").select("status, client_id, vehicle_id, service, duration_minutes").eq("id", appointmentId).maybeSingle(),
+    supabase
+      .from("appointments")
+      .select("status, client_id, vehicle_id, service, duration_minutes, agreed_price")
+      .eq("id", appointmentId)
+      .maybeSingle(),
     supabase.from("settings").select("vehicle_prices, duration_defaults").eq("id", 1).maybeSingle(),
     supabase.from("appointment_vehicles").select("position, vehicle_id, category").eq("appointment_id", appointmentId),
   ])
@@ -775,6 +807,7 @@ export async function addVehicleToAppointment(_prev: ActionState, data: FormData
   if (!EDITABLE_VEHICLE_STATUSES.includes(appt.status)) return fail("Este turno ya no admite cambios de vehículo.")
   const prices = parsePrices(settings?.vehicle_prices)
   if (!prices) return fail("No se pudieron leer los precios. No se guardó el cambio.")
+  const listPrice = (c: VehicleCategory) => (c === "otro" ? null : prices[c])
   const durations: Record<string, number> = { ...FALLBACK_DURATIONS, ...(settings?.duration_defaults ?? {}) }
 
   const lines = [...(lineRows ?? [])]
@@ -787,7 +820,8 @@ export async function addVehicleToAppointment(_prev: ActionState, data: FormData
         vehicle_id: appt.vehicle_id,
         position: 1,
         category: original.category,
-        price_applied: prices[original.category],
+        // While it is the only vehicle, the agreed price is its price.
+        price_applied: appt.agreed_price ?? listPrice(original.category),
         classification: "manual",
       })
       if (error) return dbError(error, "No se pudo preparar la lista de vehículos del turno.")
@@ -813,12 +847,21 @@ export async function addVehicleToAppointment(_prev: ActionState, data: FormData
     category = newCategory as VehicleCategory
     const { data: created, error } = await supabase
       .from("vehicles")
-      .insert({ client_id: appt.client_id, category, brand: text(data, "brand", 60) || null, model: text(data, "model", 60) || null })
+      .insert({
+        client_id: appt.client_id,
+        category,
+        category_label: category === "otro" ? newLabel : null,
+        brand: text(data, "brand", 60) || null,
+        model: text(data, "model", 60) || null,
+      })
       .select("id")
       .single()
     if (error || !created) return error ? dbError(error, "No se pudo crear el vehículo.") : fail("No se pudo crear el vehículo.")
     vehicleId = created.id
   }
+
+  const price = priceInput ?? listPrice(category)
+  if (price == null) return fail("Indicá el precio de este vehículo.")
 
   const position = Math.max(0, ...lines.map((l) => l.position)) + 1
   const { error: lineError } = await supabase.from("appointment_vehicles").insert({
@@ -826,19 +869,24 @@ export async function addVehicleToAppointment(_prev: ActionState, data: FormData
     vehicle_id: vehicleId,
     position,
     category,
-    price_applied: prices[category],
+    price_applied: price,
     classification: "manual",
   })
   if (lineError) return dbError(lineError, "No se pudo agregar el vehículo al turno.")
 
   const duration = Math.min(540, appt.duration_minutes + (durations[category] ?? 60))
   const categories = [...lines.map((l) => l.category ?? category), category]
+  const agreedPrice = appt.agreed_price != null ? appt.agreed_price + price : null
   const { error: apptError } = await supabase
     .from("appointments")
-    .update({ duration_minutes: duration, service: serviceLabelFor(appt.service, categories) })
+    .update({ duration_minutes: duration, service: serviceLabelFor(appt.service, categories), agreed_price: agreedPrice })
     .eq("id", appointmentId)
-  if (apptError) return dbError(apptError, "Se agregó el vehículo pero no se actualizó la duración del turno.")
-  return done(`Vehículo agregado. Duración estimada: ${duration} min. Revisá el precio acordado.`)
+  if (apptError) return dbError(apptError, "Se agregó el vehículo pero no se actualizó el turno.")
+  return done(
+    agreedPrice != null
+      ? `Vehículo agregado. Precio acordado: $ ${agreedPrice.toLocaleString("es-AR")}. Duración estimada: ${duration} min.`
+      : `Vehículo agregado. Duración estimada: ${duration} min.`,
+  )
 }
 
 export async function removeVehicleFromAppointment(_prev: ActionState, data: FormData): Promise<ActionState> {
@@ -851,9 +899,9 @@ export async function removeVehicleFromAppointment(_prev: ActionState, data: For
   if (!Number.isInteger(position) || position < 1 || position > MAX_APPOINTMENT_VEHICLES) return fail("Vehículo inválido.")
 
   const [{ data: appt }, { data: settings }, { data: lineRows }] = await Promise.all([
-    supabase.from("appointments").select("status, service, duration_minutes").eq("id", appointmentId).maybeSingle(),
+    supabase.from("appointments").select("status, service, duration_minutes, agreed_price").eq("id", appointmentId).maybeSingle(),
     supabase.from("settings").select("duration_defaults").eq("id", 1).maybeSingle(),
-    supabase.from("appointment_vehicles").select("position, category").eq("appointment_id", appointmentId),
+    supabase.from("appointment_vehicles").select("position, category, price_applied").eq("appointment_id", appointmentId),
   ])
   if (!appt) return fail("Turno inexistente.")
   if (!EDITABLE_VEHICLE_STATUSES.includes(appt.status)) return fail("Este turno ya no admite cambios de vehículo.")
@@ -868,10 +916,12 @@ export async function removeVehicleFromAppointment(_prev: ActionState, data: For
 
   const duration = Math.max(15, appt.duration_minutes - (durations[target.category ?? ""] ?? 60))
   const remaining = lines.filter((l) => l.position !== position).map((l) => l.category ?? "auto")
+  const agreedPrice =
+    appt.agreed_price != null && target.price_applied != null ? Math.max(0, appt.agreed_price - target.price_applied) : appt.agreed_price
   const { error: apptError } = await supabase
     .from("appointments")
-    .update({ duration_minutes: duration, service: serviceLabelFor(appt.service, remaining) })
+    .update({ duration_minutes: duration, service: serviceLabelFor(appt.service, remaining), agreed_price: agreedPrice })
     .eq("id", appointmentId)
-  if (apptError) return dbError(apptError, "Se quitó el vehículo pero no se actualizó la duración del turno.")
+  if (apptError) return dbError(apptError, "Se quitó el vehículo pero no se actualizó el turno.")
   return done(`Vehículo quitado del turno. Sigue en la ficha del cliente. Duración estimada: ${duration} min.`)
 }
