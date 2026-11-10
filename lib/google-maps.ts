@@ -2,8 +2,24 @@
 
 /* Google Maps types are supplied by the browser SDK already used by the site. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type GoogleWindow = Window & { google?: any; __mkMapsReady?: () => void }
+type GoogleWindow = Window & { google?: any; __mkMapsReady?: () => void; gm_authFailure?: () => void }
 let ready: Promise<void> | null = null
+let authFailed = false
+const AUTH_FAILURE_EVENT = "mk:maps-auth-failure"
+
+/* Google calls window.gm_authFailure when the key is rejected (e.g. domain not allowed). */
+export function onGoogleMapsAuthFailure(callback: () => void) {
+  if (typeof window === "undefined") return () => {}
+  const w = window as GoogleWindow
+  w.gm_authFailure ??= () => {
+    authFailed = true
+    console.error("[maps] Google rechazó la clave para", window.location.origin)
+    window.dispatchEvent(new Event(AUTH_FAILURE_EVENT))
+  }
+  if (authFailed) callback()
+  window.addEventListener(AUTH_FAILURE_EVENT, callback)
+  return () => window.removeEventListener(AUTH_FAILURE_EVENT, callback)
+}
 
 export async function loadGoogleLibrary(name: "places" | "maps" | "marker") {
   const w = window as GoogleWindow
