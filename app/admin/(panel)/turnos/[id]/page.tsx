@@ -35,7 +35,14 @@ import {
 import { CorrectionHistory } from "@/components/admin/correction-history"
 import { requireAdmin } from "@/lib/admin/auth"
 import { argentinaParts, formatDateTime, formatWhatsapp, money, todayArgentina, whatsappLink } from "@/lib/admin/format"
-import { APPOINTMENT_STATUS, VEHICLE_CATEGORY, WATER_SUPPLY, appointmentTone } from "@/lib/admin/labels"
+import {
+  APPOINTMENT_STATUS,
+  PANEL_VEHICLE_CATEGORY,
+  VEHICLE_CATEGORY,
+  WATER_SUPPLY,
+  appointmentTone,
+  vehicleCategoryLabel,
+} from "@/lib/admin/labels"
 import { cn } from "@/lib/utils"
 
 export const metadata: Metadata = { title: "Turno" }
@@ -70,7 +77,7 @@ type Appointment = {
     price_applied: number | null
     classification: string | null
     needs_review: boolean
-    vehicles: { category: string; brand: string | null; model: string | null } | null
+    vehicles: { category: string; category_label: string | null; brand: string | null; model: string | null } | null
   }[]
   appointment_proposals: Proposal[]
   appointment_messages: SentMessage[]
@@ -103,6 +110,15 @@ const PROPOSAL_STATUS: Record<string, string> = {
 
 type HistoryRow = { from_status: string | null; to_status: string; changed_at: string }
 
+type ClientVehicleRow = {
+  id: string
+  category: string
+  category_label: string | null
+  brand: string | null
+  model: string | null
+  plate: string | null
+}
+
 export default async function AppointmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   if (!UUID_RE.test(id)) notFound()
@@ -116,7 +132,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
          operator, water_supply, cancel_reason, created_at, contact_name, vehicle_id,
          clients(id, full_name, whatsapp, email), vehicles(category, brand, model), inquiries(notes),
          services(id, performed_at, final_price, amount_paid),
-         appointment_vehicles(position, vehicle_id, category, price_applied, classification, needs_review, vehicles(category, brand, model)),
+         appointment_vehicles(position, vehicle_id, category, price_applied, classification, needs_review, vehicles(category, category_label, brand, model)),
          appointment_proposals(id, original_start, proposed_start, duration_minutes, status, proposed_at, responded_at),
          appointment_messages(id, kind, proposal_id, marked_sent_at, marked_sent_by_email)`,
       )
@@ -144,11 +160,11 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
     appt.clients
       ? supabase
           .from("vehicles")
-          .select("id, category, brand, model, plate")
+          .select("id, category, category_label, brand, model, plate")
           .eq("client_id", appt.clients.id)
           .order("created_at")
-          .returns<{ id: string; category: string; brand: string | null; model: string | null; plate: string | null }[]>()
-      : Promise.resolve({ data: [] as { id: string; category: string; brand: string | null; model: string | null; plate: string | null }[] }),
+          .returns<ClientVehicleRow[]>()
+      : Promise.resolve({ data: [] as ClientVehicleRow[] }),
   ])
 
   const displayName = (appt.contact_name ?? appt.clients?.full_name ?? "").trim()
@@ -201,7 +217,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
     ? lineVehicles.map((v) => {
         const category = v.category ?? v.vehicles?.category ?? ""
         const name = [v.vehicles?.brand, v.vehicles?.model].filter(Boolean).join(" ")
-        const label = VEHICLE_CATEGORY[category] ?? category
+        const label = vehicleCategoryLabel(category, v.vehicles?.category_label)
         return name ? `${name} (${label})` : label
       })
     : appt.vehicles
@@ -311,7 +327,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                   return (
                     <li key={v.position} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                       <span>
-                        {`${v.position}. ${name} · ${VEHICLE_CATEGORY[category] ?? category}`}
+                        {`${v.position}. ${name} · ${vehicleCategoryLabel(category, v.vehicles?.category_label)}`}
                         <span className="text-muted-foreground">
                           {v.classification === "catalogo" ? " · automática" : v.classification === "manual" ? " · manual" : ""}
                         </span>
@@ -324,20 +340,40 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                         <div className="flex w-full flex-wrap items-end gap-2">
                           <ActionForm
                             action={reviewAppointmentVehicle}
-                            submitLabel={v.needs_review ? "Verificar" : "Cambiar"}
+                            submitLabel={v.needs_review ? "Verificar" : "Guardar"}
                             submitClassName={secondaryButtonClass}
                             inline
                           >
                             <input type="hidden" name="appointment_id" value={appt.id} />
                             <input type="hidden" name="position" value={v.position} />
-                            <Field label={`Tipo del vehículo ${v.position}`} htmlFor={`review-${v.position}`} className="w-44">
+                            <Field label={`Tipo del vehículo ${v.position}`} htmlFor={`review-${v.position}`} className="w-36">
                               <select id={`review-${v.position}`} name="category" required defaultValue={category} className={fieldClass}>
-                                {Object.entries(VEHICLE_CATEGORY).map(([value, label]) => (
+                                {Object.entries(PANEL_VEHICLE_CATEGORY).map(([value, label]) => (
                                   <option key={value} value={value}>
                                     {label}
                                   </option>
                                 ))}
                               </select>
+                            </Field>
+                            <Field label="Si es Otro, ¿cuál?" htmlFor={`review-label-${v.position}`} className="w-36">
+                              <input
+                                id={`review-label-${v.position}`}
+                                name="category_label"
+                                maxLength={40}
+                                placeholder="Moto…"
+                                defaultValue={v.vehicles?.category_label ?? ""}
+                                className={fieldClass}
+                              />
+                            </Field>
+                            <Field label="Precio" htmlFor={`review-price-${v.position}`} className="w-32">
+                              <input
+                                id={`review-price-${v.position}`}
+                                name="price"
+                                inputMode="decimal"
+                                placeholder="De lista"
+                                defaultValue={v.price_applied ?? ""}
+                                className={fieldClass}
+                              />
                             </Field>
                           </ActionForm>
                           {lineVehicles.length > 1 && (

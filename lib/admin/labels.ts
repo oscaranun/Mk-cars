@@ -70,7 +70,17 @@ export const VEHICLE_CATEGORY: Record<string, string> = {
   auto: "Auto",
   suv: "SUV",
   pickup: "Pick-up",
+  }
+
+/** Only for vehicles added from the panel (moto, cuatriciclo, etc.). Not offered in the public booking form. */
+export const PANEL_VEHICLE_CATEGORY: Record<string, string> = { ...VEHICLE_CATEGORY, otro: "Otro" }
+
+export function vehicleCategoryLabel(category: string | null | undefined, customLabel?: string | null) {
+  if (!category) return ""
+  if (category === "otro") return customLabel?.trim() || "Otro"
+  return VEHICLE_CATEGORY[category] ?? category
 }
+
 
 export const WATER_SUPPLY: Record<string, string> = {
   domicilio: "Agua del domicilio",

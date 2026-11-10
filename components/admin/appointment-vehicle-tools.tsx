@@ -3,13 +3,20 @@ import { CalendarPlus } from "lucide-react"
 import { addVehicleToAppointment } from "@/app/admin/(panel)/crm-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { Field, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
-import { VEHICLE_CATEGORY } from "@/lib/admin/labels"
+import { PANEL_VEHICLE_CATEGORY, vehicleCategoryLabel } from "@/lib/admin/labels"
 
-type ClientVehicle = { id: string; category: string; brand: string | null; model: string | null; plate: string | null }
+type ClientVehicle = {
+  id: string
+  category: string
+  category_label?: string | null
+  brand: string | null
+  model: string | null
+  plate: string | null
+}
 
 export function vehicleOptionLabel(v: ClientVehicle) {
   const name = [v.brand, v.model].filter(Boolean).join(" ") || "Sin marca/modelo"
-  return `${name} · ${VEHICLE_CATEGORY[v.category] ?? v.category}${v.plate ? ` · ${v.plate}` : ""}`
+  return `${name} · ${vehicleCategoryLabel(v.category, v.category_label)}${v.plate ? ` · ${v.plate}` : ""}`
 }
 
 export function AppointmentVehicleTools({
@@ -29,7 +36,7 @@ export function AppointmentVehicleTools({
         <details className="rounded-2xl border border-border px-4 py-2 text-sm">
           <summary className="flex min-h-11 cursor-pointer items-center font-medium">Agregar otro vehículo a este turno</summary>
           <p className="pb-3 text-xs text-muted-foreground text-pretty">
-            Se lava en el mismo horario y domicilio. Suma su precio de lista y su duración al turno.
+            Se lava en el mismo horario y domicilio. Su precio y su duración se suman al turno.
           </p>
           <ActionForm action={addVehicleToAppointment} submitLabel="Agregar al turno" resetOnSuccess className="pb-3">
             <input type="hidden" name="appointment_id" value={appointmentId} />
@@ -52,7 +59,7 @@ export function AppointmentVehicleTools({
               <div className="grid gap-3 sm:grid-cols-3">
                 <Field label="Tipo" htmlFor="add-vehicle-category">
                   <select id="add-vehicle-category" name="category" defaultValue="auto" className={fieldClass}>
-                    {Object.entries(VEHICLE_CATEGORY).map(([value, label]) => (
+                    {Object.entries(PANEL_VEHICLE_CATEGORY).map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
                       </option>
@@ -66,7 +73,25 @@ export function AppointmentVehicleTools({
                   <input id="add-vehicle-model" name="model" maxLength={60} className={fieldClass} />
                 </Field>
               </div>
+              <Field label="Si es Otro, ¿qué vehículo es?" htmlFor="add-vehicle-label">
+                <input
+                  id="add-vehicle-label"
+                  name="category_label"
+                  maxLength={40}
+                  placeholder="Moto, Cuatriciclo, Lancha…"
+                  className={fieldClass}
+                />
+              </Field>
             </fieldset>
+            <Field label="Precio de este vehículo" htmlFor="add-vehicle-price">
+              <input
+                id="add-vehicle-price"
+                name="price"
+                inputMode="decimal"
+                placeholder="Vacío = precio de lista (obligatorio para Otro)"
+                className={fieldClass}
+              />
+            </Field>
           </ActionForm>
         </details>
       )}
