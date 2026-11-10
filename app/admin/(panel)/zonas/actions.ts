@@ -84,21 +84,9 @@ export async function configureZones(_prev: ActionState, data: FormData): Promis
       dayEnd = text(data, "day_end"),
       pauseStart = text(data, "pause_start"),
       pauseEnd = text(data, "pause_end")
-    const travel = Number(text(data, "travel_minutes")),
-      buffer = Number(text(data, "buffer_minutes"))
     const time = /^([01]\d|2[0-3]):[0-5]\d$/
-    if (
-      !time.test(dayStart) ||
-      !time.test(dayEnd) ||
-      dayStart >= dayEnd ||
-      !Number.isInteger(travel) ||
-      travel < 0 ||
-      travel > 240 ||
-      !Number.isInteger(buffer) ||
-      buffer < 0 ||
-      buffer > 120
-    )
-      return failure("Revisá la jornada, el traslado y el margen.")
+    if (!time.test(dayStart) || !time.test(dayEnd) || dayStart >= dayEnd)
+      return failure("Revisá el inicio y fin de la jornada.")
     if (
       (pauseStart || pauseEnd) &&
       (!time.test(pauseStart) ||
@@ -114,8 +102,8 @@ export async function configureZones(_prev: ActionState, data: FormData): Promis
       horizon_days: horizon,
       day_start: dayStart,
       day_end: dayEnd,
-      travel_minutes: travel,
-      buffer_minutes: buffer,
+      travel_minutes: 0,
+      buffer_minutes: 0,
       pause_start: pauseStart || null,
       pause_end: pauseEnd || null,
     }

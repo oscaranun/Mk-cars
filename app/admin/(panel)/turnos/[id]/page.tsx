@@ -753,7 +753,7 @@ function ConflictNotice({ check }: { check: ConflictCheck | null }) {
           ? "Horario no disponible: se superpone con otro turno confirmado. No se va a poder confirmar, proponé otro horario."
           : "Hay turnos confirmados cerca de ese horario, pero la capacidad todavía lo permite."}
       </p>
-      {check.travelMinutes > 0 && <p className="mt-1 text-xs opacity-80">{`Incluye ${check.travelMinutes} min de traslado.`}</p>}
+      
       <ul className="mt-1 flex flex-col gap-0.5 tabular-nums">
         {check.conflicts.map((c) => (
           <li key={c.id}>

@@ -450,8 +450,7 @@ export default async function ServiceAgenda({
                 {plan?.capacity ?? 0} vehículos
               </p>
               <p className="text-xs">
-                {minutes} min de servicio estimados · {Number(free ?? 0)} min libres, descontando pausas, traslados y
-                margen. {units.data?.filter((u) => u.active).length} unidades activas.
+                {minutes} min de servicio estimados · {Number(free ?? 0)} min libres, descontando pausas. {units.data?.filter((u) => u.active).length} unidades activas.
               </p>
             </Card>
           )
