@@ -91,6 +91,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     [...list].sort((a, b) => (key(b) ?? "").localeCompare(key(a) ?? ""))
   const inquiries = byDateDesc(client.inquiries, (i) => i.created_at)
   const appointments = byDateDesc(client.appointments, (a) => a.confirmed_start ?? a.requested_start)
+  const openAppointments = appointments.filter((a) => !["cancelado", "rechazado", "realizado"].includes(a.status))
   const services = byDateDesc(client.services, (s) => s.performed_at)
   const payments = byDateDesc(
     services.flatMap((s) => s.payments.map((p) => ({ ...p, wash: s.wash_type }))),
@@ -228,6 +229,25 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           ) : (
             <EmptyState>Sin vehículos registrados.</EmptyState>
           )}
+          <div className="flex flex-col gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+            <p className="font-medium">Precio por vehículo</p>
+            <p className="text-muted-foreground">
+              El precio se carga dentro de cada turno, porque puede cambiar de un lavado a otro. Abrí el turno y editá el precio en la sección “Vehículos”.
+            </p>
+            {openAppointments.length ? (
+              <ul className="flex flex-col gap-1.5">
+                {openAppointments.map((a) => (
+                  <li key={a.id}>
+                    <TextLink href={`/admin/turnos/${a.id}#vehiculos`}>
+                      Cargar precios · {a.service} · {a.confirmed_start ?? a.requested_start ? formatDateTime((a.confirmed_start ?? a.requested_start)!) : "sin horario"}
+                    </TextLink>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground">Este cliente no tiene turnos abiertos. Creá uno con “Nuevo turno”.</p>
+            )}
+          </div>
           <ActionForm action={addVehicle} submitLabel="Agregar vehículo" resetOnSuccess className="border-t border-border pt-4">
             <input type="hidden" name="client_id" value={client.id} />
             <p className="text-sm font-medium">Agregar otro vehículo (por ejemplo, el de un familiar)</p>

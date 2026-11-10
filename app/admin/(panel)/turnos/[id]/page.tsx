@@ -315,7 +315,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
             </p>
           </div>
           {lineVehicles.length > 0 && (
-            <div className="flex flex-col gap-2 border-t border-border pt-4">
+            <div id="vehiculos" className="flex scroll-mt-24 flex-col gap-2 border-t border-border pt-4">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-sm font-medium">{`Vehículos (${lineVehicles.length})`}</h3>
                 {reviewCount > 0 && <Badge tone="warning">{`${reviewCount} a revisar`}</Badge>}
