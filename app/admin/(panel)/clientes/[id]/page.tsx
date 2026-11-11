@@ -91,7 +91,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     [...list].sort((a, b) => (key(b) ?? "").localeCompare(key(a) ?? ""))
   const inquiries = byDateDesc(client.inquiries, (i) => i.created_at)
   const appointments = byDateDesc(client.appointments, (a) => a.confirmed_start ?? a.requested_start)
-  const openAppointments = appointments.filter((a) => !["cancelado", "rechazado", "realizado"].includes(a.status))
+  const openAppointments = appointments.filter((a) => !["cancelado", "rechazado"].includes(a.status)).slice(0, 6)
   const services = byDateDesc(client.services, (s) => s.performed_at)
   const payments = byDateDesc(
     services.flatMap((s) => s.payments.map((p) => ({ ...p, wash: s.wash_type }))),
@@ -239,7 +239,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 {openAppointments.map((a) => (
                   <li key={a.id}>
                     <TextLink href={`/admin/turnos/${a.id}#vehiculos`}>
-                      Cargar precios · {a.service} · {a.confirmed_start ?? a.requested_start ? formatDateTime((a.confirmed_start ?? a.requested_start)!) : "sin horario"}
+                      {a.status === "realizado" ? "Editar vehículos (realizado)" : "Cargar precios"} · {a.service} · {a.confirmed_start ?? a.requested_start ? formatDateTime((a.confirmed_start ?? a.requested_start)!) : "sin horario"}
                     </TextLink>
                   </li>
                 ))}

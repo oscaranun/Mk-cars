@@ -173,7 +173,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
   const isConfirmed = status === "confirmado"
   const isWaiting = status === "esperando_cliente"
   const isClosed = status === "cancelado" || status === "rechazado"
-  const canEditVehicles = isRequest || isConfirmed || isWaiting
+  const canEditVehicles = isRequest || isConfirmed || isWaiting || status === "realizado"
 
   const proposals = [...(appt.appointment_proposals ?? [])].sort((x, y) => y.proposed_at.localeCompare(x.proposed_at))
   const pendingProposal = proposals.find((p) => p.status === "pendiente") ?? null

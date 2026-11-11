@@ -750,6 +750,11 @@ export async function reviewAppointmentVehicle(_prev: ActionState, data: FormDat
   if (vehicleError) return dbError(vehicleError, "Se actualizó el turno pero no la ficha del vehículo.")
 
   const delta = price - (current.price_applied ?? 0)
+  if (appt.status === "realizado") {
+    if (delta === 0) return done("Vehículo actualizado.")
+    const syncError = await syncCompletedTotal(supabase, appointmentId)
+    return syncError ?? done("Vehículo actualizado. Se recalculó el total y el saldo del servicio.")
+  }
   if (appt.agreed_price != null && delta !== 0) {
     const { error: apptError } = await supabase
       .from("appointments")
@@ -760,7 +765,29 @@ export async function reviewAppointmentVehicle(_prev: ActionState, data: FormDat
   return done(delta !== 0 && appt.agreed_price != null ? "Vehículo actualizado. Se ajustó el precio acordado." : "Vehículo actualizado.")
 }
 
-const EDITABLE_VEHICLE_STATUSES = ["solicitado", "reprogramado", "esperando_cliente", "confirmado"]
+const EDITABLE_VEHICLE_STATUSES = ["solicitado", "reprogramado", "esperando_cliente", "confirmado", "realizado"]
+
+type AdminClient = NonNullable<Awaited<ReturnType<typeof admin>>>
+
+/**
+ * A completed turno already has a service record and balance. Its total is the sum of the
+ * vehicle lines, applied through the audited price adjustment so the service, the balance
+ * and the payment status stay consistent everywhere.
+ */
+async function syncCompletedTotal(supabase: AdminClient, appointmentId: string): Promise<ActionState | null> {
+  const { data: rows, error } = await supabase.from("appointment_vehicles").select("price_applied").eq("appointment_id", appointmentId)
+  if (error) return dbError(error, "Se guardó el vehículo pero no se pudo recalcular el total.")
+  const total = (rows ?? []).reduce((sum, r) => sum + (r.price_applied ?? 0), 0)
+  const { error: apptError } = await supabase.from("appointments").update({ agreed_price: total }).eq("id", appointmentId)
+  if (apptError) return dbError(apptError, "Se guardó el vehículo pero no se actualizó el total del turno.")
+  const { error: priceError } = await supabase.rpc("admin_adjust_final_price", {
+    p_id: appointmentId,
+    p_price: total,
+    p_reason: "Vehículos del turno actualizados",
+  })
+  if (priceError) return dbError(priceError, "Se guardó el vehículo pero no se actualizó el saldo del servicio.")
+  return null
+}
 const VEHICLE_CATEGORIES = ["auto", "suv", "pickup", "otro"] as const
 type VehicleCategory = (typeof VEHICLE_CATEGORIES)[number]
 const MAX_APPOINTMENT_VEHICLES = 10
@@ -797,7 +824,7 @@ export async function addVehicleToAppointment(_prev: ActionState, data: FormData
   const [{ data: appt }, { data: settings }, { data: lineRows }] = await Promise.all([
     supabase
       .from("appointments")
-      .select("status, client_id, vehicle_id, service, duration_minutes, agreed_price")
+      .select("status, client_id, vehicle_id, service, duration_minutes, agreed_price, adjusted_price")
       .eq("id", appointmentId)
       .maybeSingle(),
     supabase.from("settings").select("vehicle_prices, duration_defaults").eq("id", 1).maybeSingle(),
@@ -821,7 +848,7 @@ export async function addVehicleToAppointment(_prev: ActionState, data: FormData
         position: 1,
         category: original.category,
         // While it is the only vehicle, the agreed price is its price.
-        price_applied: appt.agreed_price ?? listPrice(original.category),
+        price_applied: appt.adjusted_price ?? appt.agreed_price ?? listPrice(original.category),
         classification: "manual",
       })
       if (error) return dbError(error, "No se pudo preparar la lista de vehículos del turno.")
@@ -874,8 +901,13 @@ export async function addVehicleToAppointment(_prev: ActionState, data: FormData
   })
   if (lineError) return dbError(lineError, "No se pudo agregar el vehículo al turno.")
 
-  const duration = Math.min(540, appt.duration_minutes + (durations[category] ?? 60))
   const categories = [...lines.map((l) => l.category ?? category), category]
+  if (appt.status === "realizado") {
+    await supabase.from("appointments").update({ service: serviceLabelFor(appt.service, categories) }).eq("id", appointmentId)
+    const syncError = await syncCompletedTotal(supabase, appointmentId)
+    return syncError ?? done("Vehículo agregado. Se actualizó el total y el saldo del servicio.")
+  }
+  const duration = Math.min(540, appt.duration_minutes + (durations[category] ?? 60))
   const agreedPrice = appt.agreed_price != null ? appt.agreed_price + price : null
   const { error: apptError } = await supabase
     .from("appointments")
@@ -914,8 +946,13 @@ export async function removeVehicleFromAppointment(_prev: ActionState, data: For
   const { error } = await supabase.from("appointment_vehicles").delete().eq("appointment_id", appointmentId).eq("position", position)
   if (error) return dbError(error, "No se pudo quitar el vehículo.")
 
-  const duration = Math.max(15, appt.duration_minutes - (durations[target.category ?? ""] ?? 60))
   const remaining = lines.filter((l) => l.position !== position).map((l) => l.category ?? "auto")
+  if (appt.status === "realizado") {
+    await supabase.from("appointments").update({ service: serviceLabelFor(appt.service, remaining) }).eq("id", appointmentId)
+    const syncError = await syncCompletedTotal(supabase, appointmentId)
+    return syncError ?? done("Vehículo quitado. Se actualizó el total y el saldo del servicio.")
+  }
+  const duration = Math.max(15, appt.duration_minutes - (durations[target.category ?? ""] ?? 60))
   const agreedPrice =
     appt.agreed_price != null && target.price_applied != null ? Math.max(0, appt.agreed_price - target.price_applied) : appt.agreed_price
   const { error: apptError } = await supabase
