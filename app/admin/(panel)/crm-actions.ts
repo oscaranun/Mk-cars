@@ -224,13 +224,85 @@ export async function addVehicle(_prev: ActionState, data: FormData): Promise<Ac
   const brand = text(data, "brand", 60)
   const model = text(data, "model", 60)
   if (!UUID_RE.test(clientId)) return fail("Cliente inválido.")
-  if (!["auto", "suv", "pickup"].includes(category)) return fail("Elegí el tipo de vehículo.")
+  if (!isVehicleCategory(category)) return fail("Elegí el tipo de vehículo.")
+  const label = category === "otro" ? text(data, "category_label", 40) : ""
+  if (category === "otro" && label.length < 2) return fail("Indicá qué vehículo es (por ejemplo: Moto, Cuatriciclo).")
 
-  const { error } = await supabase
-    .from("vehicles")
-    .insert({ client_id: clientId, category, brand: brand || null, model: model || null })
+  const { error } = await supabase.from("vehicles").insert({
+    client_id: clientId,
+    category,
+    category_label: label || null,
+    brand: brand || null,
+    model: model || null,
+  })
   if (error) return dbError(error, "No se pudo agregar el vehículo.")
   return done("Vehículo agregado.")
+}
+
+export async function updateVehicle(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const id = text(data, "vehicle_id", 36)
+  const category = text(data, "category", 10)
+  if (!UUID_RE.test(id)) return fail("Vehículo inválido.")
+  if (!isVehicleCategory(category)) return fail("Elegí el tipo de vehículo.")
+  const label = category === "otro" ? text(data, "category_label", 40) : ""
+  if (category === "otro" && label.length < 2) return fail("Indicá qué vehículo es (por ejemplo: Moto, Cuatriciclo).")
+  const plate = text(data, "plate", 12).toUpperCase().replace(/[^A-Z0-9 ]/g, "")
+
+  const { data: updated, error } = await supabase
+    .from("vehicles")
+    .update({
+      category,
+      category_label: label || null,
+      brand: text(data, "brand", 60) || null,
+      model: text(data, "model", 60) || null,
+      plate: plate || null,
+    })
+    .eq("id", id)
+    .select("id")
+  if (error) return dbError(error, "No se pudo guardar el vehículo.")
+  if (!updated?.length) return fail("No se encontró el vehículo.")
+  return done("Vehículo guardado.")
+}
+
+/**
+ * Deleting a vehicle cascades to its turno lines, so it is first removed from every editable
+ * turno through the regular flow, which keeps each turno's total and balance in sync.
+ */
+export async function deleteVehicle(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await admin()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+
+  const id = text(data, "vehicle_id", 36)
+  if (!UUID_RE.test(id)) return fail("Vehículo inválido.")
+
+  const { data: lines, error: linesError } = await supabase
+    .from("appointment_vehicles")
+    .select("appointment_id, position, appointments(status)")
+    .eq("vehicle_id", id)
+    .returns<{ appointment_id: string; position: number; appointments: { status: string } | null }[]>()
+  if (linesError) return dbError(linesError, "No se pudo revisar en qué turnos está el vehículo.")
+
+  for (const line of lines ?? []) {
+    if (!EDITABLE_VEHICLE_STATUSES.includes(line.appointments?.status ?? "")) continue
+    const form = new FormData()
+    form.set("appointment_id", line.appointment_id)
+    form.set("position", String(line.position))
+    const result = await removeVehicleFromAppointment({ ok: false, message: null }, form)
+    if (!result.ok) {
+      return fail(
+        result.message === "El turno tiene que tener al menos un vehículo."
+          ? "Es el único vehículo de un turno. Agregá el vehículo correcto a ese turno antes de eliminar este."
+          : (result.message ?? "No se pudo quitar el vehículo de sus turnos."),
+      )
+    }
+  }
+
+  const { error } = await supabase.from("vehicles").delete().eq("id", id)
+  if (error) return dbError(error, "No se pudo eliminar el vehículo.")
+  return done(lines?.length ? "Vehículo eliminado y quitado de sus turnos. Los totales se recalcularon." : "Vehículo eliminado.")
 }
 
 export async function updateInquiryStatus(_prev: ActionState, data: FormData): Promise<ActionState> {

@@ -2,9 +2,10 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, CalendarPlus, MessageCircle } from "lucide-react"
-import { addVehicle, splitInquiryToNewClient, updateClient } from "@/app/admin/(panel)/crm-actions"
-import { addPackage, setVehiclePlate, usePackageWash } from "@/app/admin/(panel)/pro-actions"
+import { addVehicle, deleteVehicle, splitInquiryToNewClient, updateClient, updateVehicle } from "@/app/admin/(panel)/crm-actions"
+import { addPackage, usePackageWash } from "@/app/admin/(panel)/pro-actions"
 import { ActionForm } from "@/components/admin/action-form"
+import { ClientAppointmentPricing, type PricingAppointment, type PricingLine } from "@/components/admin/client-appointment-pricing"
 import { ClientDangerZone } from "@/components/admin/client-danger-zone"
 import { ReviewSection } from "@/components/admin/review-section"
 import { Badge, Card, DetailRow, EmptyState, Field, SectionTitle, TextLink, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
@@ -14,11 +15,12 @@ import {
   APPOINTMENT_STATUS,
   INQUIRY_STATUS,
   PAYMENT_METHOD,
+  PANEL_VEHICLE_CATEGORY,
   PAYMENT_STATUS,
-  VEHICLE_CATEGORY,
   appointmentTone,
   inquiryTone,
   paymentTone,
+  vehicleCategoryLabel,
 } from "@/lib/admin/labels"
 
 export const metadata: Metadata = { title: "Ficha de cliente" }
@@ -38,7 +40,15 @@ type ClientDetail = {
   privacy_consent_at: string | null
   archived_at: string | null
   archive_reason: string | null
-  vehicles: { id: string; category: string; brand: string | null; model: string | null; plate: string | null; created_at: string }[]
+  vehicles: {
+    id: string
+    category: string
+    category_label: string | null
+    brand: string | null
+    model: string | null
+    plate: string | null
+    created_at: string
+  }[]
   inquiries: { id: string; created_at: string; service: string; commercial_status: string; source: string }[]
   appointments: {
     id: string
@@ -47,6 +57,10 @@ type ClientDetail = {
     service: string
     status: string
     address: string
+    payment_status: string
+    amount_paid: number | string
+    adjusted_price: number | string | null
+    agreed_price: number | string | null
   }[]
   services: {
     id: string
@@ -68,9 +82,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     .from("clients")
     .select(
       `id, full_name, whatsapp, email, source, notes, created_at, last_interaction_at, marketing_consent, privacy_consent_at, archived_at, archive_reason,
-       vehicles(id, category, brand, model, plate, created_at),
+       vehicles(id, category, category_label, brand, model, plate, created_at),
        inquiries(id, created_at, service, commercial_status, source),
-       appointments(id, requested_start, confirmed_start, service, status, address),
+       appointments(id, requested_start, confirmed_start, service, status, address, payment_status, amount_paid, adjusted_price, agreed_price),
        services(id, performed_at, wash_type, final_price, amount_paid, payment_status, payments(id, amount, method, paid_at))`,
     )
     .eq("id", id)
@@ -91,7 +105,30 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     [...list].sort((a, b) => (key(b) ?? "").localeCompare(key(a) ?? ""))
   const inquiries = byDateDesc(client.inquiries, (i) => i.created_at)
   const appointments = byDateDesc(client.appointments, (a) => a.confirmed_start ?? a.requested_start)
-  const openAppointments = appointments.filter((a) => !["cancelado", "rechazado"].includes(a.status)).slice(0, 6)
+  const openAppointments = appointments
+    .filter((a) => ["solicitado", "reprogramado", "esperando_cliente", "confirmado", "realizado"].includes(a.status))
+    .slice(0, 6)
+  const { data: lineRows } = openAppointments.length
+    ? await supabase
+        .from("appointment_vehicles")
+        .select("appointment_id, position, category, price_applied, needs_review, vehicle_id, vehicles(brand, model, category, category_label)")
+        .in("appointment_id", openAppointments.map((a) => a.id))
+        .order("position")
+        .returns<PricingLine[]>()
+    : { data: [] as PricingLine[] }
+  const pricingAppointments: PricingAppointment[] = openAppointments.map((a) => {
+    const lines = (lineRows ?? []).filter((l) => l.appointment_id === a.id)
+    return {
+      id: a.id,
+      service: a.service,
+      status: a.status,
+      start: a.confirmed_start ?? a.requested_start,
+      payment_status: a.payment_status,
+      amount_paid: a.amount_paid,
+      final_price: a.adjusted_price ?? a.agreed_price,
+      lines,
+    }
+  })
   const services = byDateDesc(client.services, (s) => s.performed_at)
   const payments = byDateDesc(
     services.flatMap((s) => s.payments.map((p) => ({ ...p, wash: s.wash_type }))),
@@ -208,61 +245,80 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           <SectionTitle>Vehículos</SectionTitle>
           {client.vehicles.length ? (
             <ul className="flex flex-col gap-2">
-              {client.vehicles.map((v) => (
-                <li key={v.id} className="flex flex-col gap-2 rounded-2xl bg-surface px-4 py-3 text-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <span>
-                      {[v.brand, v.model].filter(Boolean).join(" ") || "Sin marca/modelo"}
-                      {v.plate && <span className="ml-2 font-mono text-xs text-muted-foreground">{v.plate}</span>}
-                    </span>
-                    <Badge tone="info">{VEHICLE_CATEGORY[v.category] ?? v.category}</Badge>
-                  </div>
-                  <ActionForm action={setVehiclePlate} submitLabel="Guardar" submitClassName={secondaryButtonClass} inline>
-                    <input type="hidden" name="vehicle_id" value={v.id} />
-                    <Field label="Patente" htmlFor={`plate-${v.id}`}>
-                      <input id={`plate-${v.id}`} name="plate" maxLength={12} defaultValue={v.plate ?? ""} placeholder="AB123CD" className={`${fieldClass} w-36 uppercase`} />
-                    </Field>
-                  </ActionForm>
-                </li>
-              ))}
+              {client.vehicles.map((v) => {
+                const name = [v.brand, v.model].filter(Boolean).join(" ") || "Sin marca/modelo"
+                return (
+                  <li key={v.id} className="flex flex-col gap-2 rounded-2xl bg-surface px-4 py-3 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <span>
+                        {name}
+                        {v.plate && <span className="ml-2 font-mono text-xs text-muted-foreground">{v.plate}</span>}
+                      </span>
+                      <Badge tone="info">{vehicleCategoryLabel(v.category, v.category_label)}</Badge>
+                    </div>
+                    <details className="rounded-xl border border-border px-3 py-1.5">
+                      <summary className="cursor-pointer py-1 text-muted-foreground hover:text-foreground">Editar o eliminar</summary>
+                      <ActionForm action={updateVehicle} submitLabel="Guardar vehículo" submitClassName={secondaryButtonClass} className="gap-3 pt-3">
+                        <input type="hidden" name="vehicle_id" value={v.id} />
+                        <div className="grid grid-cols-2 gap-3">
+                          <Field label="Tipo" htmlFor={`cat-${v.id}`}>
+                            <select id={`cat-${v.id}`} name="category" defaultValue={v.category} className={fieldClass}>
+                              {Object.entries(PANEL_VEHICLE_CATEGORY).map(([value, label]) => (
+                                <option key={value} value={value}>
+                                  {label}
+                                </option>
+                              ))}
+                            </select>
+                          </Field>
+                          <Field label="Si es Otro, ¿cuál?" htmlFor={`label-${v.id}`}>
+                            <input id={`label-${v.id}`} name="category_label" maxLength={40} placeholder="Moto, Cuatriciclo…" defaultValue={v.category_label ?? ""} className={fieldClass} />
+                          </Field>
+                          <Field label="Marca" htmlFor={`brand-${v.id}`}>
+                            <input id={`brand-${v.id}`} name="brand" maxLength={60} defaultValue={v.brand ?? ""} className={fieldClass} />
+                          </Field>
+                          <Field label="Modelo" htmlFor={`model-${v.id}`}>
+                            <input id={`model-${v.id}`} name="model" maxLength={60} defaultValue={v.model ?? ""} className={fieldClass} />
+                          </Field>
+                          <Field label="Patente" htmlFor={`plate-${v.id}`} className="col-span-2">
+                            <input id={`plate-${v.id}`} name="plate" maxLength={12} defaultValue={v.plate ?? ""} placeholder="AB123CD" className={`${fieldClass} uppercase`} />
+                          </Field>
+                        </div>
+                      </ActionForm>
+                      <ActionForm
+                        action={deleteVehicle}
+                        submitLabel="Eliminar vehículo"
+                        submitClassName={`${secondaryButtonClass} text-red-200`}
+                        confirmText={`¿Eliminar ${name}? También se quita de sus turnos y se recalculan los totales.`}
+                        className="border-t border-border py-3"
+                      >
+                        <input type="hidden" name="vehicle_id" value={v.id} />
+                      </ActionForm>
+                    </details>
+                  </li>
+                )
+              })}
             </ul>
           ) : (
             <EmptyState>Sin vehículos registrados.</EmptyState>
           )}
-          <div className="flex flex-col gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
-            <p className="font-medium">Precio por vehículo</p>
-            <p className="text-muted-foreground">
-              El precio se carga dentro de cada turno, porque puede cambiar de un lavado a otro. Abrí el turno y editá el precio en la sección “Vehículos”.
-            </p>
-            {openAppointments.length ? (
-              <ul className="flex flex-col gap-1.5">
-                {openAppointments.map((a) => (
-                  <li key={a.id}>
-                    <TextLink href={`/admin/turnos/${a.id}#vehiculos`}>
-                      {a.status === "realizado" ? "Editar vehículos (realizado)" : "Cargar precios"} · {a.service} · {a.confirmed_start ?? a.requested_start ? formatDateTime((a.confirmed_start ?? a.requested_start)!) : "sin horario"}
-                    </TextLink>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-muted-foreground">Este cliente no tiene turnos abiertos. Creá uno con “Nuevo turno”.</p>
-            )}
-          </div>
           <ActionForm action={addVehicle} submitLabel="Agregar vehículo" resetOnSuccess className="border-t border-border pt-4">
             <input type="hidden" name="client_id" value={client.id} />
-            <p className="text-sm font-medium">Agregar otro vehículo (por ejemplo, el de un familiar)</p>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <p className="text-sm font-medium">Agregar otro vehículo (auto, moto, cuatriciclo…)</p>
+            <div className="grid grid-cols-2 gap-3">
               <Field label="Tipo" htmlFor="category">
                 <select id="category" name="category" required defaultValue="" className={fieldClass}>
                   <option value="" disabled>
                     Elegir
                   </option>
-                  {Object.entries(VEHICLE_CATEGORY).map(([value, label]) => (
+                  {Object.entries(PANEL_VEHICLE_CATEGORY).map(([value, label]) => (
                     <option key={value} value={value}>
                       {label}
                     </option>
                   ))}
                 </select>
+              </Field>
+              <Field label="Si es Otro, ¿cuál?" htmlFor="category_label">
+                <input id="category_label" name="category_label" maxLength={40} placeholder="Moto, Cuatriciclo…" className={fieldClass} />
               </Field>
               <Field label="Marca" htmlFor="brand">
                 <input id="brand" name="brand" className={fieldClass} />
@@ -274,6 +330,16 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </ActionForm>
         </Card>
       </div>
+
+      <section id="precios" className="scroll-mt-24">
+        <Card className="flex flex-col gap-4">
+          <SectionTitle>Precios y cobro por turno</SectionTitle>
+          <p className="text-sm text-muted-foreground text-pretty">
+            Cargá el precio del trabajo de cada vehículo, quitá los que se agregaron de más y confirmá el pago cuando el turno esté realizado.
+          </p>
+          <ClientAppointmentPricing clientId={client.id} appointments={pricingAppointments} vehicles={client.vehicles} />
+        </Card>
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="flex flex-col gap-3">
