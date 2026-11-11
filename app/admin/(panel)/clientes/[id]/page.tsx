@@ -11,6 +11,7 @@ import { ReviewSection } from "@/components/admin/review-section"
 import { Badge, Card, DetailRow, EmptyState, Field, SectionTitle, TextLink, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
 import { formatDate, formatDateTime, formatWhatsapp, money, whatsappLink } from "@/lib/admin/format"
+import { WHATSAPP_DEFAULT_PREFIX } from "@/lib/booking"
 import {
   APPOINTMENT_STATUS,
   INQUIRY_STATUS,
@@ -303,7 +304,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           )}
           <ActionForm action={addVehicle} submitLabel="Agregar vehículo" resetOnSuccess className="border-t border-border pt-4">
             <input type="hidden" name="client_id" value={client.id} />
-            <p className="text-sm font-medium">Agregar otro vehículo (auto, moto, cuatriciclo…)</p>
+            <p className="text-sm font-medium">Agregar otro vehículo (auto, moto, cuatriciclo���)</p>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Tipo" htmlFor="category">
                 <select id="category" name="category" required defaultValue="" className={fieldClass}>
@@ -473,7 +474,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                           <input id={`split-name-${i.id}`} name="full_name" required minLength={2} className={fieldClass} />
                         </Field>
                         <Field label="WhatsApp (distinto)" htmlFor={`split-wa-${i.id}`}>
-                          <input id={`split-wa-${i.id}`} name="whatsapp" inputMode="tel" required className={fieldClass} />
+                          <input id={`split-wa-${i.id}`} name="whatsapp" type="tel" inputMode="tel" required defaultValue={WHATSAPP_DEFAULT_PREFIX} className={fieldClass} />
                         </Field>
                       </div>
                     </ActionForm>

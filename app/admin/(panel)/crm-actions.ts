@@ -110,7 +110,7 @@ export async function updateClient(_prev: ActionState, data: FormData): Promise<
 
   if (!UUID_RE.test(id)) return fail("Cliente inválido.")
   if (fullName.length < 2) return fail("Ingresá nombre y apellido.")
-  if (!whatsapp) return fail("El WhatsApp no es un número argentino válido.")
+  if (!whatsapp) return fail("El WhatsApp no es válido. Para otros países incluí el código (ej. +34).")
   if (email && !EMAIL_RE.test(email)) return fail("El correo no es válido.")
 
   const { data: current } = await supabase.from("clients").select("marketing_consent").eq("id", id).single()
@@ -157,7 +157,7 @@ export async function splitInquiryToNewClient(_prev: ActionState, data: FormData
   const whatsapp = normalizeWhatsapp(text(data, "whatsapp", 30))
   if (!UUID_RE.test(inquiryId)) return fail("Consulta inválida.")
   if (fullName.length < 2) return fail("Ingresá nombre y apellido.")
-  if (!whatsapp) return fail("El WhatsApp no es un número argentino válido.")
+  if (!whatsapp) return fail("El WhatsApp no es válido. Para otros países incluí el código (ej. +34).")
 
   const { data: newId, error } = await supabase.rpc("split_inquiry_to_new_client", {
     p_inquiry_id: inquiryId,

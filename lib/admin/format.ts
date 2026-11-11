@@ -84,6 +84,7 @@ export function whatsappLink(number: string) {
 export function formatWhatsapp(number: string) {
   const d = number.replace(/\D/g, "")
   if (d.length === 13 && d.startsWith("549")) return `+54 9 ${d.slice(3, 6)} ${d.slice(6, 9)}-${d.slice(9)}`
+  if (d.length >= 8) return `+${d}`
   return number
 }
 
