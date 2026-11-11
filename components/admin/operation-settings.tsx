@@ -46,33 +46,9 @@ export function OperationSettingsFields({ settings: s }: { settings: ZoneSetting
             className={fieldClass}
           />
         </Field>
-        <Field label="Traslado entre domicilios (minutos)" htmlFor="travel">
-          <input
-            id="travel"
-            name="travel_minutes"
-            type="number"
-            min={0}
-            max={240}
-            defaultValue={s.travel_minutes}
-            className={fieldClass}
-            required
-          />
-        </Field>
-        <Field label="Margen adicional entre turnos (minutos)" htmlFor="buffer">
-          <input
-            id="buffer"
-            name="buffer_minutes"
-            type="number"
-            min={0}
-            max={120}
-            defaultValue={s.buffer_minutes}
-            className={fieldClass}
-            required
-          />
-        </Field>
       </div>
       <p className="text-xs text-muted-foreground">
-        El traslado es una estimación editable, sin tráfico calculado. La pausa aplica a todas las unidades. Los cambios
+        La pausa aplica a todas las unidades. Los cambios
         se rechazan si dejan fuera de jornada o en pausa un turno confirmado futuro.
       </p>
     </>

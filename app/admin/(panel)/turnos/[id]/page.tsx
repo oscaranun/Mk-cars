@@ -173,7 +173,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
   const isConfirmed = status === "confirmado"
   const isWaiting = status === "esperando_cliente"
   const isClosed = status === "cancelado" || status === "rechazado"
-  const canEditVehicles = isRequest || isConfirmed || isWaiting
+  const canEditVehicles = isRequest || isConfirmed || isWaiting || status === "realizado"
 
   const proposals = [...(appt.appointment_proposals ?? [])].sort((x, y) => y.proposed_at.localeCompare(x.proposed_at))
   const pendingProposal = proposals.find((p) => p.status === "pendiente") ?? null
@@ -753,7 +753,7 @@ function ConflictNotice({ check }: { check: ConflictCheck | null }) {
           ? "Horario no disponible: se superpone con otro turno confirmado. No se va a poder confirmar, proponé otro horario."
           : "Hay turnos confirmados cerca de ese horario, pero la capacidad todavía lo permite."}
       </p>
-      {check.travelMinutes > 0 && <p className="mt-1 text-xs opacity-80">{`Incluye ${check.travelMinutes} min de traslado.`}</p>}
+      
       <ul className="mt-1 flex flex-col gap-0.5 tabular-nums">
         {check.conflicts.map((c) => (
           <li key={c.id}>

@@ -37,7 +37,7 @@ export async function findConflicts(
   const { data: settings, error: settingsError } = await supabase.from("settings").select("*").eq("id", 1).maybeSingle()
   if (settingsError) return null
   const capacity = Number(settings?.operational_capacity) || 1
-  const travelMinutes = Math.max(0, Number(settings?.travel_minutes) || 0)
+  const travelMinutes = 0
 
   const { data: zoneSettings } = await supabase
     .from("zone_booking_settings")
@@ -70,7 +70,7 @@ export async function findConflicts(
     )
     return {
       capacity: 1,
-      travelMinutes: Number(zoneSettings.travel_minutes) + Number(zoneSettings.buffer_minutes),
+      travelMinutes: 0,
       conflicts,
       blocked: conflicts.length > 0,
     }

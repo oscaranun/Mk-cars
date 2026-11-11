@@ -5,7 +5,7 @@ import { CheckCircle2, Frown, Loader2, MapPin, MessageCircle, Smile, XCircle } f
 import { COVERAGE_BOUNDS, isInCoverage } from "@/lib/coverage"
 import { whatsappUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
-import { loadGoogleLibrary } from "@/lib/google-maps"
+import { loadGoogleLibrary, onGoogleMapsAuthFailure } from "@/lib/google-maps"
 import type { Point } from "@/lib/zones/geometry"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -73,6 +73,8 @@ export function AddressInput({
     map.current.panTo(next)
     if (zoom) map.current.setZoom(18)
   }
+
+  useEffect(() => onGoogleMapsAuthFailure(() => setMapFailed(true)), [])
 
   useEffect(() => {
     if (!showMap || map.current || !mapEl.current) return
@@ -322,7 +324,17 @@ export function AddressInput({
           </p>
         )}
         {status === "unknown" && API_KEY && mapFailed && value.trim().length >= 3 && !open && !loading && (
-          <p className="text-muted-foreground">Elegí tu dirección de la lista para confirmar la cobertura.</p>
+          <p className="text-muted-foreground">
+            No pudimos cargar el mapa en este momento.{" "}
+            <a
+              href={whatsappUrl(`Hola MK Cars, quiero reservar un lavado en ${value}`)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-electric underline-offset-2 hover:underline"
+            >
+              Reservá por WhatsApp
+            </a>
+          </p>
         )}
       </div>
     </div>
