@@ -17,7 +17,9 @@ import { buildConfirmationMessage, buildProposalMessage, type BookingMessageData
 import { ActionForm } from "@/components/admin/action-form"
 import { TestBookingDelete } from "@/components/admin/test-booking-delete"
 import { AppointmentDelete } from "@/components/admin/appointment-delete"
-import { OfferPanel } from "@/components/admin/offer-panel"
+import { loadOffer, OfferPanel, OfferAcceptanceForm } from "@/components/admin/offer-panel"
+import { QueryErrorNotice } from "@/components/admin/query-error-notice"
+import { QuickAppointmentControls } from "@/components/admin/quick-appointment-controls"
 import { ReviewSection } from "@/components/admin/review-section"
 import { AppointmentNotes, AppointmentPayments } from "@/components/admin/appointment-ledger"
 import { isTestClientName } from "@/lib/admin/test-booking"
@@ -54,12 +56,15 @@ type Appointment = {
   service: string
   extras: string[] | null
   address: string
-  requested_start: string
+  requested_start: string | null
   confirmed_start: string | null
   confirmed_at: string | null
   duration_minutes: number
   status: string
   agreed_price: number | null
+  adjusted_price: number | null
+  discount: number | null
+  service_started_at: string | null
   operator: string | null
   water_supply: string
   cancel_reason: string | null
@@ -124,11 +129,11 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
   if (!UUID_RE.test(id)) notFound()
   const { supabase } = await requireAdmin()
 
-  const [{ data: appt }, { data: history }] = await Promise.all([
+  const [{ data: appt, error: appointmentError }, { data: history }] = await Promise.all([
     supabase
       .from("appointments")
       .select(
-        `id, service, extras, address, requested_start, confirmed_start, confirmed_at, duration_minutes, status, agreed_price,
+        `id, service, extras, address, requested_start, confirmed_start, confirmed_at, duration_minutes, status, agreed_price, adjusted_price, discount, service_started_at,
          operator, water_supply, cancel_reason, created_at, contact_name, vehicle_id,
          clients(id, full_name, whatsapp, email), vehicles(category, brand, model), inquiries(notes),
          services(id, performed_at, final_price, amount_paid),
@@ -147,7 +152,11 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
       .order("changed_at", { ascending: false })
       .returns<HistoryRow[]>(),
   ])
+  if (appointmentError) return <QueryErrorNotice subject="los datos del turno" />
   if (!appt) notFound()
+  const offerData = await loadOffer(supabase, appt.id)
+  if (offerData.failed) return <QueryErrorNotice subject="las condiciones del turno" />
+  const linkedOffer = offerData.offer?.status !== "anulada" ? offerData.offer : null
 
   // Separate query: the columns only exist once migration 011 is installed.
   const [{ data: paymentSummary }, { data: clientVehicleRows }] = await Promise.all([
@@ -177,41 +186,58 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
 
   const proposals = [...(appt.appointment_proposals ?? [])].sort((x, y) => y.proposed_at.localeCompare(x.proposed_at))
   const pendingProposal = proposals.find((p) => p.status === "pendiente") ?? null
-  const messagesLog = [...(appt.appointment_messages ?? [])].sort((x, y) => y.marked_sent_at.localeCompare(x.marked_sent_at))
+  const messagesLog = [...(appt.appointment_messages ?? [])].sort((x, y) =>
+    y.marked_sent_at.localeCompare(x.marked_sent_at),
+  )
   const confirmationSent =
     isConfirmed && appt.confirmed_at
-      ? messagesLog.find((m) => m.kind === "confirmacion" && m.marked_sent_at >= appt.confirmed_at!) ?? null
+      ? (messagesLog.find((m) => m.kind === "confirmacion" && m.marked_sent_at >= appt.confirmed_at!) ?? null)
       : null
   const proposalSent = pendingProposal
-    ? messagesLog.find((m) => m.kind === "propuesta" && m.proposal_id === pendingProposal.id) ?? null
+    ? (messagesLog.find((m) => m.kind === "propuesta" && m.proposal_id === pendingProposal.id) ?? null)
     : null
   const acceptedProposal = isConfirmed && proposals[0]?.status === "aceptada" ? proposals[0] : null
 
-  const start = appt.confirmed_start ?? pendingProposal?.proposed_start ?? appt.requested_start
-  const startParts = argentinaParts(start)
+  const start =
+    appt.confirmed_start ??
+    linkedOffer?.accepted_start ??
+    linkedOffer?.slots[0]?.start ??
+    pendingProposal?.proposed_start ??
+    appt.requested_start
+  const startParts = start ? argentinaParts(start) : argentinaParts(new Date())
   const today = todayArgentina()
   const nowParts = argentinaParts(new Date())
   const service = appt.services[0]
   const vehicleLabel = appt.vehicles
-    ? [VEHICLE_CATEGORY[appt.vehicles.category] ?? appt.vehicles.category, appt.vehicles.brand, appt.vehicles.model].filter(Boolean).join(" ")
+    ? [VEHICLE_CATEGORY[appt.vehicles.category] ?? appt.vehicles.category, appt.vehicles.brand, appt.vehicles.model]
+        .filter(Boolean)
+        .join(" ")
     : "—"
   const lineVehicles = [...(appt.appointment_vehicles ?? [])].sort((a, b) => a.position - b.position)
   const lineTotal = lineVehicles.reduce((sum, v) => sum + (v.price_applied ?? 0), 0)
   const reviewCount = lineVehicles.filter((v) => v.needs_review).length
   const defaultPrice = appt.agreed_price ?? (lineTotal > 0 ? lineTotal : "")
-  const usedVehicleIds = new Set(lineVehicles.length ? lineVehicles.map((v) => v.vehicle_id) : appt.vehicle_id ? [appt.vehicle_id] : [])
+  const usedVehicleIds = new Set(
+    lineVehicles.length ? lineVehicles.map((v) => v.vehicle_id) : appt.vehicle_id ? [appt.vehicle_id] : [],
+  )
   const availableVehicles = (clientVehicleRows ?? []).filter((v) => !usedVehicleIds.has(v.id))
 
-  const conflictCheck = isRequest
-    ? await findConflicts(supabase, { id: appt.id, start: appt.requested_start, durationMinutes: appt.duration_minutes, operator: appt.operator })
-    : pendingProposal
+  const conflictCheck =
+    isRequest && appt.requested_start && !linkedOffer
       ? await findConflicts(supabase, {
           id: appt.id,
-          start: pendingProposal.proposed_start,
-          durationMinutes: pendingProposal.duration_minutes,
+          start: appt.requested_start,
+          durationMinutes: appt.duration_minutes,
           operator: appt.operator,
         })
-      : null
+      : pendingProposal
+        ? await findConflicts(supabase, {
+            id: appt.id,
+            start: pendingProposal.proposed_start,
+            durationMinutes: pendingProposal.duration_minutes,
+            operator: appt.operator,
+          })
+        : null
 
   const messageVehicles = lineVehicles.length
     ? lineVehicles.map((v) => {
@@ -224,7 +250,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
       ? [
           [appt.vehicles.brand, appt.vehicles.model].filter(Boolean).join(" ")
             ? `${[appt.vehicles.brand, appt.vehicles.model].filter(Boolean).join(" ")} (${VEHICLE_CATEGORY[appt.vehicles.category] ?? appt.vehicles.category})`
-            : VEHICLE_CATEGORY[appt.vehicles.category] ?? appt.vehicles.category,
+            : (VEHICLE_CATEGORY[appt.vehicles.category] ?? appt.vehicles.category),
         ]
       : []
   const messageData: BookingMessageData = {
@@ -237,11 +263,30 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
     waterSupply: appt.water_supply,
     durationMinutes: appt.duration_minutes,
   }
+  const offerPanel = !isClosed && (
+    <OfferPanel
+      supabase={supabase}
+      appointment={{
+        id: appt.id,
+        status,
+        service: appt.service,
+        duration_minutes: appt.duration_minutes,
+        clientName: displayName,
+        whatsapp: appt.clients?.whatsapp ?? null,
+      }}
+      today={today}
+      defaultPrice={defaultPrice}
+      loaded={offerData}
+    />
+  )
 
   return (
     <>
       <div className="flex flex-col gap-4">
-        <Link href="/admin/turnos" className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          href="/admin/turnos"
+          className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="size-4" aria-hidden="true" /> Turnos
         </Link>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -251,12 +296,19 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
               <Badge tone={appointmentTone(appt.status)}>{APPOINTMENT_STATUS[appt.status] ?? appt.status}</Badge>
             </div>
             <p className="text-sm tabular-nums text-muted-foreground">
-              {appt.confirmed_start ? "Confirmado para " : pendingProposal ? "Propuesto para " : "Solicitado para "}
-              {formatDateTime(start)} · {appt.duration_minutes} min
+              {start
+                ? `${appt.confirmed_start ? "Confirmado para" : linkedOffer && linkedOffer.slots.length > 1 ? "Primera opción ofrecida" : linkedOffer || pendingProposal ? "Horario acordado por confirmar" : "Solicitado para"} ${formatDateTime(start)}`
+                : "Fecha y horario por coordinar"}{" "}
+              · {appt.duration_minutes} min
             </p>
           </div>
           {appt.clients && (
-            <a href={whatsappLink(appt.clients.whatsapp)} target="_blank" rel="noopener noreferrer" className={secondaryButtonClass}>
+            <a
+              href={whatsappLink(appt.clients.whatsapp)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={secondaryButtonClass}
+            >
               <MessageCircle className="size-4 text-whatsapp" aria-hidden="true" />
               Escribir por WhatsApp
             </a>
@@ -264,13 +316,18 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
         </div>
       </div>
 
+      <OfferAcceptanceForm offer={linkedOffer} appointmentId={appt.id} status={status} />
       <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
         <Card className="flex flex-col gap-5">
           <SectionTitle>Datos del turno</SectionTitle>
           <dl className="grid gap-4 sm:grid-cols-2">
             <DetailRow label="Nombre en este turno">{displayName || "—"}</DetailRow>
             <DetailRow label="Ficha de cliente">
-              {appt.clients ? <TextLink href={`/admin/clientes/${appt.clients.id}`}>{appt.clients.full_name}</TextLink> : "—"}
+              {appt.clients ? (
+                <TextLink href={`/admin/clientes/${appt.clients.id}`}>{appt.clients.full_name}</TextLink>
+              ) : (
+                "—"
+              )}
             </DetailRow>
             <DetailRow label="WhatsApp">
               <span className="tabular-nums">{appt.clients ? formatWhatsapp(appt.clients.whatsapp) : "—"}</span>
@@ -296,9 +353,18 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
             </DetailRow>
           </dl>
           <div className="flex flex-col gap-2 border-t border-border pt-4">
-            <ActionForm action={updateAppointmentContactName} submitLabel="Guardar nombre" submitClassName={secondaryButtonClass} inline>
+            <ActionForm
+              action={updateAppointmentContactName}
+              submitLabel="Guardar nombre"
+              submitClassName={secondaryButtonClass}
+              inline
+            >
               <input type="hidden" name="id" value={appt.id} />
-              <Field label="Cambiar nombre solo en este turno" htmlFor="contact-name" className="min-w-0 flex-1 sm:w-72">
+              <Field
+                label="Cambiar nombre solo en este turno"
+                htmlFor="contact-name"
+                className="min-w-0 flex-1 sm:w-72"
+              >
                 <input
                   id="contact-name"
                   name="contact_name"
@@ -311,7 +377,8 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
               </Field>
             </ActionForm>
             <p className="text-xs text-muted-foreground text-pretty">
-              No modifica la ficha del cliente ni los otros turnos del mismo WhatsApp. Dejalo vacío para usar el nombre del cliente.
+              No modifica la ficha del cliente ni los otros turnos del mismo WhatsApp. Dejalo vacío para usar el nombre
+              del cliente.
             </p>
           </div>
           {lineVehicles.length > 0 && (
@@ -329,7 +396,11 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                       <span>
                         {`${v.position}. ${name} · ${vehicleCategoryLabel(category, v.vehicles?.category_label)}`}
                         <span className="text-muted-foreground">
-                          {v.classification === "catalogo" ? " · automática" : v.classification === "manual" ? " · manual" : ""}
+                          {v.classification === "catalogo"
+                            ? " · automática"
+                            : v.classification === "manual"
+                              ? " · manual"
+                              : ""}
                         </span>
                       </span>
                       <span className="flex items-center gap-2 tabular-nums">
@@ -346,8 +417,18 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                           >
                             <input type="hidden" name="appointment_id" value={appt.id} />
                             <input type="hidden" name="position" value={v.position} />
-                            <Field label={`Tipo del vehículo ${v.position}`} htmlFor={`review-${v.position}`} className="w-36">
-                              <select id={`review-${v.position}`} name="category" required defaultValue={category} className={fieldClass}>
+                            <Field
+                              label={`Tipo del vehículo ${v.position}`}
+                              htmlFor={`review-${v.position}`}
+                              className="w-36"
+                            >
+                              <select
+                                id={`review-${v.position}`}
+                                name="category"
+                                required
+                                defaultValue={category}
+                                className={fieldClass}
+                              >
                                 {Object.entries(PANEL_VEHICLE_CATEGORY).map(([value, label]) => (
                                   <option key={value} value={value}>
                                     {label}
@@ -462,31 +543,32 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                 {messagesLog.map((m) => (
                   <li key={m.id} className="flex flex-wrap gap-x-2 tabular-nums text-muted-foreground">
                     <span>{formatDateTime(m.marked_sent_at)}</span>
-                    <span className="text-foreground">{m.kind === "confirmacion" ? "Confirmación" : "Propuesta de horario"}</span>
+                    <span className="text-foreground">
+                      {m.kind === "confirmacion" ? "Confirmación" : "Propuesta de horario"}
+                    </span>
                     {m.marked_sent_by_email && <span>{`por ${m.marked_sent_by_email}`}</span>}
                   </li>
                 ))}
               </ol>
-              <p className="text-xs text-muted-foreground">Registro manual: no indica que el cliente lo haya recibido o leído.</p>
+              <p className="text-xs text-muted-foreground">
+                Registro manual: no indica que el cliente lo haya recibido o leído.
+              </p>
             </div>
           )}
         </Card>
 
         <div className="flex flex-col gap-6">
-          {!isClosed && (
-            <OfferPanel
-              supabase={supabase}
-              appointment={{
-                id: appt.id,
-                status,
-                service: appt.service,
-                duration_minutes: appt.duration_minutes,
-                clientName: displayName,
-                whatsapp: appt.clients?.whatsapp ?? null,
-              }}
-              today={today}
-              defaultPrice={defaultPrice}
-            />
+          {linkedOffer ? (
+            <details className="rounded-2xl border border-border p-4">
+              <summary className="cursor-pointer text-sm font-medium">
+                {isConfirmed || status === "realizado"
+                  ? "Ver acuerdo original e historial"
+                  : "Opciones, enlace e historial"}
+              </summary>
+              <div className="mt-3">{offerPanel}</div>
+            </details>
+          ) : (
+            offerPanel
           )}
 
           <AppointmentPayments
@@ -502,7 +584,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
 
           <AppointmentNotes supabase={supabase} appointmentId={appt.id} />
 
-          {isRequest && (
+          {isRequest && appt.requested_start && !linkedOffer && (
             <Card className="flex flex-col gap-4">
               <SectionTitle>Confirmar turno</SectionTitle>
               <p className="text-sm text-muted-foreground text-pretty">
@@ -519,20 +601,42 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                 <input type="hidden" name="action" value="confirm" />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Duración (min)" htmlFor="confirm-duration">
-                    <input id="confirm-duration" name="duration" type="number" min={15} max={540} step={15} defaultValue={appt.duration_minutes} className={inputClass} />
+                    <input
+                      id="confirm-duration"
+                      name="duration"
+                      type="number"
+                      min={15}
+                      max={540}
+                      step={15}
+                      defaultValue={appt.duration_minutes}
+                      className={inputClass}
+                    />
                   </Field>
                   <Field label="Importe total acordado" htmlFor="confirm-price">
-                    <input id="confirm-price" name="agreed_price" inputMode="decimal" placeholder="A confirmar" defaultValue={defaultPrice} className={inputClass} />
+                    <input
+                      id="confirm-price"
+                      name="agreed_price"
+                      inputMode="decimal"
+                      placeholder="A confirmar"
+                      defaultValue={defaultPrice}
+                      className={inputClass}
+                    />
                   </Field>
                   <Field label="Operario / unidad asignada" htmlFor="confirm-operator" className="sm:col-span-2">
-                    <input id="confirm-operator" name="operator" placeholder="Opcional" defaultValue={appt.operator ?? ""} className={inputClass} />
+                    <input
+                      id="confirm-operator"
+                      name="operator"
+                      placeholder="Opcional"
+                      defaultValue={appt.operator ?? ""}
+                      className={inputClass}
+                    />
                   </Field>
                 </div>
               </ActionForm>
             </Card>
           )}
 
-          {isRequest && (
+          {isRequest && offerData.missing && (
             <ProposeCard
               title="Proponer otro horario"
               description="El turno no se confirma: queda esperando la aceptación del cliente y se conserva el horario que pidió originalmente."
@@ -543,21 +647,27 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
             />
           )}
 
-          {isConfirmed && appt.clients && (
-            <Card className="flex flex-col gap-4">
-              <SectionTitle>{acceptedProposal ? "Confirmación definitiva por WhatsApp" : "Confirmación por WhatsApp"}</SectionTitle>
-              <SentStatus sent={confirmationSent} pendingText="Confirmación de WhatsApp pendiente de envío" />
-              <WhatsappComposer
-                key={`${appt.confirmed_at}-${appt.agreed_price}`}
-                phone={appt.clients.whatsapp}
-                initialMessage={buildConfirmationMessage(messageData, appt.confirmed_start ?? start)}
-                label={acceptedProposal ? "Enviar confirmación definitiva por WhatsApp" : "Enviar confirmación por WhatsApp"}
-              />
-              {!confirmationSent && <MarkSentForm id={appt.id} kind="confirmacion" />}
-            </Card>
+          {isConfirmed && start && appt.clients && (
+            <details className="rounded-2xl border border-border bg-card p-5">
+              <summary className="cursor-pointer font-medium">Enviar resumen por WhatsApp (opcional)</summary>
+              <div className="mt-4 flex flex-col gap-4">
+                <SentStatus sent={confirmationSent} pendingText="Confirmación de WhatsApp pendiente de envío" />
+                <WhatsappComposer
+                  key={`${appt.confirmed_at}-${appt.agreed_price}`}
+                  phone={appt.clients.whatsapp}
+                  initialMessage={buildConfirmationMessage(messageData, appt.confirmed_start ?? start)}
+                  label={
+                    acceptedProposal
+                      ? "Enviar confirmación definitiva por WhatsApp"
+                      : "Enviar confirmación por WhatsApp"
+                  }
+                />
+                {!confirmationSent && <MarkSentForm id={appt.id} kind="confirmacion" />}
+              </div>
+            </details>
           )}
 
-          {isWaiting && (
+          {isWaiting && pendingProposal && !linkedOffer && (
             <Card className="flex flex-col gap-4">
               <SectionTitle>Esperando aceptación del cliente</SectionTitle>
               {pendingProposal ? (
@@ -576,7 +686,11 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                     <WhatsappComposer
                       key={pendingProposal.id}
                       phone={appt.clients.whatsapp}
-                      initialMessage={buildProposalMessage(messageData, pendingProposal.original_start, pendingProposal.proposed_start)}
+                      initialMessage={buildProposalMessage(
+                        messageData,
+                        pendingProposal.original_start,
+                        pendingProposal.proposed_start,
+                      )}
                       label="Enviar propuesta por WhatsApp"
                     />
                   )}
@@ -616,7 +730,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
             </Card>
           )}
 
-          {isWaiting && !pendingProposal && (
+          {isWaiting && !pendingProposal && offerData.missing && (
             <ProposeCard
               title="Proponer otra alternativa"
               description="Se guarda como nueva propuesta. El turno sigue sin confirmar hasta que el cliente acepte."
@@ -634,13 +748,34 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                 <input type="hidden" name="id" value={appt.id} />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Fecha real del lavado" htmlFor="done-date">
-                    <input id="done-date" name="date" type="date" required max={today} defaultValue={startParts.date <= today ? startParts.date : today} className={fieldClass} />
+                    <input
+                      id="done-date"
+                      name="date"
+                      type="date"
+                      required
+                      max={today}
+                      defaultValue={startParts.date <= today ? startParts.date : today}
+                      className={fieldClass}
+                    />
                   </Field>
                   <Field label="Hora" htmlFor="done-time">
-                    <input id="done-time" name="time" type="time" required defaultValue={startParts.date <= today ? startParts.time : nowParts.time} className={fieldClass} />
+                    <input
+                      id="done-time"
+                      name="time"
+                      type="time"
+                      required
+                      defaultValue={startParts.date <= today ? startParts.time : nowParts.time}
+                      className={fieldClass}
+                    />
                   </Field>
                   <Field label="Tipo de vehículo" htmlFor="done-category">
-                    <select id="done-category" name="vehicle_category" required defaultValue={appt.vehicles?.category ?? ""} className={fieldClass}>
+                    <select
+                      id="done-category"
+                      name="vehicle_category"
+                      required
+                      defaultValue={appt.vehicles?.category ?? ""}
+                      className={fieldClass}
+                    >
                       <option value="" disabled>
                         Elegir
                       </option>
@@ -662,13 +797,32 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                     />
                   </Field>
                   <Field label="Precio acordado" htmlFor="done-agreed">
-                    <input id="done-agreed" name="agreed_price" inputMode="decimal" defaultValue={appt.agreed_price ?? ""} className={fieldClass} />
+                    <input
+                      id="done-agreed"
+                      name="agreed_price"
+                      inputMode="decimal"
+                      defaultValue={appt.agreed_price ?? ""}
+                      className={fieldClass}
+                    />
                   </Field>
                   <Field label="Precio final" htmlFor="done-final">
-                    <input id="done-final" name="final_price" inputMode="decimal" required defaultValue={appt.agreed_price ?? ""} className={fieldClass} />
+                    <input
+                      id="done-final"
+                      name="final_price"
+                      inputMode="decimal"
+                      required
+                      defaultValue={appt.agreed_price ?? ""}
+                      className={fieldClass}
+                    />
                   </Field>
                   <Field label="Operario" htmlFor="done-operator">
-                    <input id="done-operator" name="operator" placeholder="Opcional" defaultValue={appt.operator ?? ""} className={fieldClass} />
+                    <input
+                      id="done-operator"
+                      name="operator"
+                      placeholder="Opcional"
+                      defaultValue={appt.operator ?? ""}
+                      className={fieldClass}
+                    />
                   </Field>
                   <Field label="Observaciones" htmlFor="done-notes" className="sm:col-span-2">
                     <textarea id="done-notes" name="notes" rows={3} className={`${fieldClass} py-2.5`} />
@@ -682,7 +836,8 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
             <Card className="flex flex-col gap-3">
               <SectionTitle>Servicio registrado</SectionTitle>
               <p className="text-sm text-muted-foreground tabular-nums">
-                {formatDateTime(service.performed_at)} · Precio final {money(service.final_price)} · Pagado {money(service.amount_paid)}
+                {formatDateTime(service.performed_at)} · Precio final {money(service.final_price)} · Pagado{" "}
+                {money(service.amount_paid)}
               </p>
               <Link href={`/admin/cobros?servicio=${service.id}`} className={`${secondaryButtonClass} w-fit`}>
                 Ir a cobros
@@ -690,18 +845,27 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
             </Card>
           )}
 
-          {(service || status === "realizado") && appt.clients && <ReviewSection supabase={supabase} clientId={appt.clients.id} />}
+          {(service || status === "realizado") && appt.clients && (
+            <ReviewSection supabase={supabase} clientId={appt.clients.id} />
+          )}
 
           {isConfirmed && (
-            <ProposeCard
-              title="Reprogramar"
-              description="El turno deja de estar confirmado y queda esperando la aceptación del cliente con el nuevo horario."
-              submitLabel="Reprogramar"
-              appt={appt}
-              today={today}
-              defaultPrice={defaultPrice}
-              secondary
-            />
+            <details className="rounded-2xl border border-border bg-card p-5">
+              <summary className="cursor-pointer font-medium">Editar fecha, precio o estado del turno</summary>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Registrá directamente los cambios que acordaste con el cliente.
+              </p>
+              <div className="mt-4">
+                <QuickAppointmentControls
+                  appointment={{
+                    ...appt,
+                    amount_paid: paymentSummary?.amount_paid ?? 0,
+                    payment_status: paymentSummary?.payment_status ?? "pendiente",
+                  }}
+                  showDetailLink={false}
+                />
+              </div>
+            </details>
           )}
 
           {(isRequest || isConfirmed || isWaiting) && (
@@ -716,7 +880,13 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                 <input type="hidden" name="id" value={appt.id} />
                 <input type="hidden" name="action" value={isRequest ? "reject" : "cancel"} />
                 <Field label="Motivo (opcional)" htmlFor="close-reason">
-                  <input id="close-reason" name="reason" maxLength={300} placeholder="Ej.: el cliente no puede ese día" className={inputClass} />
+                  <input
+                    id="close-reason"
+                    name="reason"
+                    maxLength={300}
+                    placeholder="Ej.: el cliente no puede ese día"
+                    className={inputClass}
+                  />
                 </Field>
               </ActionForm>
             </Card>
@@ -747,13 +917,16 @@ const inputClass = `${fieldClass} text-base md:text-sm`
 function ConflictNotice({ check }: { check: ConflictCheck | null }) {
   if (!check || check.conflicts.length === 0) return null
   return (
-    <div role="status" className={cn("rounded-2xl p-4 text-sm", check.blocked ? "bg-destructive/10 text-destructive" : "bg-surface")}>
+    <div
+      role="status"
+      className={cn("rounded-2xl p-4 text-sm", check.blocked ? "bg-destructive/10 text-destructive" : "bg-surface")}
+    >
       <p className="font-medium text-pretty">
         {check.blocked
           ? "Horario no disponible: se superpone con otro turno confirmado. No se va a poder confirmar, proponé otro horario."
           : "Hay turnos confirmados cerca de ese horario, pero la capacidad todavía lo permite."}
       </p>
-      
+
       <ul className="mt-1 flex flex-col gap-0.5 tabular-nums">
         {check.conflicts.map((c) => (
           <li key={c.id}>
@@ -769,7 +942,10 @@ function ConflictNotice({ check }: { check: ConflictCheck | null }) {
 function SentStatus({ sent, pendingText }: { sent: SentMessage | null; pendingText: string }) {
   if (!sent) {
     return (
-      <p role="status" className="flex items-center gap-2 rounded-2xl bg-amber-300/15 p-3 text-sm font-medium text-amber-100">
+      <p
+        role="status"
+        className="flex items-center gap-2 rounded-2xl bg-amber-300/15 p-3 text-sm font-medium text-amber-100"
+      >
         <Badge tone="warning">Pendiente</Badge>
         {pendingText}
       </p>
@@ -815,13 +991,17 @@ async function ProposeCard({
   secondary?: boolean
 }) {
   const slug = submitLabel.toLowerCase().replace(/\W+/g, "-")
-  const minTime="07:00"
-  const maxTime="20:00"
+  const minTime = "07:00"
+  const maxTime = "20:00"
   return (
     <Card className="flex flex-col gap-4">
       <SectionTitle>{title}</SectionTitle>
       <p className="text-sm text-muted-foreground text-pretty">{description}</p>
-      <ActionForm action={manageAppointment} submitLabel={submitLabel} submitClassName={secondary ? secondaryButtonClass : undefined}>
+      <ActionForm
+        action={manageAppointment}
+        submitLabel={submitLabel}
+        submitClassName={secondary ? secondaryButtonClass : undefined}
+      >
         <input type="hidden" name="id" value={appt.id} />
         <input type="hidden" name="action" value="propose" />
         <div className="grid gap-3 sm:grid-cols-2">
@@ -829,16 +1009,47 @@ async function ProposeCard({
             <input id={`${slug}-date`} name="date" type="date" required min={today} className={inputClass} />
           </Field>
           <Field label="Nuevo horario" htmlFor={`${slug}-time`}>
-            <input id={`${slug}-time`} name="time" type="time" required min={minTime} max={maxTime} step={900} className={inputClass} />
+            <input
+              id={`${slug}-time`}
+              name="time"
+              type="time"
+              required
+              min={minTime}
+              max={maxTime}
+              step={900}
+              className={inputClass}
+            />
           </Field>
           <Field label="Duración (min)" htmlFor={`${slug}-duration`}>
-            <input id={`${slug}-duration`} name="duration" type="number" min={15} max={540} step={15} defaultValue={appt.duration_minutes} className={inputClass} />
+            <input
+              id={`${slug}-duration`}
+              name="duration"
+              type="number"
+              min={15}
+              max={540}
+              step={15}
+              defaultValue={appt.duration_minutes}
+              className={inputClass}
+            />
           </Field>
           <Field label="Importe total" htmlFor={`${slug}-price`}>
-            <input id={`${slug}-price`} name="agreed_price" inputMode="decimal" placeholder="A confirmar" defaultValue={defaultPrice} className={inputClass} />
+            <input
+              id={`${slug}-price`}
+              name="agreed_price"
+              inputMode="decimal"
+              placeholder="A confirmar"
+              defaultValue={defaultPrice}
+              className={inputClass}
+            />
           </Field>
           <Field label="Operario / unidad asignada" htmlFor={`${slug}-operator`} className="sm:col-span-2">
-            <input id={`${slug}-operator`} name="operator" placeholder="Opcional" defaultValue={appt.operator ?? ""} className={inputClass} />
+            <input
+              id={`${slug}-operator`}
+              name="operator"
+              placeholder="Opcional"
+              defaultValue={appt.operator ?? ""}
+              className={inputClass}
+            />
           </Field>
         </div>
       </ActionForm>

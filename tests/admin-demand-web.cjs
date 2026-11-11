@@ -91,6 +91,7 @@ const client = {
 }
 const calls = []
 let failExpenses = false
+let activeOffer = null
 const backend = http.createServer(async (req, res) => {
   let raw = ""
   for await (const chunk of req) raw += chunk
@@ -124,6 +125,7 @@ const backend = http.createServer(async (req, res) => {
       },
     ]
   else if (path.endsWith("/appointments")) data = [appointment]
+  else if (path.endsWith("/appointment_offers")) data = activeOffer ? [activeOffer] : []
   else if (path.endsWith("/services")) data = [{ ...client.services[0], clients: { id, full_name: client.full_name } }]
   else if (path.endsWith("/appointment_vehicles"))
     data = [
@@ -143,6 +145,12 @@ const backend = http.createServer(async (req, res) => {
     data = { code: "PGRST000", message: "Synthetic failure" }
   } else if (path.includes("/rpc/")) {
     calls.push({ path, body })
+    if (path.endsWith("respond_appointment_offer")) {
+      appointment.status = "confirmado"
+      appointment.confirmed_start = body.p_start
+      activeOffer.status = "aceptada"
+      activeOffer.accepted_start = body.p_start
+    }
     data = path.endsWith("admin_correct_payment") ? paymentId : id
   }
   if (Array.isArray(data) && req.headers.accept?.includes("vnd.pgrst.object")) data = data[0] ?? null
@@ -268,6 +276,72 @@ const backend = http.createServer(async (req, res) => {
       0,
     )
     console.log("PASS: default public request remains on demand without published zones or time selection")
+    appointment.status = "esperando_cliente"
+    appointment.confirmed_start = null
+    appointment.services = []
+    appointment.appointment_proposals = []
+    const offeredStart = new Date(Date.now() + 5 * 86400000).toISOString()
+    activeOffer = {
+      id,
+      token: "a".repeat(48),
+      version: 2,
+      status: "enviada",
+      service_label: "Lavado prueba",
+      total_price: 1250.5,
+      discount: 0,
+      conditions: null,
+      slots: [{ start: offeredStart, duration: 90 }],
+      accepted_start: null,
+    }
+    await page.goto(`http://127.0.0.1:3027/admin/turnos/${id}`)
+    const acceptButton = page.getByRole("button", { name: "Cliente aceptó · confirmar turno", exact: true })
+    await acceptButton.waitFor()
+    assert.equal(await page.getByRole("button", { name: "Guardar nueva propuesta", exact: true }).count(), 0)
+    assert.equal(await page.getByRole("button", { name: "Guardar propuesta", exact: true }).isVisible(), false)
+    assert.equal(await page.getByText(/El cliente pidió otro horario\. Horario solicitado originalmente/).count(), 0)
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
+    activeOffer.version = 3
+    const beforeAccept = calls.filter((c) => c.path.endsWith("respond_appointment_offer")).length
+    await acceptButton.click()
+    await page
+      .getByText("Las condiciones cambiaron. Recargá la página y revisá el horario y el importe antes de confirmar.", {
+        exact: true,
+      })
+      .waitFor()
+    assert.equal(calls.filter((c) => c.path.endsWith("respond_appointment_offer")).length, beforeAccept)
+    await page.reload()
+    await page.getByRole("button", { name: "Cliente aceptó · confirmar turno", exact: true }).click()
+    await page.getByText("Confirmado", { exact: true }).first().waitFor()
+    const acceptance = calls.find((c) => c.path.endsWith("respond_appointment_offer"))
+    assert.equal(acceptance.body.p_start, offeredStart)
+    assert.equal(acceptance.body.p_version, 3)
+    assert.equal(acceptance.body.p_action, "aceptar")
+    assert.equal(await page.getByRole("button", { name: "Cliente aceptó · confirmar turno", exact: true }).count(), 0)
+    console.log(
+      "PASS: link offer accepts WhatsApp agreement directly, hides duplicate proposal forms and rejects stale conditions",
+    )
+    appointment.status = "esperando_cliente"
+    appointment.confirmed_start = null
+    activeOffer.status = "enviada"
+    activeOffer.accepted_start = null
+    const secondStart = new Date(Date.now() + 6 * 86400000).toISOString()
+    activeOffer.slots.push({ start: secondStart, duration: 60 })
+    appointment.appointment_proposals = [
+      {
+        id: paymentId,
+        original_start: null,
+        proposed_start: offeredStart,
+        duration_minutes: 90,
+        status: "pendiente",
+        proposed_at: now,
+      },
+    ]
+    await page.reload()
+    await page.getByLabel("Horario que aceptó el cliente", { exact: true }).selectOption(secondStart)
+    await page.getByRole("button", { name: "Cliente aceptó · confirmar turno", exact: true }).click()
+    await page.getByText("Confirmado", { exact: true }).first().waitFor()
+    assert.equal(calls.filter((c) => c.path.endsWith("respond_appointment_offer")).at(-1).body.p_start, secondStart)
+    console.log("PASS: multiple offered times require choosing the one agreed with the client")
   } catch (error) {
     console.error(error)
     console.error(log.slice(-4500))

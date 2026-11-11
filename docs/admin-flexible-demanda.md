@@ -6,6 +6,7 @@ Implementación en `feat/admin-flexible-demanda`. No incluye publicación ni eje
 
 - Cinco entradas principales: Hoy, Agenda, Clientes, Finanzas y Ajustes. Las pantallas auxiliares siguen disponibles mediante enlaces dentro de cada área; se conservan sus rutas y permisos existentes.
 - La ficha del cliente concentra datos, vehículos, turnos, cobros, seguimiento e historial. Permite crear un turno, cargar un lavado ya realizado, editar sus detalles, modificar precio/fecha/estado y registrar o corregir ingresos desde la misma ficha.
+- En el detalle de un turno con opciones guardadas, “Cliente aceptó · confirmar turno” permite registrar arriba de la pantalla lo acordado por WhatsApp o teléfono. Si hay varios horarios exige elegir uno; rechaza condiciones modificadas desde que se abrió la pantalla. Las opciones, enlace e historial quedan plegados y no se muestra otro formulario de propuesta del mecanismo anterior. Una vez confirmado, se puede editar directamente la fecha, precio y estado; reenviar un resumen es opcional. Este ajuste utiliza las funciones ya instaladas y no requiere ejecutar SQL adicional.
 - El formulario público funciona a demanda por defecto: se solicitan los datos del cliente y vehículo; la fecha, hora y precio se acuerdan después. Zonas, recorridos y agenda de servicios quedan ocultos, con sus datos conservados. No se envían mensajes automáticamente.
 - El calendario muestra siete días. El tablero incluye los trabajos realizados con deuda aunque tengan más de treinta días.
 

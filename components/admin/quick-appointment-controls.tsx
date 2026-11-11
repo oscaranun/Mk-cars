@@ -57,7 +57,15 @@ function turnValue(status: string) {
   return status
 }
 
-export function QuickAppointmentControls({ appointment, index }: { appointment: QuickAppointment; index?: number }) {
+export function QuickAppointmentControls({
+  appointment,
+  index,
+  showDetailLink = true,
+}: {
+  appointment: QuickAppointment
+  index?: number
+  showDetailLink?: boolean
+}) {
   const id = appointment.id
   const agreed = Math.max(Number(appointment.agreed_price ?? 0) - Number(appointment.discount ?? 0), 0)
   const service = Array.isArray(appointment.services) ? appointment.services[0] : appointment.services
@@ -68,18 +76,28 @@ export function QuickAppointmentControls({ appointment, index }: { appointment: 
   const start = appointment.confirmed_start ?? appointment.requested_start ?? null
   const startParts = start ? argentinaParts(start) : null
   const state = serviceState(appointment)
-  const payTone = appointment.payment_status === "pagado" ? "success" : appointment.payment_status === "parcial" ? "info" : "warning"
-  const payLabel = appointment.payment_status === "pagado" ? "Pagado" : appointment.payment_status === "parcial" ? "Parcial" : "Pago pendiente"
+  const payTone =
+    appointment.payment_status === "pagado" ? "success" : appointment.payment_status === "parcial" ? "info" : "warning"
+  const payLabel =
+    appointment.payment_status === "pagado"
+      ? "Pagado"
+      : appointment.payment_status === "parcial"
+        ? "Parcial"
+        : "Pago pendiente"
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl bg-surface px-4 py-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-medium">Turno{index ? ` ${index}` : ""}</span>
-        <Badge tone={appointmentTone(appointment.status)}>{APPOINTMENT_STATUS[appointment.status] ?? appointment.status}</Badge>
+        <Badge tone={appointmentTone(appointment.status)}>
+          {APPOINTMENT_STATUS[appointment.status] ?? appointment.status}
+        </Badge>
         <Badge tone={payTone}>{payLabel}</Badge>
-        <Link href={`/admin/turnos/${id}`} className="ml-auto text-electric underline-offset-4 hover:underline">
-          Ver turno
-        </Link>
+        {showDetailLink && (
+          <Link href={`/admin/turnos/${id}`} className="ml-auto text-electric underline-offset-4 hover:underline">
+            Ver turno
+          </Link>
+        )}
       </div>
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
@@ -97,12 +115,20 @@ export function QuickAppointmentControls({ appointment, index }: { appointment: 
         </div>
         <div>
           <dt className="text-xs text-muted-foreground">Saldo</dt>
-          <dd className={cn("tabular-nums", balance > 0 ? "text-amber-300" : "text-muted-foreground")}>{money(balance)}</dd>
+          <dd className={cn("tabular-nums", balance > 0 ? "text-amber-300" : "text-muted-foreground")}>
+            {money(balance)}
+          </dd>
         </div>
       </dl>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <ActionForm action={quickSetTurnStatus} submitLabel="Guardar" submitClassName={saveClass} inline className="flex-nowrap">
+        <ActionForm
+          action={quickSetTurnStatus}
+          submitLabel="Guardar"
+          submitClassName={saveClass}
+          inline
+          className="flex-nowrap"
+        >
           <input type="hidden" name="appointment_id" value={id} />
           <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted-foreground">
             Turno
@@ -116,7 +142,13 @@ export function QuickAppointmentControls({ appointment, index }: { appointment: 
           </label>
         </ActionForm>
 
-        <ActionForm action={quickSetServiceState} submitLabel="Guardar" submitClassName={saveClass} inline className="flex-nowrap">
+        <ActionForm
+          action={quickSetServiceState}
+          submitLabel="Guardar"
+          submitClassName={saveClass}
+          inline
+          className="flex-nowrap"
+        >
           <input type="hidden" name="appointment_id" value={id} />
           <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted-foreground">
             Servicio
@@ -146,15 +178,34 @@ export function QuickAppointmentControls({ appointment, index }: { appointment: 
             <label className="sr-only" htmlFor={`date-${id}`}>
               Fecha
             </label>
-            <input id={`date-${id}`} name="date" type="date" required defaultValue={startParts?.date ?? ""} className={compactField} />
+            <input
+              id={`date-${id}`}
+              name="date"
+              type="date"
+              required
+              defaultValue={startParts?.date ?? ""}
+              className={compactField}
+            />
             <label className="sr-only" htmlFor={`time-${id}`}>
               Hora
             </label>
-            <input id={`time-${id}`} name="time" type="time" required defaultValue={startParts?.time ?? ""} className={cn(fieldClass, "w-32")} />
+            <input
+              id={`time-${id}`}
+              name="time"
+              type="time"
+              required
+              defaultValue={startParts?.time ?? ""}
+              className={cn(fieldClass, "w-32")}
+            />
             <label className="sr-only" htmlFor={`reason-date-${id}`}>
               Motivo del cambio
             </label>
-            <input id={`reason-date-${id}`} name="reason" placeholder="Motivo (opcional)" className={cn(fieldClass, "basis-full")} />
+            <input
+              id={`reason-date-${id}`}
+              name="reason"
+              placeholder="Motivo (opcional)"
+              className={cn(fieldClass, "basis-full")}
+            />
           </ActionForm>
 
           <ActionForm action={quickAdjustPrice} submitLabel="Ajustar precio" submitClassName={saveClass} inline>
@@ -165,11 +216,25 @@ export function QuickAppointmentControls({ appointment, index }: { appointment: 
             <label className="sr-only" htmlFor={`price-${id}`}>
               Precio final
             </label>
-            <input id={`price-${id}`} name="price" inputMode="decimal" required defaultValue={final || ""} className={compactField} />
+            <input
+              id={`price-${id}`}
+              name="price"
+              inputMode="decimal"
+              required
+              defaultValue={final || ""}
+              className={compactField}
+            />
             <label className="sr-only" htmlFor={`reason-price-${id}`}>
               Motivo del ajuste
             </label>
-            <input id={`reason-price-${id}`} name="reason" required minLength={3} placeholder="Motivo del ajuste" className={cn(fieldClass, "basis-full")} />
+            <input
+              id={`reason-price-${id}`}
+              name="reason"
+              required
+              minLength={3}
+              placeholder="Motivo del ajuste"
+              className={cn(fieldClass, "basis-full")}
+            />
           </ActionForm>
 
           <ActionForm action={quickSetCollected} submitLabel="Guardar cobro" submitClassName={saveClass} inline>
@@ -180,7 +245,14 @@ export function QuickAppointmentControls({ appointment, index }: { appointment: 
             <label className="sr-only" htmlFor={`paid-${id}`}>
               Importe cobrado
             </label>
-            <input id={`paid-${id}`} name="amount" inputMode="decimal" required defaultValue={paid || final || ""} className={compactField} />
+            <input
+              id={`paid-${id}`}
+              name="amount"
+              inputMode="decimal"
+              required
+              defaultValue={paid || final || ""}
+              className={compactField}
+            />
             <label className="sr-only" htmlFor={`method-${id}`}>
               Medio de pago
             </label>
@@ -206,7 +278,13 @@ export function QuickAppointmentControls({ appointment, index }: { appointment: 
             />
           </ActionForm>
 
-          <ActionForm action={quickAddTip} submitLabel="Sumar adicional" submitClassName={saveClass} inline resetOnSuccess>
+          <ActionForm
+            action={quickAddTip}
+            submitLabel="Sumar adicional"
+            submitClassName={saveClass}
+            inline
+            resetOnSuccess
+          >
             <input type="hidden" name="appointment_id" value={id} />
             <p className="basis-full text-xs font-medium text-muted-foreground">
               Propina o adicional <span className="font-normal">(se registra aparte del precio)</span>
@@ -214,7 +292,14 @@ export function QuickAppointmentControls({ appointment, index }: { appointment: 
             <label className="sr-only" htmlFor={`tip-${id}`}>
               Importe adicional
             </label>
-            <input id={`tip-${id}`} name="amount" inputMode="decimal" required placeholder="Importe" className={compactField} />
+            <input
+              id={`tip-${id}`}
+              name="amount"
+              inputMode="decimal"
+              required
+              placeholder="Importe"
+              className={compactField}
+            />
             <label className="sr-only" htmlFor={`tip-method-${id}`}>
               Medio de pago del adicional
             </label>
@@ -228,7 +313,12 @@ export function QuickAppointmentControls({ appointment, index }: { appointment: 
             <label className="sr-only" htmlFor={`tip-notes-${id}`}>
               Detalle del adicional
             </label>
-            <input id={`tip-notes-${id}`} name="notes" placeholder="Detalle (ej. propina)" className={cn(fieldClass, "basis-full")} />
+            <input
+              id={`tip-notes-${id}`}
+              name="notes"
+              placeholder="Detalle (ej. propina)"
+              className={cn(fieldClass, "basis-full")}
+            />
           </ActionForm>
         </div>
       </details>
