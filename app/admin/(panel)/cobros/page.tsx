@@ -1,3 +1,5 @@
+import { IncomeForm } from "@/components/admin/income-form"
+import { QueryErrorNotice } from "@/components/admin/query-error-notice"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { Pencil } from "lucide-react"
@@ -44,6 +46,8 @@ type PaymentRow = {
   amount: number
   method: string
   paid_at: string
+  concept: string | null
+  clients: {id:string;full_name:string}|null
   notes: string | null
   services: { wash_type: string; clients: { id: string; full_name: string } | null } | null
   appointments: { service: string | null; clients: { id: string; full_name: string } | null } | null
@@ -61,7 +65,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
     let q = supabase
       .from("payments")
       .select(
-        "id, amount, method, paid_at, notes, services(wash_type, clients(id, full_name)), appointments(service, clients(id, full_name))",
+        "id, amount, method, paid_at, notes, concept, clients(id,full_name), services(wash_type, clients(id, full_name)), appointments(service, clients(id, full_name))",
       )
       .gte("paid_at", range.fromISO)
       .lt("paid_at", range.toISO)
@@ -72,7 +76,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
     return q.returns<PaymentRow[]>()
   })
 
-  const [{ data: open }, { data: payments }] = await Promise.all([
+  const [{ data: open, error: openError }, { data: payments, error: paymentsError }] = await Promise.all([
     supabase
       .from("services")
       .select("id, performed_at, wash_type, final_price, amount_paid, payment_status, clients(id, full_name)")
@@ -81,6 +85,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
       .returns<OpenService[]>(),
     paymentsQuery,
   ])
+
+  if (openError || paymentsError) return <QueryErrorNotice subject="los ingresos y saldos pendientes" />
 
   const openRows = (open ?? []).filter((s) => Number(s.final_price) - Number(s.amount_paid) > 0)
   const collected = (payments ?? []).reduce((sum, p) => sum + Number(p.amount), 0)
@@ -93,11 +99,12 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   return (
     <>
       <PageHeader
-        title="Cobros"
+        title="Pendientes de cobro e ingresos"
         description="La facturación cobrada suma solo pagos registrados. Los saldos pendientes no se cuentan."
         actions={<ExportLink entity="cobros" query={{ desde: range.from, hasta: range.to }} />}
       />
 
+      <IncomeForm />
       <dl className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Stat label="Cobrado en el período" value={money(collected)} />
         {byMethod.map((m) => (
@@ -195,8 +202,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
             </thead>
             <tbody>
               {payments.map((p) => {
-                const client = p.services?.clients ?? p.appointments?.clients ?? null
-                const service = p.services?.wash_type ?? p.appointments?.service ?? null
+                const client = p.clients ?? p.services?.clients ?? p.appointments?.clients ?? null
+                const service = p.concept ?? p.services?.wash_type ?? p.appointments?.service ?? null
                 return (
                   <tr key={p.id}>
                     <td className={`${tdClass} tabular-nums`}>{formatDate(p.paid_at)}</td>

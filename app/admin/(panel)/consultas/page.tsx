@@ -53,7 +53,7 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Se
 
   let query = supabase
     .from("inquiries")
-    .select("id, created_at, service, extras, source, origen_reserva, commercial_status, notes, clients(id, full_name, whatsapp), vehicles(category, brand, model), appointments(id, status, payment_status, amount_paid, agreed_price, discount, requested_start, confirmed_start, preparing_since, services(final_price))")
+    .select("id, created_at, service, extras, source, origen_reserva, commercial_status, notes, clients(id, full_name, whatsapp), vehicles(category, brand, model), appointments(id, status, payment_status, amount_paid, agreed_price, discount, requested_start, confirmed_start, preparing_since, service_started_at, services(final_price))")
     .gte("created_at", range.fromISO)
     .lt("created_at", range.toISO)
     .order("created_at", { ascending: false })

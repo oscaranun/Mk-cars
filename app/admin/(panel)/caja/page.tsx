@@ -1,30 +1,14 @@
+import { QueryErrorNotice } from "@/components/admin/query-error-notice"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import {
-  DayExpenses,
-  DayPayments,
-  ExpenseHistory,
-  MethodBreakdown,
-  type CashExpense,
-  type CashPayment,
-} from "@/components/admin/cash-sections"
+import { DayExpenses, ExpenseHistory, type CashExpense } from "@/components/admin/cash-sections"
 import { PageHeader, Stat, secondaryButtonClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
-import { activePayments } from "@/lib/admin/payments"
-import { addDays, formatDate, isValidDate, money, startOfArgentinaDay, todayArgentina } from "@/lib/admin/format"
+import { addDays, formatDate, isValidDate, money, todayArgentina } from "@/lib/admin/format"
 import { cn } from "@/lib/utils"
 
-export const metadata: Metadata = { title: "Caja del día" }
-
-type PaymentRow = {
-  id: string
-  amount: number
-  method: string
-  paid_at: string
-  services: { wash_type: string; clients: { full_name: string } | null } | null
-  appointments: { service: string | null; clients: { full_name: string } | null } | null
-}
+export const metadata: Metadata = { title: "Egresos" }
 
 type SearchParams = Promise<{ dia?: string }>
 
@@ -35,34 +19,17 @@ export default async function CashPage({ searchParams }: { searchParams: SearchP
   const day = params.dia && isValidDate(params.dia) && params.dia <= today ? params.dia : today
   const monthStart = `${day.slice(0, 7)}-01`
 
-  const [{ data: payments }, { data: expenses }, { data: monthPayments }, { data: monthExpenses }, { data: recentExpenses }] = await Promise.all([
-    activePayments((excludeVoided) => {
-      const q = supabase
-        .from("payments")
-        .select("id, amount, method, paid_at, services(wash_type, clients(full_name)), appointments(service, clients(full_name))")
-        .gte("paid_at", startOfArgentinaDay(day))
-        .lt("paid_at", startOfArgentinaDay(addDays(day, 1)))
-        .order("paid_at", { ascending: true })
-      return (excludeVoided ? q.is("voided_at", null) : q).returns<PaymentRow[]>()
-    }),
+  const [{data:expenses,error:expensesError},{data:monthExpenses,error:monthExpensesError},{data:recentExpenses,error:recentExpensesError}] = await Promise.all([
     supabase
       .from("expenses")
-      .select("id, amount, method, category, description")
+      .select("id, amount, method, category, description").is("voided_at", null)
       .eq("spent_on", day)
       .order("created_at", { ascending: true })
       .returns<CashExpense[]>(),
-    activePayments((excludeVoided) => {
-      const q = supabase
-        .from("payments")
-        .select("amount")
-        .gte("paid_at", startOfArgentinaDay(monthStart))
-        .lt("paid_at", startOfArgentinaDay(addDays(day, 1)))
-      return excludeVoided ? q.is("voided_at", null) : q
-    }),
-    supabase.from("expenses").select("amount").gte("spent_on", monthStart).lte("spent_on", day),
+    supabase.from("expenses").select("amount").is("voided_at", null).gte("spent_on", monthStart).lte("spent_on", day),
     supabase
       .from("expenses")
-      .select("id, amount, method, category, description, spent_on")
+      .select("id, amount, method, category, description, spent_on").is("voided_at", null)
       .gte("spent_on", addDays(today, -29))
       .order("spent_on", { ascending: false })
       .order("created_at", { ascending: false })
@@ -70,27 +37,19 @@ export default async function CashPage({ searchParams }: { searchParams: SearchP
       .returns<(CashExpense & { spent_on: string })[]>(),
   ])
 
-  const income: CashPayment[] = (payments ?? []).map((p) => ({
-    id: p.id,
-    amount: Number(p.amount),
-    method: p.method,
-    paid_at: p.paid_at,
-    client: p.services?.clients?.full_name ?? p.appointments?.clients?.full_name ?? "Cliente",
-    service: p.services?.wash_type ?? p.appointments?.service ?? "Servicio",
-  }))
+  if (expensesError || monthExpensesError || recentExpensesError) return <QueryErrorNotice subject="los movimientos del día" />
+
   const outflow = expenses ?? []
 
   const sum = (rows: { amount: number }[] | null) => (rows ?? []).reduce((s, r) => s + Number(r.amount), 0)
-  const totalIn = sum(income)
   const totalOut = sum(outflow)
-  const monthNet = sum(monthPayments) - sum(monthExpenses)
 
   const prev = addDays(day, -1)
   const next = addDays(day, 1)
 
   return (
     <>
-      <PageHeader title="Caja del día" description="Cobros y gastos del día, separados por medio de pago." />
+      <PageHeader title="Egresos" description="Registrá gastos con la fecha real de pago. Los registros anulados no se suman." actions={<Link href="/admin/gastos-fijos" className={secondaryButtonClass}>Gastos fijos</Link>} />
 
       <nav aria-label="Cambiar de día" className="flex items-center justify-between gap-2">
         <Link href={`/admin/caja?dia=${prev}`} className={cn(secondaryButtonClass, "size-11 px-0")} aria-label="Día anterior">
@@ -115,20 +74,8 @@ export default async function CashPage({ searchParams }: { searchParams: SearchP
         )}
       </nav>
 
-      <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Entró" value={money(totalIn)} hint={`${income.length} cobro${income.length === 1 ? "" : "s"}`} />
-        <Stat label="Salió" value={money(totalOut)} hint={`${outflow.length} gasto${outflow.length === 1 ? "" : "s"}`} />
-        <Stat label="Ganancia del día" value={money(totalIn - totalOut)} />
-        <Stat label="Ganancia del mes" value={money(monthNet)} hint="Hasta este día" />
-      </dl>
-
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-6">
-          <MethodBreakdown income={income} expenses={outflow} />
-          <DayPayments payments={income} />
-        </div>
-        <DayExpenses expenses={outflow} day={day} today={today} />
-      </div>
+      <dl className="grid grid-cols-2 gap-3"><Stat label="Gastos del día" value={money(totalOut)} /><Stat label="Gastos del mes" value={money(sum(monthExpenses))} hint="Hasta el día seleccionado" /></dl>
+      <DayExpenses expenses={outflow} day={day} today={today} />
 
       <ExpenseHistory expenses={recentExpenses ?? []} />
     </>

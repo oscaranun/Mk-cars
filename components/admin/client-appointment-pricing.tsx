@@ -1,10 +1,20 @@
+import { QuickAppointmentControls } from "@/components/admin/quick-appointment-controls"
+import { editDemandDetails } from "@/app/admin/(panel)/edit-actions"
 import { quickSetCollected } from "@/app/admin/(panel)/edit-actions"
 import { removeVehicleFromAppointment, reviewAppointmentVehicle } from "@/app/admin/(panel)/crm-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { AppointmentVehicleTools, type ClientVehicle } from "@/components/admin/appointment-vehicle-tools"
 import { Badge, EmptyState, Field, TextLink, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
 import { formatDateTime, money } from "@/lib/admin/format"
-import { APPOINTMENT_STATUS, PAYMENT_METHOD, PAYMENT_STATUS, PANEL_VEHICLE_CATEGORY, appointmentTone, paymentTone, vehicleCategoryLabel } from "@/lib/admin/labels"
+import {
+  APPOINTMENT_STATUS,
+  PAYMENT_METHOD,
+  PAYMENT_STATUS,
+  PANEL_VEHICLE_CATEGORY,
+  appointmentTone,
+  paymentTone,
+  vehicleCategoryLabel,
+} from "@/lib/admin/labels"
 
 export type PricingLine = {
   appointment_id: string
@@ -23,6 +33,15 @@ export type PricingAppointment = {
   start: string | null
   payment_status: string
   amount_paid: number | string
+  agreed_price: number | string | null
+  discount: number | string | null
+  adjusted_price: number | string | null
+  requested_start: string | null
+  confirmed_start: string | null
+  service_started_at: string | null
+  address: string
+  operator: string | null
+  duration_minutes: number
   final_price: number | string | null
   lines: PricingLine[]
 }
@@ -58,7 +77,9 @@ export function ClientAppointmentPricing({
               </TextLink>
               <div className="flex flex-wrap gap-1.5">
                 <Badge tone={appointmentTone(a.status)}>{APPOINTMENT_STATUS[a.status] ?? a.status}</Badge>
-                <Badge tone={paymentTone(a.payment_status)}>{PAYMENT_STATUS[a.payment_status] ?? a.payment_status}</Badge>
+                <Badge tone={paymentTone(a.payment_status)}>
+                  {PAYMENT_STATUS[a.payment_status] ?? a.payment_status}
+                </Badge>
               </div>
             </div>
 
@@ -81,7 +102,12 @@ export function ClientAppointmentPricing({
                         </span>
                       </div>
                       <div className="flex flex-wrap items-end gap-2">
-                        <ActionForm action={reviewAppointmentVehicle} submitLabel="Guardar precio" submitClassName={secondaryButtonClass} inline>
+                        <ActionForm
+                          action={reviewAppointmentVehicle}
+                          submitLabel="Guardar precio"
+                          submitClassName={secondaryButtonClass}
+                          inline
+                        >
                           <input type="hidden" name="appointment_id" value={a.id} />
                           <input type="hidden" name="position" value={l.position} />
                           <input type="hidden" name="category_label" value={l.vehicles?.category_label ?? ""} />
@@ -144,7 +170,9 @@ export function ClientAppointmentPricing({
             </dl>
 
             <details className="rounded-xl border border-border px-3 py-2">
-              <summary className="cursor-pointer py-1 text-muted-foreground hover:text-foreground">Agregar vehículo a este turno</summary>
+              <summary className="cursor-pointer py-1 text-muted-foreground hover:text-foreground">
+                Agregar vehículo a este turno
+              </summary>
               <div className="pt-3">
                 <AppointmentVehicleTools
                   appointmentId={a.id}
@@ -157,28 +185,78 @@ export function ClientAppointmentPricing({
               </div>
             </details>
 
-            {a.status === "realizado" ? (
-              <ActionForm action={quickSetCollected} submitLabel="Confirmar pago" submitClassName={secondaryButtonClass} inline>
+            <details className="rounded-xl border border-border p-3">
+              <summary className="cursor-pointer font-medium text-electric">
+                Editar horario, estado, precio y cobro
+              </summary>
+              <div className="mt-3">
+                <QuickAppointmentControls appointment={a} />
+              </div>
+            </details>
+            <details className="rounded-xl border border-border p-3">
+              <summary className="cursor-pointer text-electric">Editar servicio, domicilio y duración</summary>
+              <ActionForm
+                action={editDemandDetails}
+                submitLabel="Guardar detalles"
+                submitClassName={secondaryButtonClass}
+                className="mt-3"
+              >
                 <input type="hidden" name="appointment_id" value={a.id} />
-                <Field label="Importe cobrado" htmlFor={`paid-${a.id}`}>
-                  <input id={`paid-${a.id}`} name="amount" inputMode="decimal" required defaultValue={paid || due || ""} className={compactField} />
+                <Field label="Servicio" htmlFor={`service-${a.id}`}>
+                  <input
+                    id={`service-${a.id}`}
+                    name="service"
+                    defaultValue={a.service}
+                    required
+                    minLength={2}
+                    maxLength={120}
+                    className={fieldClass}
+                  />
                 </Field>
-                <Field label="Medio" htmlFor={`method-${a.id}`}>
-                  <select id={`method-${a.id}`} name="method" defaultValue="efectivo" className={compactField}>
-                    {Object.entries(PAYMENT_METHOD).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
+                <Field label="Domicilio" htmlFor={`address-${a.id}`}>
+                  <input
+                    id={`address-${a.id}`}
+                    name="address"
+                    defaultValue={a.address}
+                    required
+                    minLength={5}
+                    maxLength={200}
+                    className={fieldClass}
+                  />
+                </Field>
+                <Field label="Duración (minutos)" htmlFor={`duration-${a.id}`}>
+                  <input
+                    id={`duration-${a.id}`}
+                    name="duration"
+                    type="number"
+                    min={15}
+                    max={540}
+                    defaultValue={a.duration_minutes}
+                    required
+                    className={fieldClass}
+                  />
+                </Field>
+                <Field label="Operador" htmlFor={`operator-${a.id}`}>
+                  <input
+                    id={`operator-${a.id}`}
+                    name="operator"
+                    defaultValue={a.operator ?? ""}
+                    maxLength={80}
+                    className={fieldClass}
+                  />
+                </Field>
+                <Field label="Motivo" htmlFor={`details-reason-${a.id}`}>
+                  <input
+                    id={`details-reason-${a.id}`}
+                    name="reason"
+                    required
+                    minLength={3}
+                    maxLength={300}
+                    className={fieldClass}
+                  />
                 </Field>
               </ActionForm>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Para confirmar el pago, primero marcá el turno como realizado en{" "}
-                <TextLink href={`/admin/turnos/${a.id}`}>el detalle del turno</TextLink>.
-              </p>
-            )}
+            </details>
           </li>
         )
       })}

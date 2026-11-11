@@ -58,8 +58,11 @@ const ICONS: Record<string, LucideIcon> = {
 type Item = (typeof SECTIONS)[number]
 
 const NESTED_UNDER: Record<string, string[]> = {
+  "/admin": ["/admin/consultas", "/admin/tareas"],
+  "/admin/agenda": ["/admin/turnos", "/admin/tablero"],
+  "/admin/clientes": ["/admin/recontactar", "/admin/campanas"],
+  "/admin/movimientos": ["/admin/cobros", "/admin/caja", "/admin/gastos-fijos", "/admin/cierre", "/admin/estadisticas", "/admin/servicios"],
   "/admin/configuracion": [USERS_SECTION.href, "/admin/precios", "/admin/zonas", "/admin/agenda-servicios", "/admin/pruebas"],
-  "/admin/tablero": ["/admin/turnos"],
 }
 
 function matches(href: string, pathname: string) {
@@ -101,6 +104,15 @@ function NavLink({ item, active, count }: { item: Item; active: boolean; count?:
 export function AdminNav({ allowed, counts = {} }: { allowed: string[]; counts?: Record<string, number> }) {
   const pathname = usePathname()
   const visible = SECTIONS.filter((item) => !item.hidden && allowed.includes(item.key))
+  // Keep existing permission grants: staff without Movimientos enters the first finance view they can access.
+  if (!allowed.includes("movimientos")) {
+    const finance = SECTIONS.find((item) => item.group === "finanzas" && allowed.includes(item.key))
+    if (finance) visible.splice(Math.max(0, visible.findIndex((item) => item.key === "configuracion")), 0, { ...finance, label: "Finanzas", hidden: false })
+  }
+  if (visible.length === 0) {
+    const fallback = SECTIONS.find((item) => allowed.includes(item.key) && !["zonas", "recorrido", "agenda-servicios", "pruebas"].includes(item.key))
+    if (fallback) visible.push(fallback)
+  }
   const activeGroup = visible.find((i) => isActive(i.href, pathname))?.group
   const [closed, setClosed] = useState<Partial<Record<NavGroup, boolean>>>({})
 

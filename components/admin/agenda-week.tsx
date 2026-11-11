@@ -38,7 +38,7 @@ export function WeekGrid({
   blocked: Record<string, string>
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
       {days.map((day) => {
         const label = dayLabel(day)
         const dayItems = items.filter((i) => i.day === day)

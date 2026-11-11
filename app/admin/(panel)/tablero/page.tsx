@@ -1,3 +1,4 @@
+import { QueryErrorNotice } from "@/components/admin/query-error-notice"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { requireAdmin } from "@/lib/admin/auth"
@@ -15,6 +16,8 @@ type Row = {
   payment_status: string
   amount_paid: number
   agreed_price: number | null
+  adjusted_price: number | null
+  service_started_at: string | null
   discount: number | null
   confirmed_start: string | null
   requested_start: string | null
@@ -44,7 +47,7 @@ function Card({ a }: { a: Row }) {
     ? [a.vehicles.category && VEHICLE_CATEGORY[a.vehicles.category], a.vehicles.brand, a.vehicles.model].filter(Boolean).join(" · ")
     : null
   const when = a.confirmed_start ?? a.requested_start
-  const total = Math.max(0, Number(a.agreed_price ?? 0) - Number(a.discount ?? 0))
+  const total = Math.max(0, Number(a.adjusted_price ?? Math.max(0, Number(a.agreed_price ?? 0) - Number(a.discount ?? 0))))
   return (
     <article className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-3 shadow-soft">
       <div className="flex items-start justify-between gap-2">
@@ -88,13 +91,16 @@ export default async function TableroPage() {
   const { supabase } = await requireAdmin()
   const since = `${addDays(todayArgentina(), -30)}T00:00:00-03:00`
   const fields =
-    "id, status, payment_status, amount_paid, agreed_price, discount, confirmed_start, requested_start, service, contact_name, clients(id, full_name), vehicles(brand, model, category, plate)"
+    "id, status, payment_status, amount_paid, agreed_price, discount, adjusted_price, service_started_at, confirmed_start, requested_start, service, contact_name, clients(id, full_name), vehicles(brand, model, category, plate)"
 
-  const [open, done] = await Promise.all([
+  const [open, unpaid, done] = await Promise.all([
     supabase.from("appointments").select(fields).in("status", [...PENDING_APPOINTMENT_STATUSES, "confirmado"]).order("confirmed_start", { ascending: true, nullsFirst: false }).limit(200),
-    supabase.from("appointments").select(fields).eq("status", "realizado").gte("updated_at", since).order("updated_at", { ascending: false }).limit(200),
+    supabase.from("appointments").select(fields).eq("status", "realizado").neq("payment_status", "pagado").order("updated_at", { ascending: true }).limit(200),
+    supabase.from("appointments").select(fields).eq("status", "realizado").eq("payment_status", "pagado").gte("updated_at", since).order("updated_at", { ascending: false }).limit(200),
   ])
-  const rows = [...((open.data ?? []) as unknown as Row[]), ...((done.data ?? []) as unknown as Row[])]
+  if ([open,unpaid,done].some(result=>result.error)) return <QueryErrorNotice subject="los turnos y saldos" />
+
+  const rows = [...((open.data ?? []) as unknown as Row[]), ...((unpaid.data ?? []) as unknown as Row[]), ...((done.data ?? []) as unknown as Row[])]
   const byColumn = new Map<string, Row[]>(COLUMNS.map((c) => [c.key, []]))
   for (const r of rows) {
     const col = columnOf(r)

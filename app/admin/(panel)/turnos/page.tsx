@@ -271,7 +271,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
       </section>
 
       <Card className="flex flex-col gap-4">
-        <SectionTitle>Disponibilidad</SectionTitle>
+        <div id="disponibilidad" className="scroll-mt-8"><SectionTitle>Disponibilidad</SectionTitle></div>
         <p className="text-sm text-muted-foreground text-pretty">
           Todos los días, incluso domingos y feriados, de 7:00 a 20:00. La capacidad es la cantidad de turnos confirmados que pueden superponerse (por ejemplo,
           equipos trabajando en paralelo). Con capacidad 1 no se permite ninguna superposición.

@@ -6,7 +6,7 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 const moneyFormatter = new Intl.NumberFormat("es-AR", {
   style: "currency",
   currency: "ARS",
-  maximumFractionDigits: 0,
+  maximumFractionDigits: 2,
 })
 
 export function money(value: number | string | null | undefined) {
@@ -15,7 +15,7 @@ export function money(value: number | string | null | undefined) {
 
 export function formatDate(value: string | Date | null | undefined) {
   if (!value) return "—"
-  return new Date(value).toLocaleDateString("es-AR", { timeZone: AR_TIMEZONE, dateStyle: "short" })
+  return new Date(typeof value === "string" && DATE_RE.test(value) ? `${value}T12:00:00-03:00` : value).toLocaleDateString("es-AR", { timeZone: AR_TIMEZONE, dateStyle: "short" })
 }
 
 export function formatDateTime(value: string | Date | null | undefined) {

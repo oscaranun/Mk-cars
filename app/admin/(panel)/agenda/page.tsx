@@ -31,7 +31,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   const params = await searchParams
   const today = todayArgentina()
   const monday = mondayOf(params.semana && isValidDate(params.semana) ? params.semana : today)
-  const days = Array.from({ length: 6 }, (_, i) => addDays(monday, i))
+  const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i))
   const fromISO = startOfArgentinaDay(monday)
   const toISO = startOfArgentinaDay(addDays(monday, 7))
 

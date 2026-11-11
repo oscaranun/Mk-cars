@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ChevronRight, FlaskConical, MapPinned, Route, ShieldCheck, type LucideIcon } from "lucide-react"
+import { ChevronRight, FlaskConical, ShieldCheck, type LucideIcon } from "lucide-react"
 import { PageHeader } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
 import { allowedKeys } from "@/lib/admin/permissions"
@@ -16,18 +16,25 @@ const OPTIONS: { key: string; href: string; title: string; description: string; 
     icon: ShieldCheck,
   },
   {
-    key: "zonas",
-    href: "/admin/zonas",
-    title: "Zonas y recorridos",
-    description: "Días por zona, unidades móviles y capacidad.",
-    icon: MapPinned,
+    key: "turnos",
+    href: "/admin/turnos#disponibilidad",
+    title: "Disponibilidad, precios y datos de cobro",
+    description: "Duraciones, capacidad, importes por vehículo y datos de transferencia.",
+    icon: ShieldCheck,
   },
   {
-    key: "agenda-servicios",
-    href: "/admin/agenda-servicios",
-    title: "Agenda de servicios",
-    description: "Recorridos por unidad móvil y turnos sin horario.",
-    icon: Route,
+    key: "precios",
+    href: "/admin/precios",
+    title: "Servicios y fidelidad",
+    description: "Referencia de precios por servicio y tarjeta de fidelidad.",
+    icon: ShieldCheck,
+  },
+  {
+    key: "actividad",
+    href: "/admin/actividad",
+    title: "Historial de cambios",
+    description: "Consultá quién cargó o corrigió cada registro.",
+    icon: ShieldCheck,
   },
   {
     key: "pruebas",

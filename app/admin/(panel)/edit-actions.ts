@@ -1,5 +1,6 @@
 "use server"
 
+import { parseMoney } from "@/lib/admin/money"
 import { revalidatePath } from "next/cache"
 import type { PostgrestError } from "@supabase/supabase-js"
 import { getAdminClient } from "@/lib/admin/auth"
@@ -20,11 +21,7 @@ const done = (message: string): ActionState => {
 const text = (data: FormData, key: string, max = 500) => String(data.get(key) ?? "").trim().slice(0, max)
 
 function money(data: FormData, key: string): number | null {
-  const raw = text(data, key, 20).replace(/\./g, "").replace(",", ".")
-  if (!raw) return null
-  const n = Number(raw)
-  if (!Number.isFinite(n) || n < 0 || n > 100_000_000) return null
-  return Math.round(n * 100) / 100
+  return parseMoney(text(data, key, 30))
 }
 
 /** Day picked in the form; keeps the original time of day when the date did not change. */
@@ -51,7 +48,7 @@ function dbError(error: PostgrestError, fallback: string): ActionState {
   console.error("[admin] db error:", error.code, error.message)
   if (error.code === "P0001" || error.code === "22023") return fail(error.message)
   if (error.code === "42501") return fail("No tenés permisos para esta acción.")
-  if (error.code === "42883" || error.code === "PGRST202") return fail("Falta aplicar la actualización de base de datos (script 021).")
+  if (error.code === "42883" || error.code === "PGRST202") return fail("Falta instalar la actualización de edición flexible (script 026) en esta base.")
   return fail(fallback)
 }
 
@@ -169,6 +166,7 @@ export async function quickReschedule(_prev: ActionState, data: FormData): Promi
   const { supabase, current } = loaded
 
   const start = toArgentinaTimestamp(date, time)
+  if (current.status === "realizado" && date > todayArgentina()) return fail("Un lavado realizado debe tener fecha de hoy o anterior.")
   if (["confirmado", "esperando_cliente"].includes(current.status)) {
     const blocked = await checkFutureSlot(supabase, id, start, current)
     if (blocked) return blocked
@@ -246,6 +244,47 @@ export async function quickAddTip(_prev: ActionState, data: FormData): Promise<A
   return done("Adicional registrado por separado del precio.")
 }
 
+export async function editDemandDetails(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await getAdminClient()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+  const id = text(data, "appointment_id", 36)
+  const service = text(data, "service", 120)
+  const address = text(data, "address", 200)
+  const duration = Number(text(data, "duration", 4))
+  const reason = text(data, "reason", 300)
+  if (!UUID_RE.test(id) || service.length < 2 || address.length < 5 || !Number.isInteger(duration) || duration < 15 || duration > 540)
+    return fail("Revisá el servicio, domicilio y duración.")
+  if (reason.length < 3) return fail("Indicá el motivo de la edición.")
+  const { error } = await supabase.rpc("admin_edit_demand_details", {
+    p_id: id, p_service: service, p_address: address, p_operator: text(data, "operator", 80) || null,
+    p_duration: duration, p_reason: reason,
+  })
+  if (error) return dbError(error, "No se pudieron guardar los detalles del turno.")
+  return done("Detalles actualizados. Los pagos conservan sus fechas reales.")
+}
+
+export async function recordIncome(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await getAdminClient()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+  const requestId = text(data, "request_id", 36)
+  const value = money(data, "amount")
+  const method = text(data, "method", 20)
+  const date = paidAtFromLocalInput(data)
+  const concept = text(data, "concept", 200)
+  const client = text(data, "client_id", 36)
+  const appointment = text(data, "appointment_id", 36)
+  if (!UUID_RE.test(requestId) || value === null || value <= 0 || !PAYMENT_METHOD[method] || !date || date === "invalid" || concept.length < 2)
+    return fail("Revisá el importe, la fecha real del cobro, el medio y el concepto.")
+  if ((client && !UUID_RE.test(client)) || (appointment && !UUID_RE.test(appointment))) return fail("Cliente o turno inválido.")
+  const { error } = await supabase.rpc("admin_record_income", {
+    p_request_id: requestId, p_amount: value, p_method: method, p_paid_at: date,
+    p_concept: concept, p_notes: text(data, "notes", 500) || null,
+    p_client_id: client || null, p_appointment_id: appointment || null,
+  })
+  if (error) return dbError(error, "No se pudo registrar el ingreso.")
+  return done("Ingreso registrado con su fecha real. No se modificó la fecha del servicio.")
+}
+
 export async function updatePaymentRecord(_prev: ActionState, data: FormData): Promise<ActionState> {
   const supabase = await getAdminClient()
   if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
@@ -263,34 +302,8 @@ export async function updatePaymentRecord(_prev: ActionState, data: FormData): P
   if (reason.length < 3) return fail("Indicá el motivo de la corrección.")
   const fixPrice = text(data, "price_mode", 10) === "precio" && Boolean(appointmentId)
 
-  // "Estaba mal cargado": the service price becomes what was actually collected, so no balance remains.
-  // The price is moved before or after the payment edit so it never ends below the amount already paid.
-  let priceTarget: number | null = null
-  let adjustAfter = false
-  if (fixPrice) {
-    const { data: paidRows, error: paidError } = await supabase
-      .from("payments")
-      .select("id, amount")
-      .eq("appointment_id", appointmentId)
-      .eq("kind", "servicio")
-      .is("voided_at", null)
-    if (paidError) return dbError(paidError, "No se pudo leer lo cobrado del servicio.")
-    const rows = paidRows ?? []
-    const paidNow = rows.reduce((sum, r) => sum + Number(r.amount), 0)
-    const others = rows.filter((r) => r.id !== id).reduce((sum, r) => sum + Number(r.amount), 0)
-    priceTarget = Math.round((others + amount) * 100) / 100
-    adjustAfter = priceTarget < paidNow
-    if (!adjustAfter) {
-      const { error: priceError } = await supabase.rpc("admin_adjust_final_price", {
-        p_id: appointmentId,
-        p_price: priceTarget,
-        p_reason: reason,
-      })
-      if (priceError) return dbError(priceError, "No se pudo ajustar el precio del servicio.")
-    }
-  }
-
-  const { data: newId, error } = await supabase.rpc("admin_update_payment", {
+  // Price and payment are corrected inside one database transaction (migration 026).
+  const { data: newId, error } = await supabase.rpc("admin_correct_payment", {
     p_payment_id: id,
     p_paid_at: paidAt,
     p_amount: amount,
@@ -299,16 +312,9 @@ export async function updatePaymentRecord(_prev: ActionState, data: FormData): P
     p_notes: text(data, "notes", 500) || null,
     p_appointment_id: appointmentId || null,
     p_reason: reason,
+    p_adjust_price: fixPrice,
   })
-  if (error) return dbError(error, "No se pudo corregir el ingreso.")
-  if (fixPrice && adjustAfter && priceTarget !== null) {
-    const { error: priceError } = await supabase.rpc("admin_adjust_final_price", {
-      p_id: appointmentId,
-      p_price: priceTarget,
-      p_reason: reason,
-    })
-    if (priceError) return dbError(priceError, "El ingreso se corrigió, pero no se pudo ajustar el precio del servicio.")
-  }
+  if (error) return dbError(error, "No se pudo corregir el ingreso. No se guardaron cambios parciales.")
   const base =
     newId && newId !== id
       ? "El día estaba cerrado: se registró una rectificación y el original quedó anulado."
@@ -341,7 +347,7 @@ export async function updateExpenseRecord(_prev: ActionState, data: FormData): P
 
   const { data: newId, error } = await supabase.rpc("admin_update_expense", {
     p_id: id,
-    p_spent_on: day,
+    p_day: day,
     p_category: category,
     p_amount: amount,
     p_method: method,

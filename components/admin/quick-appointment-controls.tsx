@@ -24,6 +24,7 @@ export type QuickAppointment = {
   requested_start?: string | null
   confirmed_start?: string | null
   preparing_since?: string | null
+  service_started_at?: string | null
   services?: { final_price: number | string | null } | { final_price: number | string | null }[] | null
 }
 
@@ -45,7 +46,7 @@ const saveClass = cn(secondaryButtonClass, "shrink-0")
 
 function serviceState(a: QuickAppointment) {
   if (a.status === "realizado") return "realizado"
-  if (a.preparing_since) return "en_proceso"
+  if (a.service_started_at) return "en_proceso"
   return "pendiente"
 }
 

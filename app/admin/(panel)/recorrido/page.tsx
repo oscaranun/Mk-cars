@@ -15,6 +15,8 @@ type Row = {
   payment_status: string
   amount_paid: number
   agreed_price: number | null
+  adjusted_price: number | null
+  service_started_at: string | null
   discount: number | null
   confirmed_start: string | null
   service: string | null
@@ -32,7 +34,7 @@ export default async function RecorridoPage({ searchParams }: { searchParams: Pr
   const { data } = await supabase
     .from("appointments")
     .select(
-      "id, status, payment_status, amount_paid, agreed_price, discount, confirmed_start, service, address, neighborhood, contact_name, clients(full_name, whatsapp), vehicles(brand, model, category, plate)",
+      "id, status, payment_status, amount_paid, agreed_price, discount, adjusted_price, service_started_at, confirmed_start, service, address, neighborhood, contact_name, clients(full_name, whatsapp), vehicles(brand, model, category, plate)",
     )
     .in("status", ["confirmado", "realizado"])
     .gte("confirmed_start", startOfArgentinaDay(day))
@@ -64,7 +66,7 @@ export default async function RecorridoPage({ searchParams }: { searchParams: Pr
           {rows.map((r, i) => {
             const name = r.contact_name || r.clients?.full_name || "Cliente"
             const place = [r.address, r.neighborhood].filter(Boolean).join(", ")
-            const total = Math.max(0, Number(r.agreed_price ?? 0) - Number(r.discount ?? 0))
+            const total = Math.max(0, Number(r.adjusted_price ?? Math.max(0, Number(r.agreed_price ?? 0) - Number(r.discount ?? 0))))
             const vehicle = r.vehicles
               ? [r.vehicles.category && VEHICLE_CATEGORY[r.vehicles.category], r.vehicles.brand, r.vehicles.model].filter(Boolean).join(" ")
               : null

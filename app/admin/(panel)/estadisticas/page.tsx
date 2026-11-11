@@ -1,3 +1,4 @@
+import { QueryErrorNotice } from "@/components/admin/query-error-notice"
 import type { Metadata } from "next"
 import { Card, EmptyState, Field, FilterBar, PageHeader, SectionTitle, Stat, fieldClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
@@ -41,13 +42,15 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
     }),
     supabase.from("services").select("client_id").limit(10000),
     supabase.from("services").select("final_price, amount_paid").neq("payment_status", "cobrado").limit(5000),
-    supabase.from("expenses").select("amount").gte("spent_on", range.from).lte("spent_on", range.to).limit(5000),
+    supabase.from("expenses").select("amount").is("voided_at", null).gte("spent_on", range.from).lte("spent_on", range.to).limit(5000),
     activePayments((excludeVoided) => {
       const q = supabase.from("payments").select("amount").gte("paid_at", prevFromISO).lt("paid_at", range.fromISO).limit(5000)
       return excludeVoided ? q.is("voided_at", null) : q
     }),
     supabase.from("services").select("id", { count: "exact", head: true }).gte("performed_at", prevFromISO).lt("performed_at", range.fromISO),
   ])
+
+  if ([inquiries,newClients,services,payments,allServices,outstanding,expenses,prevPayments,prevServices].some(result=>result.error)) return <QueryErrorNotice subject="las estadísticas financieras" />
 
   const inq = inquiries.data ?? []
   const svc = services.data ?? []
@@ -112,7 +115,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
         <Stat label="Saldo pendiente" value={money(pendingBalance)} hint="Total actual" />
         <Stat label="Clientes recurrentes" value={recurring} hint={`de ${withWashes} con al menos un lavado`} />
         <Stat label="Gastos" value={money(spent)} hint="Egresos del período" />
-        <Stat label="Ganancia" value={money(profit)} hint="Cobrado menos gastos" />
+        <Stat label="Resultado de caja" value={money(profit)} hint="Cobrado menos gastos" />
         <Stat label="Cobrado vs anterior" value={money(collected)} hint={delta(collected, prevCollected)} />
         <Stat label="Lavados vs anterior" value={svc.length} hint={delta(svc.length, prevWashes)} />
       </dl>

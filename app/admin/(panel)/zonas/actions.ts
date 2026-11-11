@@ -65,6 +65,8 @@ export async function configureZones(_prev: ActionState, data: FormData): Promis
       return failure("Indicá fechas válidas para copiar los siete días.")
     payload = { source: source || null, target }
   } else if (kind === "settings") {
+    if (data.get("enabled") === "on" && process.env.MK_CARS_RESERVATION_MODE !== "zones")
+      return failure("Las reservas actuales son a demanda. La modalidad por zonas está fuera de uso; su configuración se conserva.")
     if (data.get("enabled") === "on" && !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY)
       return failure(
         "Antes de activar, configurá la clave existente de Google Maps en este entorno. No se cambió la modalidad.",

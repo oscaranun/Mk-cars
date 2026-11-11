@@ -1,6 +1,7 @@
 "use server"
 
 import { randomUUID } from "node:crypto"
+import { parseMoney } from "@/lib/admin/money"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import type { PostgrestError } from "@supabase/supabase-js"
@@ -22,11 +23,9 @@ function done(id: string | null, message: string): ActionState {
 }
 
 function amount(data: FormData, key: string): number | null | "invalid" {
-  const raw = text(data, key, 20).replace(/\./g, "").replace(",", ".")
+  const raw = text(data, key, 30)
   if (!raw) return null
-  const n = Number(raw)
-  if (!Number.isFinite(n) || n < 0 || n > 100_000_000) return "invalid"
-  return Math.round(n * 100) / 100
+  return parseMoney(raw) ?? "invalid"
 }
 
 function dbError(error: PostgrestError, fallback: string): ActionState {
@@ -35,7 +34,7 @@ function dbError(error: PostgrestError, fallback: string): ActionState {
   if (error.code === "23505") return fail("Ese registro ya existe.")
   if (error.code === "42501") return fail("No tenés permisos para esta acción.")
   if (error.code === "PGRST202" || error.code === "42883" || error.code === "42P01")
-    return fail("Falta instalar la migración 011 en esta base.")
+    return fail("Falta instalar la actualización requerida (026 para la carga histórica) en esta base.")
   return fail(fallback)
 }
 
@@ -203,6 +202,8 @@ export async function createManualAppointment(_prev: ActionState, data: FormData
   })
   if (error) return dbError(error, "No se pudo crear el turno.")
   revalidatePath("/admin", "layout")
+  const returnClient = text(data, "return_client_id", 36)
+  if (UUID_RE.test(returnClient)) redirect(`/admin/clientes/${returnClient}#turnos`)
   redirect(`/admin/turnos/${id}?creado=1`)
 }
 
@@ -216,14 +217,23 @@ export async function registerCompletedService(_prev: ActionState, data: FormDat
   const date = text(data, "date", 10)
   const time = text(data, "time", 5)
   if (!isValidDate(date) || !isValidTime(time)) return fail("Revisá la fecha y la hora del lavado.")
-  if (time < "07:00" || time > "20:00") return fail("El horario debe estar entre las 07:00 y las 20:00.")
   const price = amount(data, "final_price")
   if (price === "invalid" || price === null) return fail("Ingresá el importe del servicio.")
   const paid = amount(data, "amount_paid")
   if (paid === "invalid") return fail("Revisá el importe cobrado.")
 
-  const { data: id, error } = await supabase.rpc("admin_register_completed_service", {
+  const paymentDateTime = text(data, "paid_at", 25)
+  const [paymentDate, paymentTime] = paymentDateTime.split("T")
+  if ((paid ?? 0) > 0 && (!isValidDate(paymentDate ?? "") || !isValidTime(paymentTime ?? ""))) return fail("Indicá la fecha y hora real del cobro.")
+  const requestId = text(data, "request_id", 36)
+  if (!UUID_RE.test(requestId)) return fail("Reabrí el formulario para generar una carga nueva.")
+  const { data: id, error } = await supabase.rpc("admin_register_demand_service", {
     p: {
+      request_id: requestId,
+      client_id: UUID_RE.test(text(data, "client_id", 36)) ? text(data, "client_id", 36) : null,
+      vehicle_id: UUID_RE.test(text(data, "vehicle_id", 36)) ? text(data, "vehicle_id", 36) : null,
+      category_label: text(data, "category_label", 40),
+      paid_at: (paid ?? 0) > 0 ? toArgentinaTimestamp(paymentDate, paymentTime) : null,
       full_name: text(data, "full_name", 120),
       whatsapp,
       vehicle_category: text(data, "vehicle_category", 20),
@@ -234,7 +244,7 @@ export async function registerCompletedService(_prev: ActionState, data: FormDat
       service: text(data, "service", 120),
       performed_at: toArgentinaTimestamp(date, time),
       final_price: price,
-      amount_paid: paid ?? price,
+      amount_paid: paid ?? 0,
       method: text(data, "method", 20),
       water_supply: data.get("no_water") === "on" ? "propia" : "domicilio",
       operator: text(data, "operator", 80),
@@ -245,6 +255,8 @@ export async function registerCompletedService(_prev: ActionState, data: FormDat
   })
   if (error) return dbError(error, "No se pudo registrar el lavado.")
   revalidatePath("/admin", "layout")
+  const returnClient = text(data, "return_client_id", 36)
+  if (UUID_RE.test(returnClient)) redirect(`/admin/clientes/${returnClient}#turnos`)
   redirect(`/admin/turnos/${id}`)
 }
 

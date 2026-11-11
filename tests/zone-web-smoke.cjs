@@ -58,6 +58,7 @@ const backend = http.createServer(async (req, res) => {
     }
   } else if (path === "/auth/v1/user") data = user
   else if (path.endsWith("/rpc/is_admin")) data = true
+  else if (path.endsWith("/admins")) data = [{user_id:id,role:"owner",permissions:[],full_name:"Administrador de prueba"}]
   else if (path.endsWith("/zone_booking_settings"))
     data = req.headers.accept?.includes("vnd.pgrst.object") ? settings() : [settings()]
   else if (path.endsWith("/settings")) data = [{ vehicle_prices: { auto: 25000, suv: 30000, pickup: 35000 } }]
@@ -107,6 +108,7 @@ const backend = http.createServer(async (req, res) => {
           SUPABASE_SERVICE_ROLE_KEY: "synthetic-service",
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: "synthetic-maps",
           NEXT_TELEMETRY_DISABLED: "1",
+          MK_CARS_RESERVATION_MODE: "zones",
           NODE_USE_ENV_PROXY: "1",
         },
         stdio: ["ignore", "pipe", "pipe"],
@@ -209,7 +211,7 @@ const backend = http.createServer(async (req, res) => {
     await page.getByRole("radio", { name: /Auto/ }).first().locator("..").click()
     assert.equal(await page.getByRole("radio", { name: /Auto/ }).first().isChecked(), true)
     await page.waitForTimeout(3100)
-    await page.getByRole("button", { name: "Solicitar turno", exact: true }).click()
+    await page.getByRole("button", { name: "Solicitar lavado", exact: true }).click()
     await page.getByRole("heading", { name: "Solicitud recibida" }).waitFor()
     assert.equal(submission.p_day, day)
     assert.equal("requested_start" in submission.p_payload, false, "No fabricated requested time")
@@ -218,13 +220,14 @@ const backend = http.createServer(async (req, res) => {
     console.log("PASS: public date-only booking and successful server submission (mock services)")
     enabled = false
     await page.goto("http://127.0.0.1:3017/reservar")
-    await page.locator('select[name="time"]').waitFor()
-    console.log("PASS: flag off preserves the existing time selector")
+    assert.equal(await page.locator('select[name="time"]').count(), 0)
+    assert.equal(await page.locator('select[name="date"]').count(), 0)
+    console.log("PASS: flag off preserves on-demand requests without date or time")
     enabled = true
     await page.goto("http://127.0.0.1:3017/admin/zonas")
     await page.waitForURL("**/admin/login")
     await page.getByLabel("Correo electrónico").fill("test@example.invalid")
-    await page.getByLabel("Contraseña").fill("synthetic-password")
+    await page.getByLabel("Contraseña", { exact: true }).fill("synthetic-password")
     await page.getByRole("button", { name: "Ingresar", exact: true }).click()
     await page.waitForURL("**/admin")
     await page.goto("http://127.0.0.1:3017/admin/zonas")
@@ -240,13 +243,12 @@ const backend = http.createServer(async (req, res) => {
     await page.getByLabel("Fin de jornada", { exact: true }).fill("20:00")
     await page.getByLabel("Inicio de pausa (opcional)", { exact: true }).fill("12:00")
     await page.getByLabel("Fin de pausa", { exact: true }).fill("13:00")
-    await page.getByLabel("Traslado entre domicilios (minutos)", { exact: true }).fill("25")
-    await page.getByLabel("Margen adicional entre turnos (minutos)", { exact: true }).fill("10")
     await page.getByRole("button", { name: "Guardar modalidad", exact: true }).click()
     await page.waitForFunction(() => !document.querySelector("button[disabled]"))
     assert.equal(configured.p_kind, "settings")
     assert.equal(configured.p_data.day_start, "08:00")
-    assert.equal(configured.p_data.buffer_minutes, 10)
+    assert.equal(configured.p_data.travel_minutes, 0)
+    assert.equal(configured.p_data.buffer_minutes, 0)
     await page.getByRole("button", { name: "Editar límite en el mapa", exact: true }).first().click()
     await page.waitForFunction(() => !!window.__mkMapClick)
     await page.evaluate(() => {
@@ -261,7 +263,7 @@ const backend = http.createServer(async (req, res) => {
     const ring = JSON.parse(await page.locator('input[name="polygon"]').first().inputValue())
     assert.equal(ring.length, 4)
     assert.deepEqual(ring[0], ring[3])
-    console.log("PASS: editable operating hours, pause, travel, margin and visual zone editor (mock Maps)")
+    console.log("PASS: editable operating hours, pause and visual zone editor; travel stays disabled (mock Maps)")
     await page.goto("http://127.0.0.1:3017/admin/agenda-servicios")
     await page.getByRole("heading", { name: "Agenda de servicios", exact: true }).waitFor()
     assert.equal(await page.getByRole("link", { name: /^Domingo / }).count(), 1)

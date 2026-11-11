@@ -1,5 +1,6 @@
 "use server"
 
+import { parseMoney } from "@/lib/admin/money"
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
@@ -19,10 +20,7 @@ const ok = (message: string): ActionState => {
 const text = (data: FormData, key: string, max = 300) => String(data.get(key) ?? "").trim().slice(0, max)
 
 function amount(data: FormData, key: string): number | null {
-  const raw = text(data, key, 20).replace(/\./g, "").replace(",", ".")
-  if (!raw) return null
-  const n = Number(raw)
-  return Number.isFinite(n) && n >= 0 && n <= 100_000_000 ? Math.round(n * 100) / 100 : null
+  return parseMoney(text(data, key, 30))
 }
 
 function int(data: FormData, key: string, min: number, max: number): number | null {
@@ -284,30 +282,24 @@ export async function saveCashClosing(_prev: ActionState, data: FormData): Promi
   const day = text(data, "day", 10)
   if (!isValidDate(day)) return fail("Fecha inválida.")
 
-  const from = `${day}T00:00:00-03:00`
-  const to = `${day}T23:59:59.999-03:00`
-  const [{ data: pays }, { data: exps }] = await Promise.all([
-    s.supabase.from("payments").select("amount, method").is("voided_at", null).gte("paid_at", from).lte("paid_at", to),
-    s.supabase.from("expenses").select("amount, method").eq("spent_on", day),
-  ])
-  const expected: Record<string, number> = {}
+  if (day > todayArgentina()) return fail("La fecha de cierre no puede ser futura.")
+  const opening: Record<string, number> = {}
   const counted: Record<string, number> = {}
-  for (const m of Object.keys(PAYMENT_METHOD)) expected[m] = 0
-  for (const p of pays ?? []) expected[p.method ?? "otro"] = (expected[p.method ?? "otro"] ?? 0) + Number(p.amount)
-  for (const e of exps ?? []) expected[e.method ?? "otro"] = (expected[e.method ?? "otro"] ?? 0) - Number(e.amount)
-  let difference = 0
-  for (const m of Object.keys(PAYMENT_METHOD)) {
-    const v = amount(data, `counted_${m}`)
-    counted[m] = v ?? 0
-    difference += counted[m] - (expected[m] ?? 0)
+  for (const method of Object.keys(PAYMENT_METHOD)) {
+    const countedValue = amount(data, `counted_${method}`)
+    if (countedValue === null) return fail("Completá el contado de cada medio; ingresá 0 si no hubo saldo.")
+    counted[method] = countedValue
+    const openingRaw = text(data, `opening_${method}`, 30)
+    const openingValue = openingRaw ? parseMoney(openingRaw) : 0
+    if (openingValue === null) return fail("Revisá los saldos iniciales.")
+    opening[method] = openingValue
   }
-  const { error } = await s.supabase.from("cash_closings").upsert(
-    { day, expected, counted, difference, notes: text(data, "notes", 500) || null, closed_by_email: s.email },
-    { onConflict: "day" },
-  )
-  if (error) return dbFail(error, "No se pudo guardar el cierre.")
-  await log(s, "caja", day, "cierre guardado", `diferencia ${difference}`)
-  return ok(difference === 0 ? "Cierre guardado. La caja cierra sin diferencias." : "Cierre guardado con diferencia.")
+  const { error } = await s.supabase.rpc("admin_save_cash_closing", {
+    p_day: day, p_opening: opening, p_counted: counted,
+    p_notes: text(data, "notes", 500) || null, p_reason: text(data, "reason", 300) || null,
+  })
+  if (error) return dbFail(error, "No se pudo guardar el cierre. Verificá la actualización 026; no se guardó un cierre parcial.")
+  return ok("Cierre guardado con su historial. Revisá las diferencias de cada medio.")
 }
 
 export async function addRecurringExpense(_prev: ActionState, data: FormData): Promise<ActionState> {

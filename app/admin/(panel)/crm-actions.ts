@@ -1,5 +1,6 @@
 "use server"
 
+import { parseMoney } from "@/lib/admin/money"
 import { revalidatePath, revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
 import type { PostgrestError } from "@supabase/supabase-js"
@@ -26,11 +27,9 @@ const done = (message: string): ActionState => {
 const text = (data: FormData, key: string, max = 500) => String(data.get(key) ?? "").trim().slice(0, max)
 
 function money(data: FormData, key: string, required: boolean): number | null | "invalid" {
-  const raw = text(data, key, 20).replace(/\./g, "").replace(",", ".")
+  const raw = text(data, key, 30)
   if (!raw) return required ? "invalid" : null
-  const n = Number(raw)
-  if (!Number.isFinite(n) || n < 0 || n > 100_000_000) return "invalid"
-  return Math.round(n * 100) / 100
+  return parseMoney(raw) ?? "invalid"
 }
 
 function dateTime(data: FormData, dateKey: string, timeKey: string) {

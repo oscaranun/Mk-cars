@@ -1,3 +1,5 @@
+import { IncomeForm } from "@/components/admin/income-form"
+import { QueryErrorNotice } from "@/components/admin/query-error-notice"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { Pencil } from "lucide-react"
@@ -29,6 +31,8 @@ type PaymentRow = {
   amount: number
   method: string
   paid_at: string
+  concept: string | null
+  clients: {id:string;full_name:string}|null
   notes: string | null
   services: { wash_type: string; clients: { id: string; full_name: string } | null } | null
   appointments: { clients: { id: string; full_name: string } | null } | null
@@ -58,13 +62,13 @@ export default async function MovementsPage({ searchParams }: { searchParams: Se
   const category = params.categoria && EXPENSE_CATEGORY[params.categoria] ? params.categoria : ""
   const search = sanitizeSearch(params.q).toLowerCase()
 
-  const [{ data: payments }, { data: expenses }] = await Promise.all([
+  const [{ data: payments, error: paymentsError }, { data: expenses, error: expensesError }] = await Promise.all([
     type === "gastos" || category
-      ? Promise.resolve({ data: [] as PaymentRow[] })
+      ? Promise.resolve({ data: [] as PaymentRow[], error: null })
       : activePayments((excludeVoided) => {
           let q = supabase
             .from("payments")
-            .select("id, amount, method, paid_at, notes, services(wash_type, clients(id, full_name)), appointments(clients(id, full_name))")
+            .select("id, amount, method, paid_at, notes, concept, clients(id,full_name), services(wash_type, clients(id, full_name)), appointments(clients(id, full_name))")
             .gte("paid_at", range.fromISO)
             .lt("paid_at", range.toISO)
             .order("paid_at", { ascending: false })
@@ -74,7 +78,7 @@ export default async function MovementsPage({ searchParams }: { searchParams: Se
           return q.returns<PaymentRow[]>()
         }),
     type === "ingresos"
-      ? Promise.resolve({ data: [] as ExpenseRow[] })
+      ? Promise.resolve({ data: [] as ExpenseRow[], error: null })
       : activePayments((excludeVoided) => {
           let q = supabase
             .from("expenses")
@@ -90,6 +94,8 @@ export default async function MovementsPage({ searchParams }: { searchParams: Se
         }),
   ])
 
+  if (paymentsError || expensesError) return <QueryErrorNotice subject="los movimientos financieros" />
+
   const movements: Movement[] = [
     ...(payments ?? []).map((p): Movement => ({
       kind: "ingreso",
@@ -97,9 +103,9 @@ export default async function MovementsPage({ searchParams }: { searchParams: Se
       date: p.paid_at,
       amount: Number(p.amount),
       method: p.method,
-      title: p.services?.clients?.full_name ?? p.appointments?.clients?.full_name ?? "Cliente",
-      detail: [p.services?.wash_type, p.notes].filter(Boolean).join(" · "),
-      clientId: p.services?.clients?.id ?? p.appointments?.clients?.id ?? null,
+      title: p.clients?.full_name ?? p.services?.clients?.full_name ?? p.appointments?.clients?.full_name ?? "Cliente",
+      detail: [p.concept, p.services?.wash_type, p.notes].filter(Boolean).join(" · "),
+      clientId: p.clients?.id ?? p.services?.clients?.id ?? p.appointments?.clients?.id ?? null,
     })),
     ...(expenses ?? []).map((e): Movement => ({
       kind: "gasto",
@@ -121,10 +127,11 @@ export default async function MovementsPage({ searchParams }: { searchParams: Se
   return (
     <>
       <PageHeader
-        title="Movimientos"
+        title="Finanzas · Movimientos"
         description={`Ingresos y gastos del ${formatDate(`${range.from}T12:00:00-03:00`)} al ${formatDate(`${range.to}T12:00:00-03:00`)}.`}
       />
 
+      <IncomeForm />
       <FilterBar resetHref="/admin/movimientos">
         <Field label="Desde" htmlFor="desde" className="md:w-44">
           <input id="desde" name="desde" type="date" defaultValue={range.from} className={fieldClass} />

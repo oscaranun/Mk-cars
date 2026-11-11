@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { PageHeader } from "@/components/admin/ui"
+import { CreateAppointmentLink, PageHeader } from "@/components/admin/ui"
 import {
   AgendaSection,
   InquiriesSection,
@@ -65,7 +65,7 @@ export default async function AdminTodayPage() {
 
   return (
     <>
-      <PageHeader title="Hoy" description={`${longDate(new Date(now).toISOString())} · actualizado ${formatDateTime(new Date(now))}`} />
+      <PageHeader title="Hoy" description={`${longDate(new Date(now).toISOString())} · actualizado ${formatDateTime(new Date(now))}`} actions={<><CreateAppointmentLink /><Link href="/admin/consultas" className="text-sm text-electric underline">Ver solicitudes</Link><Link href="/admin/turnos/realizado" className="text-sm text-electric underline">Cargar lavado realizado</Link></>} />
 
       {dueTasks.length > 0 && (
         <section aria-labelledby="hoy-tareas" className="rounded-2xl border border-border bg-card p-4">

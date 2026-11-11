@@ -6,6 +6,7 @@ import { LogOut } from "lucide-react"
 import { SECTIONS, USERS_SECTION, allowedKeys, canAccess, sectionForPath } from "@/lib/admin/permissions"
 import { logout } from "@/app/admin/actions"
 import { AdminNav } from "@/components/admin/admin-nav"
+import { WorkspaceNavigation } from "@/components/admin/workspace-navigation"
 import { GlobalSearch } from "@/components/admin/global-search"
 import { Logo } from "@/components/logo"
 import { requireAdmin } from "@/lib/admin/auth"
@@ -129,7 +130,7 @@ export default async function PanelLayout({ children }: { children: ReactNode })
       <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-8 px-4 py-6 md:px-8 lg:py-10">
         {isAdmin ? (
           permitted ? (
-            children
+            <><WorkspaceNavigation allowed={allowed} />{children}</>
           ) : (
             <NoAccess allowed={allowed} />
           )
