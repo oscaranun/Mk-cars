@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { registerCompletedService } from "@/app/admin/(panel)/offer-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { Card, Field, PageHeader, SectionTitle, TextLink, fieldClass } from "@/components/admin/ui"
+import { WHATSAPP_DEFAULT_PREFIX } from "@/lib/booking"
 import { requireAdmin } from "@/lib/admin/auth"
 import { VEHICLE_CATEGORY } from "@/lib/admin/labels"
 
@@ -45,7 +46,7 @@ export default async function CompletedServicePage() {
               <input id="full_name" name="full_name" required minLength={2} maxLength={120} autoComplete="off" className={fieldClass} />
             </Field>
             <Field label="WhatsApp" htmlFor="whatsapp">
-              <input id="whatsapp" name="whatsapp" type="tel" inputMode="tel" required placeholder="261 555 1234" className={fieldClass} />
+              <input id="whatsapp" name="whatsapp" type="tel" inputMode="tel" required placeholder="+54 9 261 555 1234" defaultValue={WHATSAPP_DEFAULT_PREFIX} className={fieldClass} />
             </Field>
             <Field label="Origen" htmlFor="source">
               <select id="source" name="source" required defaultValue="whatsapp" className={fieldClass}>

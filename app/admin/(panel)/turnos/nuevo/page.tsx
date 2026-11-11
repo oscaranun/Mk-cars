@@ -5,6 +5,7 @@ import { vehicleOptionLabel } from "@/components/admin/appointment-vehicle-tools
 import { Card, Field, PageHeader, SectionTitle, TextLink, fieldClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
 import { formatWhatsapp } from "@/lib/admin/format"
+import { WHATSAPP_DEFAULT_PREFIX } from "@/lib/booking"
 import { VehicleDurationFields } from "@/components/admin/vehicle-duration-fields"
 
 export const metadata: Metadata = { title: "Nuevo turno manual" }
@@ -100,8 +101,8 @@ export default async function NewManualAppointmentPage({
                 type="tel"
                 inputMode="tel"
                 required
-                placeholder="261 555 1234"
-                defaultValue={client ? formatWhatsapp(client.whatsapp) : ""}
+                placeholder="+54 9 261 555 1234"
+                defaultValue={client ? formatWhatsapp(client.whatsapp) : WHATSAPP_DEFAULT_PREFIX}
                 readOnly={Boolean(client)}
                 className={fieldClass}
               />

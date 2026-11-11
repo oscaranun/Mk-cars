@@ -74,7 +74,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
   if (fullName.length < 3 || !fullName.includes(" ")) {
     return { ok: false, field: "name", error: "Ingresá tu nombre y apellido." }
   }
-  if (!whatsapp) return { ok: false, field: "phone", error: "Ingresá un WhatsApp válido con código de área." }
+  if (!whatsapp) return { ok: false, field: "phone", error: "Ingresá un WhatsApp válido con código de país y área." }
   if (email && !EMAIL_RE.test(email))
     return { ok: false, field: "email", error: "Ingresá un correo electrónico válido." }
   if (!vehicles) return { ok: false, field: "vehicle", error: "Elegí el tipo de cada vehículo." }

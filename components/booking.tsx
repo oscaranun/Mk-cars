@@ -10,6 +10,7 @@ import { BookingVehicles, emptyVehicle, type BookingVehicle } from "@/components
 import { ServiceIncludes } from "@/components/service-includes"
 import { WhatsAppIcon } from "@/components/whatsapp-icon"
 import { EXTRAS, SERVICE_DAYS, TIME_SLOTS, VEHICLES, whatsappUrl } from "@/lib/site"
+import { WHATSAPP_DEFAULT_PREFIX } from "@/lib/booking"
 import type { VehiclePrices } from "@/lib/prices"
 import { cn } from "@/lib/utils"
 import { ZoneDatePicker } from "@/components/zone-date-picker"
@@ -191,10 +192,15 @@ export function Booking({
           type="tel"
           inputMode="tel"
           autoComplete="tel"
-          placeholder="261 000-0000"
+          defaultValue={WHATSAPP_DEFAULT_PREFIX}
+          placeholder="+54 9 261 000-0000"
+          aria-describedby="phone-hint"
           className={fieldClass}
           required
         />
+        <p id="phone-hint" className="text-xs text-muted-foreground">
+          ¿Sos de otro país o provincia? Editá el código del principio.
+        </p>
       </Field>
     </>
   )
