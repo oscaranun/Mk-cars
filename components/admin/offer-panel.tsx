@@ -1,4 +1,3 @@
-import { headers } from "next/headers"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { reopenOffer } from "@/app/admin/(panel)/offer-actions"
 import { ActionForm } from "@/components/admin/action-form"
@@ -6,6 +5,7 @@ import { OfferEditor } from "@/components/admin/offer-editor"
 import { OfferLinkShare } from "@/components/admin/offer-link-share"
 import { Badge, Card, Field, SectionTitle, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
 import { argentinaParts, formatDateTime, money } from "@/lib/admin/format"
+import { SITE_URL } from "@/lib/seo"
 
 export type Offer = {
   id: string
@@ -66,13 +66,6 @@ export async function loadOffer(supabase: SupabaseClient, appointmentId: string)
   return { offer, events: events.data ?? [], missing: isMissingTable(error?.code) }
 }
 
-async function originUrl() {
-  const h = await headers()
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "mkcars.com.ar"
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https")
-  return `${proto}://${host}`
-}
-
 export async function OfferPanel({
   supabase,
   appointment,
@@ -99,7 +92,7 @@ export async function OfferPanel({
   const editable = ["solicitado", "reprogramado", "esperando_cliente"].includes(appointment.status)
   const accepted = offer?.status === "aceptada"
   if (!offer && !editable) return null
-  const link = offer ? `${await originUrl()}/propuesta/${offer.token}` : null
+  const link = offer ? `${SITE_URL}/propuesta/${offer.token}` : null
   const status = offer ? OFFER_STATUS[offer.status] : null
 
   return (
