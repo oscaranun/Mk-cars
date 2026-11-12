@@ -1,4 +1,6 @@
-export type VehiclePrices = { auto: number; suv: number; pickup: number }
+export type VehiclePrices = { auto: number; suv: number; pickup: number; pickup_xl: number }
+
+export const VEHICLE_PRICE_KEYS = ["auto", "suv", "pickup", "pickup_xl"] as const
 
 export const PRICES_TAG = "vehicle-prices"
 const MAX_PRICE = 10_000_000
@@ -7,7 +9,7 @@ export function parsePrices(raw: unknown): VehiclePrices | null {
   if (!raw || typeof raw !== "object") return null
   const r = raw as Record<string, unknown>
   const out = {} as VehiclePrices
-  for (const key of ["auto", "suv", "pickup"] as const) {
+  for (const key of VEHICLE_PRICE_KEYS) {
     const n = Number(r[key])
     if (!Number.isInteger(n) || n <= 0 || n > MAX_PRICE) return null
     out[key] = n

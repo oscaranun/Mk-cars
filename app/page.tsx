@@ -26,7 +26,7 @@ export default async function Page() {
       />
       <SiteHeader />
       <main>
-        <Hero fromPrice={prices ? Math.min(prices.auto, prices.suv, prices.pickup) : null} />
+        <Hero fromPrice={prices ? Math.min(prices.auto, prices.suv, prices.pickup, prices.pickup_xl) : null} />
         <Benefits />
         <BeforeAfter />
         <Booking prices={prices} blockedDates={blockedDates.map((b) => b.day)} zoneBookingEnabled={zoneBookingEnabled} zoneServices={zoneServices} />

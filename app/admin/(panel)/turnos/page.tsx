@@ -302,7 +302,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
               className={fieldClass}
             />
           </Field>
-          {(["auto", "suv", "pickup"] as const).map((key) => (
+          {(["auto", "suv", "pickup", "pickup_xl"] as const).map((key) => (
             <Field key={key} label={`Duración ${VEHICLE_CATEGORY[key] ?? key} (min)`} htmlFor={`duration_${key}`} className="w-44">
               <input
                 id={`duration_${key}`}
@@ -312,7 +312,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
                 max={540}
                 step={5}
                 required
-                defaultValue={settings.data?.duration_defaults?.[key] ?? { auto: 60, suv: 75, pickup: 90 }[key]}
+                defaultValue={settings.data?.duration_defaults?.[key] ?? { auto: 60, suv: 75, pickup: 90, pickup_xl: 105 }[key]}
                 className={fieldClass}
               />
             </Field>
@@ -327,7 +327,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
         </p>
         {prices ? (
           <ActionForm action={updatePrices} submitLabel="Guardar precios" inline>
-            {(["auto", "suv", "pickup"] as const).map((key) => (
+            {(["auto", "suv", "pickup", "pickup_xl"] as const).map((key) => (
               <Field key={key} label={VEHICLE_CATEGORY[key] ?? key} htmlFor={`price_${key}`} className="w-40">
                 <input
                   id={`price_${key}`}

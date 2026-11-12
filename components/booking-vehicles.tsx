@@ -3,6 +3,7 @@
 import { useState } from "react"
 import useSWR from "swr"
 import { Info, Plus, Trash2, X } from "lucide-react"
+import { ExtremeDirtNotice } from "@/components/extreme-dirt-notice"
 import { VehicleLineIcon } from "@/components/vehicle-line-icon"
 import { VehicleSearch } from "@/components/vehicle-search"
 import { VEHICLES, formatARS } from "@/lib/site"
@@ -34,7 +35,7 @@ export const emptyVehicle = (key: number): BookingVehicle => ({
   model: "",
 })
 
-const CATEGORY_LABEL: Record<string, string> = { auto: "Auto", suv: "SUV", pickup: "Pick-up" }
+const CATEGORY_LABEL: Record<string, string> = { auto: "Auto", suv: "SUV", pickup: "Pick-up", pickup_xl: "Pick-up XL" }
 
 const inputClass =
   "min-h-12 w-full rounded-xl border border-border bg-card px-3.5 text-base text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-primary focus:ring-4 focus:ring-primary/10 sm:text-sm"
@@ -198,7 +199,7 @@ function VehicleCard({
 
       <fieldset className="min-w-0">
         <legend className="sr-only">{`Tipo de vehículo ${index + 1}`}</legend>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {VEHICLES.map((v) => {
             const checked = item.category === v.id
             const disabled = Boolean(item.lockedCategory) && !checked
@@ -223,7 +224,7 @@ function VehicleCard({
                   className="sr-only"
                 />
                 <span className="flex h-6 items-center">
-                  <VehicleLineIcon id={v.id} width={v.id === "pickup" ? 64 : 52} />
+                  <VehicleLineIcon id={v.id} width={v.id === "pickup" || v.id === "pickup_xl" ? 64 : 52} />
                 </span>
                 {prices && (
                   <>
@@ -234,12 +235,13 @@ function VehicleCard({
                   </>
                 )}
                 <span className={cn("-mt-1 text-xs font-medium", checked ? "text-primary" : "text-white/70")}>
-                  {v.id === "pickup" ? "Pick Up" : v.name}
+                  {v.id === "pickup" ? "Pick Up" : v.id === "pickup_xl" ? "Pick Up XL" : v.name}
                 </span>
               </label>
             )
           })}
         </div>
+        <ExtremeDirtNotice className="mt-2" />
       </fieldset>
 
       <div aria-live="polite" className="empty:hidden">

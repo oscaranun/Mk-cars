@@ -4,6 +4,7 @@ const ICONS = {
   auto: { src: "/images/icons/auto.png?v=4", ratio: 1103 / 461, width: 120 },
   suv: { src: "/images/icons/suv.png?v=4", ratio: 1027 / 414, width: 120 },
   pickup: { src: "/images/icons/pickup.png?v=4", ratio: 1011 / 384, width: 168 },
+  pickup_xl: { src: "/images/icons/pickup.png?v=4", ratio: 1011 / 384, width: 180 },
 } as const
 
 export type VehicleIconId = keyof typeof ICONS

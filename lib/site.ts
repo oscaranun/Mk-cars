@@ -38,6 +38,11 @@ export const VEHICLES = [
     name: "Pick-up",
   detail: "Pick-up y utilitarios",
   },
+  {
+    id: "pickup_xl",
+    name: "Pick-up XL",
+    detail: "Pick-up grandes y full size",
+  },
 ] as const
 
 export type VehicleId = (typeof VEHICLES)[number]["id"]

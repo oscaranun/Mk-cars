@@ -82,7 +82,7 @@ export async function setVehiclePlate(_prev: ActionState, data: FormData): Promi
   return ok("Patente guardada.")
 }
 
-export type PriceRow = { service: string; auto: number; suv: number; pickup: number }
+export type PriceRow = { service: string; auto: number; suv: number; pickup: number; pickup_xl: number }
 
 export async function savePriceList(_prev: ActionState, data: FormData): Promise<ActionState> {
   const s = await session()
@@ -96,8 +96,8 @@ export async function savePriceList(_prev: ActionState, data: FormData): Promise
       const n = Number(raw)
       return Number.isInteger(n) && n >= 0 && n <= 10_000_000 ? n : NaN
     }
-    const row = { service: services[i], auto: read("auto"), suv: read("suv"), pickup: read("pickup") }
-    if ([row.auto, row.suv, row.pickup].some(Number.isNaN)) return fail(`Revisá los precios de "${row.service}".`)
+    const row = { service: services[i], auto: read("auto"), suv: read("suv"), pickup: read("pickup"), pickup_xl: read("pickup_xl") }
+    if ([row.auto, row.suv, row.pickup, row.pickup_xl].some(Number.isNaN)) return fail(`Revisá los precios de "${row.service}".`)
     rows.push(row)
   }
   const { error } = await s.supabase.from("settings").update({ service_prices: rows }).eq("id", 1)
