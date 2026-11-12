@@ -1,4 +1,8 @@
+"use client"
+
 import Link from "next/link"
+import { useEffect, useState } from "react"
+import { appointmentPrice } from "@/lib/admin/appointment-price"
 import {
   quickAddTip,
   quickAdjustPrice,
@@ -68,8 +72,9 @@ export function QuickAppointmentControls({
 }) {
   const id = appointment.id
   const agreed = Math.max(Number(appointment.agreed_price ?? 0) - Number(appointment.discount ?? 0), 0)
-  const service = Array.isArray(appointment.services) ? appointment.services[0] : appointment.services
-  const final = Number(service?.final_price ?? appointment.adjusted_price ?? agreed)
+  const final = appointmentPrice(appointment) ?? 0
+  const [priceDraft, setPriceDraft] = useState(String(final))
+  useEffect(() => setPriceDraft(String(final)), [final])
   const paid = Number(appointment.amount_paid ?? 0)
   const balance = Math.max(final - paid, 0)
   const adjusted = final !== agreed
@@ -144,12 +149,14 @@ export function QuickAppointmentControls({
 
         <ActionForm
           action={quickSetServiceState}
-          submitLabel="Guardar"
+          submitLabel="Guardar servicio"
           submitClassName={saveClass}
           inline
           className="flex-nowrap"
         >
           <input type="hidden" name="appointment_id" value={id} />
+          <input type="hidden" name="final_price" value={priceDraft} />
+          <input type="hidden" name="original_final_price" value={final} />
           <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted-foreground">
             Servicio
             <select name="state" defaultValue={state} className={compactField}>
@@ -221,7 +228,8 @@ export function QuickAppointmentControls({
               name="price"
               inputMode="decimal"
               required
-              defaultValue={final || ""}
+              value={priceDraft}
+              onChange={(event) => setPriceDraft(event.target.value)}
               className={compactField}
             />
             <label className="sr-only" htmlFor={`reason-price-${id}`}>
@@ -235,6 +243,9 @@ export function QuickAppointmentControls({
               placeholder="Motivo del ajuste"
               className={cn(fieldClass, "basis-full")}
             />
+            <p className="basis-full text-xs text-muted-foreground">
+              Este precio también se guarda si marcás el trabajo como realizado.
+            </p>
           </ActionForm>
 
           <ActionForm action={quickSetCollected} submitLabel="Guardar cobro" submitClassName={saveClass} inline>

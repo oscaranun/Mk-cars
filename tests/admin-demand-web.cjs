@@ -92,6 +92,7 @@ const client = {
 const calls = []
 let failExpenses = false
 let activeOffer = null
+let paymentRows = [payment]
 const backend = http.createServer(async (req, res) => {
   let raw = ""
   for await (const chunk of req) raw += chunk
@@ -139,7 +140,7 @@ const backend = http.createServer(async (req, res) => {
         vehicles: vehicle,
       },
     ]
-  else if (path.endsWith("/payments")) data = [payment]
+  else if (path.endsWith("/payments")) data = paymentRows
   else if (path.endsWith("/expenses") && failExpenses) {
     res.statusCode = 503
     data = { code: "PGRST000", message: "Synthetic failure" }
@@ -150,6 +151,33 @@ const backend = http.createServer(async (req, res) => {
       appointment.confirmed_start = body.p_start
       activeOffer.status = "aceptada"
       activeOffer.accepted_start = body.p_start
+    }
+    if (path.endsWith("admin_adjust_final_price")) {
+      appointment.adjusted_price = body.p_price
+      for (const service of appointment.services) service.final_price = body.p_price
+    }
+    if (path.endsWith("admin_set_service_progress") && body.p_state === "realizado") {
+      appointment.status = "realizado"
+      appointment.services = [
+        {
+          id,
+          final_price: appointment.adjusted_price ?? appointment.agreed_price,
+          amount_paid: appointment.amount_paid,
+          performed_at: now,
+        },
+      ]
+    }
+    if (path.endsWith("record_transfer_payment")) {
+      const price = appointment.services[0]?.final_price ?? appointment.agreed_price
+      if (body.p_amount > price - appointment.amount_paid) {
+        res.statusCode = 400
+        res.end(JSON.stringify({ code: "P0001", message: "El importe supera el saldo pendiente." }))
+        return
+      }
+      appointment.amount_paid += body.p_amount
+      appointment.payment_status = appointment.amount_paid >= price ? "pagado" : "parcial"
+      appointment.services[0].amount_paid = appointment.amount_paid
+      paymentRows = [{ ...payment, amount: body.p_amount, paid_at: body.p_paid_at }]
     }
     data = path.endsWith("admin_correct_payment") ? paymentId : id
   }
@@ -342,6 +370,41 @@ const backend = http.createServer(async (req, res) => {
     await page.getByText("Confirmado", { exact: true }).first().waitFor()
     assert.equal(calls.filter((c) => c.path.endsWith("respond_appointment_offer")).at(-1).body.p_start, secondStart)
     console.log("PASS: multiple offered times require choosing the one agreed with the client")
+    appointment.agreed_price = 30000
+    appointment.adjusted_price = null
+    appointment.discount = 0
+    appointment.amount_paid = 0
+    appointment.payment_status = "pendiente"
+    appointment.services = []
+    paymentRows = []
+    await page.reload()
+    await page.getByText("Editar fecha, precio o estado del turno", { exact: true }).click()
+    const editing = page.locator("details").filter({ has: page.locator('select[name="state"]') })
+    await editing.getByText("Editar fecha, precio y cobro", { exact: true }).click()
+    await editing.getByLabel("Precio final", { exact: true }).fill("importe inválido")
+    const finish = editing.locator("form").filter({ has: page.locator('select[name="state"]') })
+    await finish.getByRole("combobox").selectOption("realizado")
+    const stateCallsBefore = calls.filter((c) => c.path.endsWith("admin_set_service_progress")).length
+    await finish.getByRole("button", { name: "Guardar servicio", exact: true }).click()
+    await page.getByText("Revisá el precio final antes de marcar el trabajo como realizado.", { exact: true }).waitFor()
+    assert.equal(calls.filter((c) => c.path.endsWith("admin_set_service_progress")).length, stateCallsBefore)
+    await editing.getByLabel("Precio final", { exact: true }).fill("35000")
+    await finish.getByRole("button", { name: "Guardar servicio", exact: true }).click()
+    await page.getByText("Servicio realizado. Ya podés cargar el cobro.", { exact: true }).waitFor()
+    const adjust = calls.filter((c) => c.path.endsWith("admin_adjust_final_price")).at(-1)
+    assert.equal(adjust.body.p_price, 35000)
+    assert.equal(appointment.services[0].final_price, 35000)
+    assert.equal(appointment.agreed_price, 30000)
+    await page.getByLabel("Importe recibido", { exact: true }).fill("35000")
+    await page
+      .getByLabel("Verifiqué que la transferencia está acreditada en la cuenta de MK Cars.", { exact: true })
+      .check()
+    await page.getByRole("button", { name: "Registrar transferencia", exact: true }).click()
+    await page.getByRole("button", { name: "Registrar transferencia", exact: true }).waitFor({ state: "detached" })
+    assert.equal(calls.filter((c) => c.path.endsWith("record_transfer_payment")).at(-1).body.p_amount, 35000)
+    assert.equal(appointment.amount_paid, 35000)
+    assert.equal(await page.getByText("El importe supera el saldo pendiente.", { exact: true }).count(), 0)
+    console.log("PASS: unsaved 30000-to-35000 price edit survives marking completed and accepts the full 35000 payment")
   } catch (error) {
     console.error(error)
     console.error(log.slice(-4500))

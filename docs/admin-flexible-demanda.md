@@ -18,6 +18,8 @@ Al cargar un lavado, el cobro inicial es cero hasta que el operador indique un i
 
 Los importes preservan los centavos y aceptan el formato argentino. Las correcciones exigen motivo. El ajuste conjunto de precio y pago se ejecuta en una transacción: ambos cambios se guardan o ninguno. Los pagos de días cerrados conservan la rectificación y el registro original anulado. Los gastos anulados se excluyen de los totales.
 
+El total de Pagos y el precio sugerido para completar el trabajo usan el precio final del servicio, luego el ajuste guardado y por último el importe acordado menos descuento, en ese orden. El precio inicial queda como referencia. Si se está editando el precio en los controles rápidos y se guarda “Realizado”, se guarda primero ese ajuste mediante la función auditada existente y después se marca el servicio realizado. Si el segundo paso falla, la pantalla informa expresamente que el precio quedó guardado y el estado no cambió. Un precio sin editar no sobrescribe un ajuste hecho desde otra pantalla. Los controles siguen disponibles cuando el trabajo ya está realizado. No requiere SQL nuevo.
+
 El cierre pide saldo inicial y contado real por medio, sin inventar el contado a partir del esperado. Sus actualizaciones requieren motivo y conservan versiones. Una diferencia global de cero no oculta diferencias compensadas entre efectivo y transferencias. Los errores al consultar movimientos se muestran como errores, en lugar de presentar una caja vacía.
 
 ## Base de datos y activación en pruebas

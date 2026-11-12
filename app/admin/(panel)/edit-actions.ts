@@ -146,8 +146,28 @@ export async function quickSetServiceState(_prev: ActionState, data: FormData): 
   if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
   if (!UUID_RE.test(id)) return fail("Turno inválido.")
 
+  let priceSaved = false
+  if (state === "realizado" && data.has("final_price")) {
+    const price = money(data, "final_price")
+    const original = money(data, "original_final_price")
+    if (price === null) return fail("Revisá el precio final antes de marcar el trabajo como realizado.")
+    if (price !== original) {
+      const { error } = await supabase.rpc("admin_adjust_final_price", {
+        p_id: id, p_price: price, p_reason: "Precio final editado al marcar el trabajo como realizado",
+      })
+      if (error) return dbError(error, "No se guardó el precio ni se marcó el trabajo como realizado.")
+      priceSaved = true
+    }
+  }
   const { error } = await supabase.rpc("admin_set_service_progress", { p_id: id, p_state: state })
-  if (error) return dbError(error, "No se pudo cambiar el estado del servicio.")
+  if (error) {
+    const failure = dbError(error, "No se pudo cambiar el estado del servicio.")
+    if (priceSaved) {
+      revalidatePath("/admin", "layout")
+      return fail(`El precio final quedó guardado, pero el estado no cambió. ${failure.message}`)
+    }
+    return failure
+  }
   const messages: Record<string, string> = {
     pendiente: "Servicio pendiente.",
     en_proceso: "Servicio en proceso.",

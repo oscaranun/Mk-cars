@@ -131,6 +131,18 @@ alter table public.expenses add column is_demo boolean default false;
  end $$;select true;""")
         self.assertEqual(result,['t'])
 
+    def test_adjusted_price_survives_completion_and_transfer(self):
+        result=self.tx(f"""do $$declare a uuid;begin
+ a:=public.admin_register_demand_service({PAYLOAD}||jsonb_build_object('final_price',30000,'amount_paid',0));
+ perform public.admin_set_appointment_status(a,'confirmado');
+ perform public.admin_adjust_final_price(a,35000,'Precio final acordado');
+ perform public.admin_set_service_progress(a,'realizado');
+ perform public.record_transfer_payment(a,35000,now(),null,null,gen_random_uuid(),true);
+ end $$;
+ select agreed_price,adjusted_price,amount_paid,payment_status from public.appointments;
+ select final_price,amount_paid,payment_status from public.services;""")
+        self.assertEqual(result,['30000.00|35000.00|35000.00|pagado','35000.00|35000.00|cobrado'])
+
 if __name__=='__main__':
     try:unittest.main(verbosity=2)
     finally:subprocess.run(["docker","rm","-f",CONTAINER],capture_output=True)

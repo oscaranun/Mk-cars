@@ -20,6 +20,7 @@ import { AppointmentDelete } from "@/components/admin/appointment-delete"
 import { loadOffer, OfferPanel, OfferAcceptanceForm } from "@/components/admin/offer-panel"
 import { QueryErrorNotice } from "@/components/admin/query-error-notice"
 import { QuickAppointmentControls } from "@/components/admin/quick-appointment-controls"
+import { appointmentPrice } from "@/lib/admin/appointment-price"
 import { ReviewSection } from "@/components/admin/review-section"
 import { AppointmentNotes, AppointmentPayments } from "@/components/admin/appointment-ledger"
 import { isTestClientName } from "@/lib/admin/test-booking"
@@ -208,6 +209,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
   const today = todayArgentina()
   const nowParts = argentinaParts(new Date())
   const service = appt.services[0]
+  const finalPrice = appointmentPrice(appt)
   const vehicleLabel = appt.vehicles
     ? [VEHICLE_CATEGORY[appt.vehicles.category] ?? appt.vehicles.category, appt.vehicles.brand, appt.vehicles.model]
         .filter(Boolean)
@@ -259,7 +261,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
     service: appt.service,
     extras: appt.extras ?? [],
     vehicles: messageVehicles.filter(Boolean),
-    price: appt.agreed_price,
+    price: finalPrice,
     waterSupply: appt.water_supply,
     durationMinutes: appt.duration_minutes,
   }
@@ -317,6 +319,24 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
       </div>
 
       <OfferAcceptanceForm offer={linkedOffer} appointmentId={appt.id} status={status} />
+      {(isConfirmed || status === "realizado") && (
+        <details className="rounded-2xl border border-border bg-card p-5">
+          <summary className="cursor-pointer font-medium">Editar fecha, precio o estado del turno</summary>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Registrá directamente los cambios que acordaste con el cliente.
+          </p>
+          <div className="mt-4">
+            <QuickAppointmentControls
+              appointment={{
+                ...appt,
+                amount_paid: paymentSummary?.amount_paid ?? 0,
+                payment_status: paymentSummary?.payment_status ?? "pendiente",
+              }}
+              showDetailLink={false}
+            />
+          </div>
+        </details>
+      )}
       <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
         <Card className="flex flex-col gap-5">
           <SectionTitle>Datos del turno</SectionTitle>
@@ -347,6 +367,9 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
               <span className="tabular-nums">{formatDateTime(appt.confirmed_start)}</span>
             </DetailRow>
             <DetailRow label="Precio acordado">{appt.agreed_price != null ? money(appt.agreed_price) : "—"}</DetailRow>
+            {finalPrice !== appt.agreed_price && (
+              <DetailRow label="Precio final vigente">{finalPrice != null ? money(finalPrice) : "—"}</DetailRow>
+            )}
             <DetailRow label="Operario">{appt.operator ?? "—"}</DetailRow>
             <DetailRow label="Recibido">
               <span className="tabular-nums">{formatDateTime(appt.created_at)}</span>
@@ -576,7 +599,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
             appointment={{
               id: appt.id,
               status,
-              total: appt.agreed_price,
+              total: finalPrice,
               amount_paid: paymentSummary?.amount_paid ?? null,
               payment_status: paymentSummary?.payment_status ?? null,
             }}
@@ -796,12 +819,13 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                       className={fieldClass}
                     />
                   </Field>
-                  <Field label="Precio acordado" htmlFor="done-agreed">
+                  <Field label="Precio inicial (referencia)" htmlFor="done-agreed">
                     <input
                       id="done-agreed"
                       name="agreed_price"
                       inputMode="decimal"
                       defaultValue={appt.agreed_price ?? ""}
+                      readOnly
                       className={fieldClass}
                     />
                   </Field>
@@ -811,7 +835,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
                       name="final_price"
                       inputMode="decimal"
                       required
-                      defaultValue={appt.agreed_price ?? ""}
+                      defaultValue={finalPrice ?? ""}
                       className={fieldClass}
                     />
                   </Field>
@@ -847,25 +871,6 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
 
           {(service || status === "realizado") && appt.clients && (
             <ReviewSection supabase={supabase} clientId={appt.clients.id} />
-          )}
-
-          {isConfirmed && (
-            <details className="rounded-2xl border border-border bg-card p-5">
-              <summary className="cursor-pointer font-medium">Editar fecha, precio o estado del turno</summary>
-              <p className="mt-3 text-sm text-muted-foreground">
-                Registrá directamente los cambios que acordaste con el cliente.
-              </p>
-              <div className="mt-4">
-                <QuickAppointmentControls
-                  appointment={{
-                    ...appt,
-                    amount_paid: paymentSummary?.amount_paid ?? 0,
-                    payment_status: paymentSummary?.payment_status ?? "pendiente",
-                  }}
-                  showDetailLink={false}
-                />
-              </div>
-            </details>
           )}
 
           {(isRequest || isConfirmed || isWaiting) && (
