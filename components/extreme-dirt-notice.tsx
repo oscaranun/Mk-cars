@@ -6,7 +6,7 @@ export function ExtremeDirtNotice({ className }: { className?: string }) {
   return (
     <p
       className={cn(
-        "rounded-xl bg-red-600 px-4 py-2.5 text-center text-sm font-bold tracking-wide text-white shadow-sm shadow-red-950/30",
+        "rounded-xl bg-primary px-4 py-2.5 text-center text-sm font-bold tracking-wide text-primary-foreground shadow-glow",
         className,
       )}
     >
