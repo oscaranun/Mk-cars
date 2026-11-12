@@ -58,7 +58,7 @@ export default async function NewManualAppointmentPage({
           .returns<NonNullable<Prefill["fromAppointment"]>>()
       : Promise.resolve({ data: null }),
   ])
-  const defaults: Record<string, number> = { auto: 60, suv: 75, pickup: 90, ...(settings?.duration_defaults ?? {}) }
+  const defaults: Record<string, number> = { auto: 60, suv: 75, pickup: 90, pickup_xl: 105, ...(settings?.duration_defaults ?? {}) }
   const vehicles = client?.vehicles ?? []
   // Suggest a vehicle other than the one already booked in the turno we came from.
   const suggestedVehicle = vehicles.find((v) => v.id !== fromAppointment?.vehicle_id)?.id ?? ""

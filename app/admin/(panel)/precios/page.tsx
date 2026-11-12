@@ -25,13 +25,14 @@ export default async function PreciosPage() {
         <ActionForm action={savePriceList} submitLabel="Guardar precios">
           <p className="text-xs text-muted-foreground">Para quitar un servicio, borrá su nombre y guardá.</p>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-sm">
+            <table className="w-full min-w-[680px] text-sm">
               <thead className="text-left text-xs text-muted-foreground">
                 <tr>
                   <th scope="col" className="py-2 pr-2">Servicio</th>
                   <th scope="col" className="py-2 pr-2">Auto</th>
                   <th scope="col" className="py-2 pr-2">SUV</th>
-                  <th scope="col" className="py-2">Pick-up</th>
+                  <th scope="col" className="py-2 pr-2">Pick-up</th>
+                  <th scope="col" className="py-2">Pick-up XL</th>
                 </tr>
               </thead>
               <tbody>
@@ -40,9 +41,9 @@ export default async function PreciosPage() {
                     <td className="py-1 pr-2">
                       <input aria-label={`Servicio ${i + 1}`} name="service" defaultValue={r?.service ?? ""} maxLength={80} placeholder="Nuevo servicio" className={fieldClass} />
                     </td>
-                    {(["auto", "suv", "pickup"] as const).map((k) => (
+                    {(["auto", "suv", "pickup", "pickup_xl"] as const).map((k) => (
                       <td key={k} className="py-1 pr-2">
-                        <input aria-label={`Precio ${k} fila ${i + 1}`} name={k} inputMode="numeric" defaultValue={r ? String(r[k]) : "0"} className={`${fieldClass} w-28`} />
+                        <input aria-label={`Precio ${k} fila ${i + 1}`} name={k} inputMode="numeric" defaultValue={String(r?.[k] ?? 0)} className={`${fieldClass} w-28`} />
                       </td>
                     ))}
                   </tr>

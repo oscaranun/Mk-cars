@@ -5,7 +5,7 @@ import { Loader2, Search } from "lucide-react"
 import { type CatalogEntry, indexCatalog, searchCatalog } from "@/lib/vehicle-catalog"
 import { cn } from "@/lib/utils"
 
-const CATEGORY_LABEL: Record<string, string> = { auto: "Auto", suv: "SUV", pickup: "Pick-up" }
+const CATEGORY_LABEL: Record<string, string> = { auto: "Auto", suv: "SUV", pickup: "Pick-up", pickup_xl: "Pick-up XL" }
 
 export function VehicleSearch({
   query,

@@ -643,7 +643,7 @@ export async function completeAppointment(_prev: ActionState, data: FormData): P
   if (!UUID_RE.test(id)) return fail("Turno inválido.")
   if (!performedAt) return fail("Indicá la fecha y hora real del lavado.")
   if (new Date(performedAt).getTime() > Date.now() + 60 * 60 * 1000) return fail("La fecha del lavado no puede ser futura.")
-  if (!["auto", "suv", "pickup"].includes(category)) return fail("Elegí el tipo de vehículo.")
+  if (!["auto", "suv", "pickup", "pickup_xl"].includes(category)) return fail("Elegí el tipo de vehículo.")
   if (washType.length < 2) return fail("Indicá el tipo de lavado.")
   if (agreed === "invalid") return fail("El precio acordado no es válido.")
   if (final === "invalid" || final === null) return fail("Ingresá el precio final.")
@@ -734,7 +734,7 @@ export async function updateSettings(_prev: ActionState, data: FormData): Promis
   if (!Number.isInteger(capacity) || capacity < 1 || capacity > 20) return fail("La capacidad debe ser entre 1 y 20.")
   if (!Number.isInteger(duration) || duration < 15 || duration > 540) return fail("La duración debe ser entre 15 y 540 minutos.")
   const durationDefaults: Record<string, number> = {}
-  for (const key of ["auto", "suv", "pickup"]) {
+  for (const key of ["auto", "suv", "pickup", "pickup_xl"]) {
     const value = Number(text(data, `duration_${key}`, 4) || duration)
     if (!Number.isInteger(value) || value < 15 || value > 540) return fail("Las duraciones por vehículo deben ser entre 15 y 540 minutos.")
     durationDefaults[key] = value
@@ -761,6 +761,7 @@ export async function updatePrices(_prev: ActionState, data: FormData): Promise<
     auto: text(data, "price_auto", 9).replace(/\./g, ""),
     suv: text(data, "price_suv", 9).replace(/\./g, ""),
     pickup: text(data, "price_pickup", 9).replace(/\./g, ""),
+    pickup_xl: text(data, "price_pickup_xl", 9).replace(/\./g, ""),
   })
   if (!prices) return fail("Los precios deben ser números enteros mayores a cero.")
 
@@ -860,10 +861,10 @@ async function syncCompletedTotal(supabase: AdminClient, appointmentId: string):
   if (priceError) return dbError(priceError, "Se guardó el vehículo pero no se actualizó el saldo del servicio.")
   return null
 }
-const VEHICLE_CATEGORIES = ["auto", "suv", "pickup", "otro"] as const
+const VEHICLE_CATEGORIES = ["auto", "suv", "pickup", "pickup_xl", "otro"] as const
 type VehicleCategory = (typeof VEHICLE_CATEGORIES)[number]
 const MAX_APPOINTMENT_VEHICLES = 10
-const FALLBACK_DURATIONS: Record<string, number> = { auto: 60, suv: 75, pickup: 90, otro: 45 }
+const FALLBACK_DURATIONS: Record<string, number> = { auto: 60, suv: 75, pickup: 90, pickup_xl: 105, otro: 45 }
 
 function isVehicleCategory(value: string): value is VehicleCategory {
   return (VEHICLE_CATEGORIES as readonly string[]).includes(value)

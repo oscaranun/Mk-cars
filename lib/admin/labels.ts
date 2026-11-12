@@ -70,7 +70,10 @@ export const VEHICLE_CATEGORY: Record<string, string> = {
   auto: "Auto",
   suv: "SUV",
   pickup: "Pick-up",
+  pickup_xl: "Pick-up XL",
   }
+
+export const WASH_CATEGORIES = ["auto", "suv", "pickup", "pickup_xl"] as const
 
 /** Only for vehicles added from the panel (moto, cuatriciclo, etc.). Not offered in the public booking form. */
 export const PANEL_VEHICLE_CATEGORY: Record<string, string> = { ...VEHICLE_CATEGORY, otro: "Otro" }

@@ -63,7 +63,7 @@ export default async function CompletedServicePage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Tipo de vehículo" htmlFor="vehicle_category">
               <select id="vehicle_category" name="vehicle_category" required defaultValue="auto" className={fieldClass}>
-                {(["auto", "suv", "pickup"] as const).map((key) => (
+                {(["auto", "suv", "pickup", "pickup_xl"] as const).map((key) => (
                   <option key={key} value={key}>
                     {VEHICLE_CATEGORY[key] ?? key}
                   </option>

@@ -1,4 +1,4 @@
-export type VehicleCategory = "auto" | "suv" | "pickup"
+export type VehicleCategory = "auto" | "suv" | "pickup" | "pickup_xl"
 
 export type CatalogEntry = {
   id: string

@@ -5,7 +5,7 @@ import { Field, fieldClass } from "@/components/admin/ui"
 import { VEHICLE_CATEGORY } from "@/lib/admin/labels"
 
 const PRESETS = [30, 45, 60, 90, 120]
-const CATEGORIES = ["auto", "suv", "pickup"] as const
+const CATEGORIES = ["auto", "suv", "pickup", "pickup_xl"] as const
 
 export function VehicleDurationFields({ defaults }: { defaults: Record<string, number> }) {
   const [category, setCategory] = useState<string>("auto")
