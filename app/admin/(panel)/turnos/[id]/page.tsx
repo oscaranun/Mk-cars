@@ -255,12 +255,17 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
               {formatDateTime(start)} · {appt.duration_minutes} min
             </p>
           </div>
-          {appt.clients && (
-            <a href={whatsappLink(appt.clients.whatsapp)} target="_blank" rel="noopener noreferrer" className={secondaryButtonClass}>
-              <MessageCircle className="size-4 text-whatsapp" aria-hidden="true" />
-              Escribir por WhatsApp
-            </a>
-          )}
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/admin/pruebas/turnos/${appt.id}`} className={secondaryButtonClass}>
+              Ver ficha simplificada (prueba)
+            </Link>
+            {appt.clients && (
+              <a href={whatsappLink(appt.clients.whatsapp)} target="_blank" rel="noopener noreferrer" className={secondaryButtonClass}>
+                <MessageCircle className="size-4 text-whatsapp" aria-hidden="true" />
+                Escribir por WhatsApp
+              </a>
+            )}
+          </div>
         </div>
       </div>
 
