@@ -23,6 +23,7 @@ export const SECTIONS: readonly Section[] = [
   { key: "clientes", href: "/admin/clientes", label: "Clientes", group: "clientes" },
   { key: "recontactar", href: "/admin/recontactar", label: "Recontactar", group: "clientes" },
   { key: "campanas", href: "/admin/campanas", label: "Campañas y cupones", group: "clientes" },
+  { key: "eventos", href: "/admin/eventos", label: "Flyers de eventos", group: "clientes" },
   { key: "movimientos", href: "/admin/movimientos", label: "Movimientos", group: "finanzas" },
   { key: "cobros", href: "/admin/cobros", label: "Ingresos", group: "finanzas" },
   { key: "caja", href: "/admin/caja", label: "Egresos", group: "finanzas" },

@@ -53,12 +53,14 @@ export function Booking({
   standalone = false,
   zoneBookingEnabled = false,
   zoneServices = [],
+  origin,
 }: {
   prices: VehiclePrices | null
   blockedDates?: string[]
   standalone?: boolean
   zoneBookingEnabled?: boolean
   zoneServices?: ServiceType[]
+  origin?: string
 }) {
   const [vehicles, setVehicles] = useState<BookingVehicle[]>([emptyVehicle(0)])
   const [condition, setCondition] = useState<VehicleConditionValue>(defaultVehicleCondition)
@@ -129,7 +131,7 @@ export function Booking({
     data.set("utmSource", params.get("utm_source") ?? "")
     data.set("ref", params.get("ref") ?? "")
     data.set("referrer", document.referrer)
-    data.set("origen", params.get("origen") === "whatsapp_flyer" ? "whatsapp_flyer" : "web")
+    data.set("origen", origin ?? (params.get("origen") === "whatsapp_flyer" ? "whatsapp_flyer" : "web"))
     data.set("notes", [notes, conditionLines.join("\n")].filter(Boolean).join("\n\n"))
     data.set(
       "vehicles",

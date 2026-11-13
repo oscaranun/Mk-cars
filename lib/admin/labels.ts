@@ -4,7 +4,9 @@ export const BOOKING_ORIGIN: Record<string, string> = {
 }
 
 export function bookingOriginLabel(origin: string | null | undefined) {
-  return origin ? (BOOKING_ORIGIN[origin] ?? origin) : "Sin identificar"
+  if (!origin) return "Sin identificar"
+  if (origin.startsWith("evento:")) return `Flyer evento — ${origin.slice(7)}`
+  return BOOKING_ORIGIN[origin] ?? origin
 }
 
 export const INQUIRY_STATUS: Record<string, string> = {
