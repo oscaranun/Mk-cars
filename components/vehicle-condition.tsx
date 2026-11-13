@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronDown, Info } from "lucide-react"
+import { ChevronDown, TriangleAlert } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export const LAST_WASH_OPTIONS = [
@@ -135,7 +135,7 @@ export function VehicleCondition({
           increment ? "border-primary/40 bg-primary/10 text-white" : "border-border bg-card text-muted-foreground",
         )}
       >
-        <Info className={cn("mt-0.5 size-4 shrink-0", increment && "text-primary")} aria-hidden="true" />
+        <TriangleAlert className="size-5 shrink-0 fill-yellow-400 text-black" strokeWidth={2.25} aria-hidden="true" />
         <span>
           <span className="font-medium">Aviso: </span>
           {incrementNotice(increment)}
