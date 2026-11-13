@@ -157,18 +157,25 @@ export async function voidTransferPayment(_prev: ActionState, data: FormData): P
 export async function createManualAppointment(_prev: ActionState, data: FormData): Promise<ActionState> {
   const supabase = await getAdminClient()
   if (!supabase) return fail("Sesión vencida. Volvé a iniciar sesión.")
-  const whatsapp = normalizeWhatsapp(text(data, "whatsapp", 30))
-  if (!whatsapp) return fail("Ingresá un WhatsApp válido con código de país y área.")
-  const source = text(data, "source", 20)
+  const rawWhatsapp = text(data, "whatsapp", 30)
+  // Only the default prefix (e.g. "+54 9 261") counts as empty.
+  const hasWhatsapp = rawWhatsapp.replace(/\D/g, "").length > 6
+  const whatsapp = hasWhatsapp ? normalizeWhatsapp(rawWhatsapp) : null
+  if (hasWhatsapp && !whatsapp) return fail("Revisá el WhatsApp: código de país, área y número.")
+  const source = text(data, "source", 20) || "whatsapp"
   if (!MANUAL_SOURCES.includes(source)) return fail("Elegí el origen del pedido.")
   const price = amount(data, "price")
   if (price === "invalid") return fail("Revisá el precio.")
-  const duration = Number(text(data, "duration", 4))
-  if (!Number.isInteger(duration) || duration < 15 || duration > 540) {
-    return fail("Indicá una duración estimada válida (entre 15 y 540 minutos).")
-  }
 
-  if (data.get("ignore_duplicate") !== "on") {
+  let vehicles: unknown = []
+  try {
+    vehicles = JSON.parse(text(data, "vehicles", 5000) || "[]")
+  } catch {
+    return fail("Revisá los vehículos.")
+  }
+  if (!Array.isArray(vehicles) || vehicles.length > 10) return fail("Revisá los vehículos.")
+
+  if (whatsapp && data.get("ignore_duplicate") !== "on") {
     const { data: existing } = await supabase
       .from("appointments")
       .select("id, status, confirmed_start, requested_start, clients!inner(whatsapp)")
@@ -182,24 +189,21 @@ export async function createManualAppointment(_prev: ActionState, data: FormData
     }
   }
 
-  const { data: id, error } = await supabase.rpc("admin_create_appointment", {
-    p: {
-      duration: String(duration),
-      full_name: text(data, "full_name", 120),
-      whatsapp,
-  vehicle_id: /^[0-9a-f-]{36}$/i.test(text(data, "vehicle_id", 36)) ? text(data, "vehicle_id", 36) : "",
-  vehicle_category: text(data, "vehicle_category", 20),
-  brand: text(data, "brand", 60),
-  model: text(data, "model", 60),
+  const extras = data.getAll("extras").map(String).filter((x) => /^[a-z0-9_-]{1,40}$/i.test(x)).slice(0, 10)
+  const { data: id, error } = await supabase.rpc("admin_create_booking", {
+  p: {
+  full_name: text(data, "full_name", 120),
+  whatsapp: whatsapp ?? "",
+  vehicles,
+  extras,
   address: text(data, "address", 200),
   neighborhood: text(data, "neighborhood", 120),
-  service: text(data, "service", 200),
-      price: price ?? "",
-      water_supply: data.get("no_water") === "on" ? "propia" : "domicilio",
-      source,
-      notes: text(data, "client_notes", 1000),
-      internal_note: text(data, "internal_note", 4000),
-    },
+  price: price ?? "",
+  water_supply: data.get("no_water") === "on" ? "propia" : "domicilio",
+  source,
+  notes: text(data, "client_notes", 2000),
+  internal_note: text(data, "internal_note", 4000),
+  },
   })
   if (error) return dbError(error, "No se pudo crear el turno.")
   revalidatePath("/admin", "layout")

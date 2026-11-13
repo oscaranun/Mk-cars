@@ -77,11 +77,12 @@ export function resolveRange(params: { desde?: string; hasta?: string }, default
   return { from, to, fromISO: startOfArgentinaDay(from), toISO: startOfArgentinaDay(addDays(to, 1)) }
 }
 
-export function whatsappLink(number: string) {
-  return `https://wa.me/${number.replace(/\D/g, "")}`
+export function whatsappLink(number: string | null | undefined) {
+  return `https://wa.me/${(number ?? "").replace(/\D/g, "")}`
 }
 
-export function formatWhatsapp(number: string) {
+export function formatWhatsapp(number: string | null | undefined) {
+  if (!number) return "Sin WhatsApp"
   const d = number.replace(/\D/g, "")
   if (d.length === 13 && d.startsWith("549")) return `+54 9 ${d.slice(3, 6)} ${d.slice(6, 9)}-${d.slice(9)}`
   if (d.length >= 8) return `+${d}`
