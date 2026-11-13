@@ -6,7 +6,7 @@ import { getAdminClient } from "@/lib/admin/auth"
 import { isValidDate, isValidTime, todayArgentina } from "@/lib/admin/format"
 import { EXPENSE_CATEGORY, PANEL_VEHICLE_CATEGORY, PAYMENT_METHOD } from "@/lib/admin/labels"
 import { toArgentinaTimestamp } from "@/lib/booking"
-import type { ActionState } from "../crm-actions"
+import type { ActionState } from "./crm-actions"
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -26,7 +26,7 @@ function amount(data: FormData, key: string): number | null {
 }
 
 function dbError(error: PostgrestError, fallback: string): ActionState {
-  console.error("[pruebas] db error:", error.code, error.message)
+  console.error("[ficha] db error:", error.code, error.message)
   if (error.code === "P0001" || error.code === "22023") return fail(error.message)
   if (error.code === "42501") return fail("No tenés permisos para esta acción.")
   return fail(fallback)
@@ -407,13 +407,12 @@ export async function addFinanceEntry(_prev: ActionState, data: FormData): Promi
       method,
       description: concept,
       notes,
-      is_demo: true,
     })
     if (error) return dbError(error, "No se pudo guardar el gasto.")
   } else {
     const { error } = await supabase
       .from("other_incomes")
-      .insert({ received_on: date, concept, amount: value, method, notes, is_demo: true })
+      .insert({ received_on: date, concept, amount: value, method, notes })
     if (error) return dbError(error, "No se pudo guardar el ingreso.")
   }
 
@@ -431,7 +430,10 @@ export async function deleteFinanceEntry(_prev: ActionState, data: FormData): Pr
   const id = text(data, "id", 36)
   const table = text(data, "kind", 10) === "gasto" ? "expenses" : "other_incomes"
   if (!UUID_RE.test(id)) return fail("Movimiento inválido.")
-  const { error } = await supabase.from(table).delete().eq("id", id).eq("is_demo", true)
+  const { error } =
+    table === "expenses"
+      ? await supabase.from("expenses").update({ voided_at: new Date().toISOString() }).eq("id", id)
+      : await supabase.from("other_incomes").delete().eq("id", id)
   if (error) return dbError(error, "No se pudo borrar.")
   return done("Movimiento borrado.")
 }
