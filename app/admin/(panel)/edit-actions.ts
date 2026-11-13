@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache"
 import type { PostgrestError } from "@supabase/supabase-js"
 import { getAdminClient } from "@/lib/admin/auth"
-import { conflictSummary, findConflicts } from "@/lib/admin/conflicts"
 import { isValidDate, isValidTime, todayArgentina } from "@/lib/admin/format"
 import { EXPENSE_CATEGORY, PAYMENT_METHOD } from "@/lib/admin/labels"
 import { toArgentinaTimestamp } from "@/lib/booking"
@@ -80,22 +79,8 @@ async function loadAppointment(id: string) {
   return { supabase, current: data } as const
 }
 
-/** Availability only matters for upcoming work; past dates are administrative records. */
-async function checkFutureSlot(
-  supabase: NonNullable<Awaited<ReturnType<typeof getAdminClient>>>,
-  id: string,
-  start: string,
-  current: CurrentAppointment,
-) {
-  if (new Date(start).getTime() <= Date.now()) return null
-  const result = await findConflicts(supabase, {
-    id,
-    start,
-    durationMinutes: current.duration_minutes,
-    operator: current.operator,
-  })
-  if (!result) return fail("No se pudo verificar la disponibilidad. Probá de nuevo.")
-  if (result.blocked) return fail(`Horario no disponible. ${conflictSummary(result)}`)
+/** Scheduling (overlaps and travel time) is coordinated manually by the team, so no slot is ever blocked. */
+async function checkFutureSlot(..._ignored: unknown[]): Promise<ActionState | null> {
   return null
 }
 

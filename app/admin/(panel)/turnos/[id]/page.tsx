@@ -11,7 +11,7 @@ import {
   updateAppointmentContactName,
 } from "@/app/admin/(panel)/crm-actions"
 import { AppointmentVehicleTools } from "@/components/admin/appointment-vehicle-tools"
-import { findConflicts, type ConflictCheck } from "@/lib/admin/conflicts"
+import type { ConflictCheck } from "@/lib/admin/conflicts"
 import { WhatsappComposer } from "@/components/admin/whatsapp-composer"
 import { buildConfirmationMessage, buildProposalMessage, type BookingMessageData } from "@/lib/admin/whatsapp-messages"
 import { ActionForm } from "@/components/admin/action-form"
@@ -202,16 +202,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
   const usedVehicleIds = new Set(lineVehicles.length ? lineVehicles.map((v) => v.vehicle_id) : appt.vehicle_id ? [appt.vehicle_id] : [])
   const availableVehicles = (clientVehicleRows ?? []).filter((v) => !usedVehicleIds.has(v.id))
 
-  const conflictCheck = isRequest
-    ? await findConflicts(supabase, { id: appt.id, start: appt.requested_start, durationMinutes: appt.duration_minutes, operator: appt.operator })
-    : pendingProposal
-      ? await findConflicts(supabase, {
-          id: appt.id,
-          start: pendingProposal.proposed_start,
-          durationMinutes: pendingProposal.duration_minutes,
-          operator: appt.operator,
-        })
-      : null
+  const conflictCheck: ConflictCheck | null = null
 
   const messageVehicles = lineVehicles.length
     ? lineVehicles.map((v) => {

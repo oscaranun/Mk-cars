@@ -4,7 +4,6 @@ import { revalidatePath, revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
 import type { PostgrestError } from "@supabase/supabase-js"
 import { getAdminClient } from "@/lib/admin/auth"
-import { conflictSummary, findConflicts } from "@/lib/admin/conflicts"
 import { isValidDate, isValidTime, todayArgentina } from "@/lib/admin/format"
 import { BLOCKED_DATES_TAG } from "@/lib/blocked-dates"
 import { PRICES_TAG, parsePrices } from "@/lib/prices"
@@ -158,7 +157,7 @@ export async function splitInquiryToNewClient(_prev: ActionState, data: FormData
   const whatsapp = normalizeWhatsapp(text(data, "whatsapp", 30))
   if (!UUID_RE.test(inquiryId)) return fail("Consulta inválida.")
   if (fullName.length < 2) return fail("Ingresá nombre y apellido.")
-  if (!whatsapp) return fail("El WhatsApp no es válido. Para otros países incluí el código (ej. +34).")
+  if (!whatsapp) return fail("El WhatsApp no es válido. Para otros países inclu�� el código (ej. +34).")
 
   const { data: newId, error } = await supabase.rpc("split_inquiry_to_new_client", {
     p_inquiry_id: inquiryId,
@@ -532,21 +531,6 @@ export async function manageAppointment(_prev: ActionState, data: FormData): Pro
     const pending = (current.appointment_proposals ?? []).find((p: { status: string }) => p.status === "pendiente")
     if (!pending) return acceptSentOffer(supabase, id, text(data, "slot", 40))
     check = { start: pending.proposed_start, duration: pending.duration_minutes }
-  }
-
-  if (check) {
-    const result = await findConflicts(supabase, {
-      id,
-      start: check.start,
-      durationMinutes: check.duration,
-      operator: operator ?? current.operator,
-    })
-    if (!result) return fail("No se pudo verificar la disponibilidad. Probá de nuevo.")
-    if (result.blocked) {
-      const next =
-        action === "propose" ? "Elegí otra alternativa." : 'No se confirmó. Usá "Proponer otro horario" para coordinar otra alternativa.'
-      return fail(`Horario no disponible. ${conflictSummary(result)} ${next}`)
-    }
   }
 
   const { error } = await supabase.rpc("manage_appointment", {
