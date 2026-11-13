@@ -73,6 +73,9 @@ export function Booking({
   const [pending, startTransition] = useTransition()
   const startedAt = useRef(0)
   const nextKey = useRef(1)
+  const basePrice = prices
+    ? vehicles.reduce((sum, v) => sum + (prices[v.category as keyof VehiclePrices] ?? 0), 0)
+    : 0
 
   function addVehicle() {
     const last = vehicles[vehicles.length - 1]
@@ -92,7 +95,7 @@ export function Booking({
     const date = String(data.get("date") ?? "")
     const time = String(data.get("time") ?? "")
     const notes = String(data.get("notes") ?? "").trim()
-    const conditionLines = conditionSummary(condition)
+    const conditionLines = conditionSummary(condition, basePrice)
     const noWater = Boolean(data.get("noWater"))
     const extras = data
       .getAll("extras")
@@ -222,7 +225,7 @@ export function Booking({
         <p className="text-sm text-muted-foreground">Agregá todos los autos que quieras lavar en el mismo turno.</p>
       </div>
       <BookingVehicles vehicles={vehicles} prices={prices} onChange={setVehicles} onAdd={addVehicle} />
-      <VehicleCondition value={condition} onChange={setCondition} />
+      <VehicleCondition value={condition} onChange={setCondition} basePrice={basePrice} />
       <ServiceIncludes />
     </div>
   )

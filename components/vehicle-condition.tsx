@@ -28,7 +28,10 @@ export const defaultVehicleCondition = (): VehicleConditionValue => ({ lastWash:
 
 const CONDITION_STEP = 5
 
+const STAINS_INCREMENT = 20
+
 export function estimatedIncrement({ lastWash, conditions }: VehicleConditionValue) {
+  if (conditions.includes("stains")) return STAINS_INCREMENT
   const base = LAST_WASH_OPTIONS.find((o) => o.id === lastWash)?.increment ?? 0
   const raw = base + conditions.length * CONDITION_STEP
   if (raw <= 0) return 0
@@ -37,29 +40,45 @@ export function estimatedIncrement({ lastWash, conditions }: VehicleConditionVal
   return 20
 }
 
-export function incrementNotice(increment: number) {
+export function incrementNotice(increment: number, value?: VehicleConditionValue) {
+  if (value?.conditions.includes("stains")) {
+    return `Las manchas en tapizados pueden generar un incremento del ${STAINS_INCREMENT}%.`
+  }
   if (increment === 0) return "Sin incremento estimado por el estado del vehículo."
   const range = increment === 10 ? "de hasta el 10%" : increment === 15 ? "del 10% al 15%" : "del 15% al 20%"
   return `Puede existir un incremento estimado ${range} según el estado del vehículo.`
 }
 
-export function conditionSummary(value: VehicleConditionValue) {
+const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 })
+
+export function estimateRange(basePrice: number, increment: number) {
+  const max = Math.round((basePrice * (1 + increment / 100)) / 100) * 100
+  return increment === 0 || max === basePrice
+    ? money.format(basePrice)
+    : `${money.format(basePrice)} a ${money.format(max)}`
+}
+
+export function conditionSummary(value: VehicleConditionValue, basePrice = 0) {
   const lastWash = LAST_WASH_OPTIONS.find((o) => o.id === value.lastWash)?.label ?? "Sin indicar"
   const conditions = CONDITION_OPTIONS.filter((o) => value.conditions.includes(o.id)).map((o) => o.label)
+  const increment = estimatedIncrement(value)
   return [
     "Estado del vehículo:",
     `Último lavado: ${lastWash}`,
     `Condiciones: ${conditions.length ? conditions.join(", ") : "Ninguna seleccionada"}`,
-    `Aviso: ${incrementNotice(estimatedIncrement(value))}`,
+    `Aviso: ${incrementNotice(increment, value)}`,
+    ...(basePrice > 0 ? [`Presupuesto estimado: ${estimateRange(basePrice, increment)}`] : []),
   ]
 }
 
 export function VehicleCondition({
   value,
   onChange,
+  basePrice = 0,
 }: {
   value: VehicleConditionValue
   onChange: (value: VehicleConditionValue) => void
+  basePrice?: number
 }) {
   const increment = estimatedIncrement(value)
 
@@ -138,9 +157,28 @@ export function VehicleCondition({
         <TriangleAlert className="size-5 shrink-0 fill-yellow-400 text-black" strokeWidth={2.25} aria-hidden="true" />
         <span>
           <span className="font-medium">Aviso: </span>
-          {incrementNotice(increment)}
+          {incrementNotice(increment, value)}
         </span>
       </p>
+
+      <div
+        aria-live="polite"
+        className="flex flex-col gap-0.5 rounded-xl border border-primary/40 bg-primary/10 px-3.5 py-3"
+      >
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">Presupuesto estimado</span>
+        {basePrice > 0 ? (
+          <>
+            <span className="text-lg font-semibold text-white tabular-nums">{estimateRange(basePrice, increment)}</span>
+            <span className="text-xs text-muted-foreground">
+              {increment
+                ? `Precio base + hasta ${increment}% según el estado del vehículo. Se confirma al ver el vehículo.`
+                : "Precio base del lavado. Se confirma al ver el vehículo."}
+            </span>
+          </>
+        ) : (
+          <span className="text-sm text-muted-foreground">Elegí el tipo de vehículo para ver el presupuesto.</span>
+        )}
+      </div>
     </fieldset>
   )
 }
