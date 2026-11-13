@@ -30,7 +30,13 @@ const CONDITION_STEP = 5
 
 const STAINS_INCREMENT = 20
 
+const MANY_CONDITIONS_THRESHOLD = 3
+const MANY_CONDITIONS_INCREMENT = 25
+
+const hasManyConditions = (conditions: string[]) => conditions.length > MANY_CONDITIONS_THRESHOLD
+
 export function estimatedIncrement({ lastWash, conditions }: VehicleConditionValue) {
+  if (hasManyConditions(conditions)) return MANY_CONDITIONS_INCREMENT
   if (conditions.includes("stains")) return STAINS_INCREMENT
   const base = LAST_WASH_OPTIONS.find((o) => o.id === lastWash)?.increment ?? 0
   const raw = base + conditions.length * CONDITION_STEP
@@ -41,6 +47,9 @@ export function estimatedIncrement({ lastWash, conditions }: VehicleConditionVal
 }
 
 export function incrementNotice(increment: number, value?: VehicleConditionValue) {
+  if (value && hasManyConditions(value.conditions)) {
+    return `Al marcar más de ${MANY_CONDITIONS_THRESHOLD} condiciones puede existir un incremento del ${MANY_CONDITIONS_INCREMENT}%.`
+  }
   if (value?.conditions.includes("stains")) {
     return `Las manchas en tapizados pueden generar un incremento del ${STAINS_INCREMENT}%.`
   }
