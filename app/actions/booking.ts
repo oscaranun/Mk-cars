@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { isZoneBookingEnabled } from "@/lib/zones/server"
 import { isValidDate } from "@/lib/admin/format"
+import { EVENT_ORIGIN_RE } from "@/lib/events"
 
 export type BookingResult = { ok: true } | { ok: false; error: string; field?: string }
 
@@ -24,6 +25,12 @@ function text(data: FormData, key: string, max: number) {
 const MAX_VEHICLES = 10
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function bookingOrigin(data: FormData) {
+  const origin = text(data, "origen", 70)
+  if (origin === "whatsapp_flyer" || EVENT_ORIGIN_RE.test(origin)) return origin
+  return "web"
+}
 
 type VehicleInput = { category: string; brand: string; model: string; catalog_id: string | null }
 
@@ -124,7 +131,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
           ref: text(data, "ref", 40),
           referrer: text(data, "referrer", 300) || headerList.get("referer"),
         }),
-        origen_reserva: data.get("origen") === "whatsapp_flyer" ? "whatsapp_flyer" : "web",
+        origen_reserva: bookingOrigin(data),
         marketing_consent: data.get("marketing") === "on",
         service_type_id: serviceType || null,
       },
@@ -194,7 +201,7 @@ export async function submitBooking(data: FormData): Promise<BookingResult> {
       water_supply: waterSupply,
       notes: mapLink ? [notes, `Ubicación en mapa: ${mapLink}`].filter(Boolean).join("\n") : notes,
       source,
-      origen_reserva: data.get("origen") === "whatsapp_flyer" ? "whatsapp_flyer" : "web",
+      origen_reserva: bookingOrigin(data),
       marketing_consent: data.get("marketing") === "on",
     },
   })

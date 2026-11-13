@@ -21,13 +21,15 @@ export function AddressInput({
   className,
   onStatusChange,
   onLocationChange,
+  defaultValue = "",
 }: {
   className: string
   onStatusChange?: (status: CoverageStatus) => void
   onLocationChange?: (point: Point | null) => void
+  defaultValue?: string
 }) {
   const listId = useId()
-  const [value, setValue] = useState("")
+  const [value, setValue] = useState(defaultValue)
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [active, setActive] = useState(-1)
   const [open, setOpen] = useState(false)
