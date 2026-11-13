@@ -3,7 +3,6 @@
 import { useState } from "react"
 import useSWR from "swr"
 import { Info, Plus, Trash2, X } from "lucide-react"
-import { ExtremeDirtNotice } from "@/components/extreme-dirt-notice"
 import { VehicleLineIcon } from "@/components/vehicle-line-icon"
 import { VehicleSearch } from "@/components/vehicle-search"
 import { VEHICLES, formatARS } from "@/lib/site"
@@ -241,7 +240,6 @@ function VehicleCard({
             )
           })}
         </div>
-        <ExtremeDirtNotice className="mt-2" />
       </fieldset>
 
       <div aria-live="polite" className="empty:hidden">

@@ -8,6 +8,12 @@ import { Reveal } from "@/components/reveal"
 import { SectionHeading } from "@/components/section-heading"
 import { BookingVehicles, emptyVehicle, type BookingVehicle } from "@/components/booking-vehicles"
 import { ServiceIncludes } from "@/components/service-includes"
+import {
+  VehicleCondition,
+  conditionSummary,
+  defaultVehicleCondition,
+  type VehicleConditionValue,
+} from "@/components/vehicle-condition"
 import { WhatsAppIcon } from "@/components/whatsapp-icon"
 import { EXTRAS, SERVICE_DAYS, TIME_SLOTS, VEHICLES, whatsappUrl } from "@/lib/site"
 import { WHATSAPP_DEFAULT_PREFIX } from "@/lib/booking"
@@ -55,6 +61,7 @@ export function Booking({
   zoneServices?: ServiceType[]
 }) {
   const [vehicles, setVehicles] = useState<BookingVehicle[]>([emptyVehicle(0)])
+  const [condition, setCondition] = useState<VehicleConditionValue>(defaultVehicleCondition)
   const [error, setError] = useState<string | null>(null)
   const [whatsappMessage, setWhatsappMessage] = useState<string | null>(null)
   const [coverage, setCoverage] = useState<CoverageStatus>("unknown")
@@ -85,6 +92,7 @@ export function Booking({
     const date = String(data.get("date") ?? "")
     const time = String(data.get("time") ?? "")
     const notes = String(data.get("notes") ?? "").trim()
+    const conditionLines = conditionSummary(condition)
     const noWater = Boolean(data.get("noWater"))
     const extras = data
       .getAll("extras")
@@ -119,6 +127,7 @@ export function Booking({
     data.set("ref", params.get("ref") ?? "")
     data.set("referrer", document.referrer)
     data.set("origen", params.get("origen") === "whatsapp_flyer" ? "whatsapp_flyer" : "web")
+    data.set("notes", [notes, conditionLines.join("\n")].filter(Boolean).join("\n\n"))
     data.set(
       "vehicles",
       JSON.stringify(vehicles.map((v) => ({ category: v.category, catalog_id: v.catalogId, ...vehicleDetail(v) }))),
@@ -138,6 +147,7 @@ export function Booking({
       ...(vehicles.length > 1
         ? [`Vehículos (${vehicles.length}):`, ...vehicleLines]
         : [`Vehículo: ${vehicleLines[0]}`]),
+      ...conditionLines.slice(1),
       `Agua: ${noWater ? "Sin agua en el domicilio" : "Agua del domicilio"}`,
       ...(extras.length ? [`Lavado en detalle: ${extras.join(", ")}`] : []),
       `Dirección: ${address}`,
@@ -165,6 +175,7 @@ export function Booking({
         setPoint(null)
         setFormKey((k) => k + 1)
         setVehicles([emptyVehicle(nextKey.current++)])
+        setCondition(defaultVehicleCondition())
       } catch {
         setError("No pudimos guardar tu solicitud. Revisá tu conexión y volvé a intentar.")
       }
@@ -211,6 +222,7 @@ export function Booking({
         <p className="text-sm text-muted-foreground">Agregá todos los autos que quieras lavar en el mismo turno.</p>
       </div>
       <BookingVehicles vehicles={vehicles} prices={prices} onChange={setVehicles} onAdd={addVehicle} />
+      <VehicleCondition value={condition} onChange={setCondition} />
       <ServiceIncludes />
     </div>
   )
