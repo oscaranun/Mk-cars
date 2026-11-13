@@ -92,6 +92,7 @@ export async function seedDemoData(_prev: ActionState, data: FormData): Promise<
 export async function purgeDemoData(_prev: ActionState): Promise<ActionState> {
   const supabase = await admin()
   if (!supabase) return fail("Sesión vencida. Volvé a iniciar sesión.")
+  await supabase.from("other_incomes").delete().eq("is_demo", true)
   const { error } = await supabase.rpc("purge_demo_data")
   if (error) return dbError(error, "No se pudieron eliminar los datos de prueba. No se borró nada.")
   return done("Datos de prueba eliminados. Tus datos reales no se tocaron.")

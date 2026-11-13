@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 import { purgeDemoData, seedDemoData } from "@/app/admin/(panel)/crm-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { ConfirmAction } from "@/components/admin/confirm-action"
@@ -27,6 +28,23 @@ export default async function DemoDataPage() {
         title="Datos de prueba"
         description="Clientes, autos, turnos y cobros ficticios para practicar con el panel sin tocar tus datos reales."
       />
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Link
+          href="/admin/pruebas/turnos"
+          className="flex flex-col gap-1 rounded-3xl border border-primary/40 bg-primary/10 p-5 transition hover:border-electric"
+        >
+          <span className="font-semibold">Turnos — ficha simplificada</span>
+          <span className="text-sm text-muted-foreground">Una sola ficha: estado, vehículos, pagos y notas.</span>
+        </Link>
+        <Link
+          href="/admin/pruebas/finanzas"
+          className="flex flex-col gap-1 rounded-3xl border border-primary/40 bg-primary/10 p-5 transition hover:border-electric"
+        >
+          <span className="font-semibold">Finanzas — una sola pantalla</span>
+          <span className="text-sm text-muted-foreground">Cargá gastos e ingresos con conceptos predeterminados.</span>
+        </Link>
+      </div>
 
       {error || !status ? (
         <Card>
