@@ -53,7 +53,7 @@ async function navCounts(supabase: Supabase, allowed: string[]): Promise<Record<
   const dayEnd = `${today}T23:59:59-03:00`
   const count = async (query: PromiseLike<{ count: number | null }>) => (await query).count ?? 0
 
-  const [requests, newInquiries, todays, followUps] = await Promise.all([
+  const [requests, newInquiries, todays] = await Promise.all([
     allowed.includes("consultas")
       ? count(supabase.from("appointments").select("id", { count: "exact", head: true }).in("status", PENDING_APPOINTMENT_STATUSES))
       : 0,
@@ -75,17 +75,8 @@ async function navCounts(supabase: Supabase, allowed: string[]): Promise<Record<
             .lte("confirmed_start", dayEnd),
         )
       : 0,
-    allowed.includes("recontactar")
-      ? count(
-          supabase
-            .from("clients")
-            .select("id", { count: "exact", head: true })
-            .is("archived_at", null)
-            .lte("follow_up_at", today),
-        )
-      : 0,
   ])
-  return { consultas: requests + newInquiries, hoy: todays, recontactar: followUps }
+  return { consultas: requests + newInquiries, hoy: todays }
 }
 
 export default async function PanelLayout({ children }: { children: ReactNode }) {

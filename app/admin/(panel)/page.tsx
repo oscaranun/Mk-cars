@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { Plus } from "lucide-react"
+import { BookingLinkButton } from "@/components/admin/booking-link-button"
 import { PageHeader } from "@/components/admin/ui"
 import {
   AgendaSection,
@@ -68,6 +69,7 @@ export default async function AdminTodayPage() {
     <>
       <PageHeader
         title="Hoy"
+        titleAside={<BookingLinkButton />}
         description={`${longDate(new Date(now).toISOString())} · actualizado ${formatDateTime(new Date(now))}`}
         actions={
           <Link
