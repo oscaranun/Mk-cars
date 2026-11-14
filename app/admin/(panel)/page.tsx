@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { Plus } from "lucide-react"
 import { PageHeader } from "@/components/admin/ui"
 import {
   AgendaSection,
@@ -65,7 +66,19 @@ export default async function AdminTodayPage() {
 
   return (
     <>
-      <PageHeader title="Hoy" description={`${longDate(new Date(now).toISOString())} · actualizado ${formatDateTime(new Date(now))}`} />
+      <PageHeader
+        title="Hoy"
+        description={`${longDate(new Date(now).toISOString())} · actualizado ${formatDateTime(new Date(now))}`}
+        actions={
+          <Link
+            href="/admin/turnos/nuevo"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Nuevo turno
+          </Link>
+        }
+      />
 
       {dueTasks.length > 0 && (
         <section aria-labelledby="hoy-tareas" className="rounded-2xl border border-border bg-card p-4">
