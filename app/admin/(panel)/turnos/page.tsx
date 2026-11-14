@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { ChevronRight, Plus } from "lucide-react"
+import { BookingLinkButton } from "@/components/admin/booking-link-button"
 import { TurnosViews } from "@/components/admin/turnos-views"
 import { Badge, EmptyState, PageHeader, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
@@ -74,6 +75,7 @@ export default async function TurnosPage({ searchParams }: { searchParams: Searc
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Turnos"
+        titleAside={<BookingLinkButton />}
         description="Tocá un turno para abrir su ficha: estado, vehículos, pagos y notas en un solo lugar."
         actions={
           <div className="flex flex-wrap gap-2">

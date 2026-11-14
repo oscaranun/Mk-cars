@@ -22,15 +22,20 @@ export function PageHeader({
   title,
   description,
   actions,
+  titleAside,
 }: {
   title: string
   description?: string
   actions?: ReactNode
+  titleAside?: ReactNode
 }) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-balance md:text-3xl">{title}</h1>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-balance md:text-3xl">{title}</h1>
+          {titleAside}
+        </div>
         {description && <p className="text-sm text-muted-foreground text-pretty">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}

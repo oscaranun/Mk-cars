@@ -1,9 +1,9 @@
-export type NavGroup = "operacion" | "clientes" | "finanzas" | "config"
+export type NavGroup = "operacion" | "clientes" | "analisis" | "config"
 
 export const NAV_GROUPS: { key: NavGroup; label: string }[] = [
   { key: "operacion", label: "Operación" },
   { key: "clientes", label: "Clientes" },
-  { key: "finanzas", label: "Finanzas" },
+  { key: "analisis", label: "Análisis" },
   { key: "config", label: "Configuración" },
 ]
 
@@ -16,11 +16,10 @@ type Section = { key: string; href: string; label: string; group?: NavGroup; hid
 export const SECTIONS: readonly Section[] = [
   { key: "hoy", href: "/admin", label: "Hoy", group: "operacion" },
   { key: "turnos", href: "/admin/turnos", label: "Turnos", group: "operacion" },
-  { key: "clientes", href: "/admin/clientes", label: "Clientes", group: "clientes" },
-  { key: "recontactar", href: "/admin/recontactar", label: "Recontactar", group: "clientes" },
+  { key: "finanzas", href: "/admin/finanzas", label: "Finanzas", group: "operacion" },
   { key: "eventos", href: "/admin/eventos", label: "Flyers de eventos", group: "clientes" },
-  { key: "finanzas", href: "/admin/finanzas", label: "Finanzas", group: "finanzas" },
-  { key: "estadisticas", href: "/admin/estadisticas", label: "Estadísticas", group: "finanzas" },
+  { key: "clientes", href: "/admin/clientes", label: "Clientes", group: "clientes" },
+  { key: "estadisticas", href: "/admin/estadisticas", label: "Estadísticas", group: "analisis" },
   { key: "configuracion", href: "/admin/configuracion", label: "Ajustes", group: "config" },
   { key: "actividad", href: "/admin/actividad", label: "Historial de cambios", hidden: true },
   { key: "precios", href: "/admin/precios", label: "Lista de precios", hidden: true },
@@ -39,7 +38,7 @@ export type AdminProfile = { role: AdminRole; permissions: string[]; full_name: 
 const ALIASES: Record<string, string> = {
   "/admin/agenda": "turnos",
   "/admin/movimientos": "finanzas",
-  "/admin/campanas": "recontactar",
+  "/admin/campanas": "clientes",
 }
 
 export function sectionForPath(pathname: string): string | null {
