@@ -6,7 +6,7 @@ import {
   saveTurnoData,
   saveVehicle,
   undoPayments,
-} from "@/app/admin/(panel)/pruebas/actions"
+} from "@/app/admin/(panel)/ficha-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { Badge, Card, Field, SectionTitle, dangerButtonClass, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
 import { argentinaParts, formatDateTime, formatWhatsapp, money, whatsappLink } from "@/lib/admin/format"

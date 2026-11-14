@@ -43,6 +43,7 @@ const ICONS: Record<string, LucideIcon> = {
   campanas: Megaphone,
   consultas: MessagesSquare,
   servicios: FileText,
+  finanzas: Wallet,
   movimientos: ArrowLeftRight,
   cobros: Wallet,
   caja: Calculator,
@@ -58,8 +59,8 @@ const ICONS: Record<string, LucideIcon> = {
 type Item = (typeof SECTIONS)[number]
 
 const NESTED_UNDER: Record<string, string[]> = {
-  "/admin/configuracion": [USERS_SECTION.href, "/admin/precios", "/admin/zonas", "/admin/agenda-servicios", "/admin/pruebas"],
-  "/admin/tablero": ["/admin/turnos"],
+  "/admin/configuracion": [USERS_SECTION.href, "/admin/precios", "/admin/zonas", "/admin/agenda-servicios", "/admin/actividad"],
+  "/admin/finanzas": ["/admin/movimientos", "/admin/cobros", "/admin/caja", "/admin/gastos-fijos", "/admin/cierre"],
 }
 
 function matches(href: string, pathname: string) {

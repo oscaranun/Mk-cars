@@ -1,6 +1,5 @@
-import Link from "next/link"
-import { ArrowLeft, X } from "lucide-react"
-import { deleteFinanceConcept, deleteFinanceEntry, saveFinanceConcept } from "@/app/admin/(panel)/pruebas/actions"
+import { X } from "lucide-react"
+import { deleteFinanceConcept, deleteFinanceEntry, saveFinanceConcept } from "@/app/admin/(panel)/ficha-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { FinanceForm } from "@/components/admin/ficha/finance-form"
 import { Card, EmptyState, PageHeader, SectionTitle, Stat, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
@@ -8,7 +7,7 @@ import { requireAdmin } from "@/lib/admin/auth"
 import { formatDate, isValidDate, money, startOfArgentinaDay, todayArgentina } from "@/lib/admin/format"
 import { PAYMENT_METHOD } from "@/lib/admin/labels"
 
-export const metadata = { title: "Finanzas (prueba) | MK Cars" }
+export const metadata = { title: "Finanzas" }
 
 type Movement = {
   key: string
@@ -43,10 +42,10 @@ export default async function PruebaFinanzasPage({ searchParams }: { searchParam
       .is("voided_at", null)
       .gte("paid_at", startOfArgentinaDay(from))
       .lt("paid_at", startOfArgentinaDay(to)),
-    supabase.from("other_incomes").select("id, received_on, concept, amount, method, is_demo").gte("received_on", from).lt("received_on", to),
+    supabase.from("other_incomes").select("id, received_on, concept, amount, method").gte("received_on", from).lt("received_on", to),
     supabase
       .from("expenses")
-      .select("id, spent_on, category, description, amount, method, is_demo")
+      .select("id, spent_on, category, description, amount, method")
       .is("voided_at", null)
       .gte("spent_on", from)
       .lt("spent_on", to),
@@ -82,7 +81,7 @@ export default async function PruebaFinanzasPage({ searchParams }: { searchParam
       concept: o.concept,
       amount: Number(o.amount),
       method: o.method,
-      deletable: o.is_demo,
+      deletable: true,
     })),
     ...(expenses.data ?? []).map((e) => ({
       key: `e-${e.id}`,
@@ -93,7 +92,7 @@ export default async function PruebaFinanzasPage({ searchParams }: { searchParam
       concept: e.description || e.category,
       amount: Number(e.amount),
       method: e.method,
-      deletable: e.is_demo,
+      deletable: true,
     })),
   ].sort((a, b) => b.date.localeCompare(a.date))
 
@@ -103,12 +102,8 @@ export default async function PruebaFinanzasPage({ searchParams }: { searchParam
 
   return (
     <div className="flex flex-col gap-6">
-      <Link href="/admin/pruebas" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        Panel de pruebas
-      </Link>
       <PageHeader
-        title="Finanzas — una sola pantalla"
+        title="Finanzas"
         description="Cargá cualquier gasto o ingreso desde acá. Los cobros de turnos aparecen solos."
         actions={
           <form method="get" className="flex items-end gap-2">
@@ -206,7 +201,7 @@ export default async function PruebaFinanzasPage({ searchParams }: { searchParam
                     <ActionForm
                       action={deleteFinanceEntry}
                       inline
-                      confirmText="¿Borrar este movimiento de prueba?"
+                      confirmText="¿Borrar este movimiento?"
                       submitLabel={
                         <>
                           <X className="size-4" aria-hidden="true" />

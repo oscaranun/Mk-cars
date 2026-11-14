@@ -61,7 +61,7 @@ export default async function EditIncomePage({ params }: { params: Promise<{ id:
     <>
       <PageHeader title="Editar ingreso" description={`${money(Number(payment.amount))} · ${formatDate(payment.paid_at)}`} />
       <p className="text-sm">
-        <TextLink href="/admin/movimientos">Volver a movimientos</TextLink>
+        <TextLink href="/admin/finanzas">Volver a Finanzas</TextLink>
       </p>
 
       {payment.voided_at ? (

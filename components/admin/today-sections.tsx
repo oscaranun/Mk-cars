@@ -234,7 +234,7 @@ export function AgendaSection({ items }: { items: AgendaAppt[] }) {
 
 export function InquiriesSection({ items }: { items: OpenInquiry[] }) {
   return (
-    <Section title="Consultas sin responder" count={items.length} href="/admin/consultas" linkLabel="Ver consultas">
+    <Section title="Consultas sin responder" count={items.length} href="/admin/clientes" linkLabel="Ver clientes">
       {items.length ? (
         <ul className="flex flex-col gap-2">
           {items.map((i) => {
@@ -269,7 +269,7 @@ export function InquiriesSection({ items }: { items: OpenInquiry[] }) {
 export function UnpaidSection({ items }: { items: UnpaidService[] }) {
   const total = items.reduce((sum, s) => sum + Number(s.final_price) - Number(s.amount_paid), 0)
   return (
-    <Section title="Cobros pendientes" count={items.length} href="/admin/cobros" linkLabel="Ver cobros">
+    <Section title="Cobros pendientes" count={items.length} href="/admin/finanzas" linkLabel="Ver finanzas">
       {items.length ? (
         <>
           <p className="text-sm text-muted-foreground">

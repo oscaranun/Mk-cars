@@ -56,7 +56,7 @@ export default async function EditExpensePage({ params }: { params: Promise<{ id
     <>
       <PageHeader title="Editar gasto" description={`${money(Number(expense.amount))} · ${formatDate(`${expense.spent_on}T12:00:00-03:00`)}`} />
       <p className="text-sm">
-        <TextLink href="/admin/movimientos">Volver a movimientos</TextLink>
+        <TextLink href="/admin/finanzas">Volver a Finanzas</TextLink>
       </p>
 
       {expense.voided_at ? (

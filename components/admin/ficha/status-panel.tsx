@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { setTurnoStatus } from "@/app/admin/(panel)/pruebas/actions"
+import { setTurnoStatus } from "@/app/admin/(panel)/ficha-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { Field, fieldClass } from "@/components/admin/ui"
 import { cn } from "@/lib/utils"

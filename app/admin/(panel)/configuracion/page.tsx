@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ChevronRight, FlaskConical, MapPinned, Route, ShieldCheck, type LucideIcon } from "lucide-react"
+import { ChevronRight, History, MapPinned, Route, ShieldCheck, type LucideIcon } from "lucide-react"
 import { PageHeader } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
 import { allowedKeys } from "@/lib/admin/permissions"
@@ -30,11 +30,11 @@ const OPTIONS: { key: string; href: string; title: string; description: string; 
     icon: Route,
   },
   {
-    key: "pruebas",
-    href: "/admin/pruebas",
-    title: "Datos de prueba",
-    description: "Cargar o borrar datos ficticios para practicar.",
-    icon: FlaskConical,
+    key: "actividad",
+    href: "/admin/actividad",
+    title: "Historial de cambios",
+    description: "Quién cambió qué en el panel.",
+    icon: History,
   },
 ]
 
