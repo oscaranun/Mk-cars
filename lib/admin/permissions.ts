@@ -16,24 +16,12 @@ type Section = { key: string; href: string; label: string; group?: NavGroup; hid
 export const SECTIONS: readonly Section[] = [
   { key: "hoy", href: "/admin", label: "Hoy", group: "operacion" },
   { key: "turnos", href: "/admin/turnos", label: "Turnos", group: "operacion" },
-  { key: "agenda", href: "/admin/agenda", label: "Agenda", group: "operacion" },
   { key: "clientes", href: "/admin/clientes", label: "Clientes", group: "clientes" },
   { key: "recontactar", href: "/admin/recontactar", label: "Recontactar", group: "clientes" },
   { key: "eventos", href: "/admin/eventos", label: "Flyers de eventos", group: "clientes" },
   { key: "finanzas", href: "/admin/finanzas", label: "Finanzas", group: "finanzas" },
   { key: "estadisticas", href: "/admin/estadisticas", label: "Estadísticas", group: "finanzas" },
   { key: "configuracion", href: "/admin/configuracion", label: "Ajustes", group: "config" },
-  { key: "tablero", href: "/admin/tablero", label: "Tablero", hidden: true },
-  { key: "consultas", href: "/admin/consultas", label: "Consultas", hidden: true },
-  { key: "recorrido", href: "/admin/recorrido", label: "Mi recorrido", hidden: true },
-  { key: "tareas", href: "/admin/tareas", label: "Tareas", hidden: true },
-  { key: "campanas", href: "/admin/campanas", label: "Campañas y cupones", hidden: true },
-  { key: "movimientos", href: "/admin/movimientos", label: "Movimientos", hidden: true },
-  { key: "cobros", href: "/admin/cobros", label: "Ingresos", hidden: true },
-  { key: "caja", href: "/admin/caja", label: "Egresos", hidden: true },
-  { key: "gastos-fijos", href: "/admin/gastos-fijos", label: "Gastos fijos", hidden: true },
-  { key: "cierre", href: "/admin/cierre", label: "Cierre de caja", hidden: true },
-  { key: "servicios", href: "/admin/servicios", label: "Reportes", hidden: true },
   { key: "actividad", href: "/admin/actividad", label: "Historial de cambios", hidden: true },
   { key: "precios", href: "/admin/precios", label: "Lista de precios", hidden: true },
   { key: "agenda-servicios", href: "/admin/agenda-servicios", label: "Agenda de servicios", hidden: true },
@@ -47,8 +35,18 @@ export const SECTION_KEYS: string[] = SECTIONS.map((s) => s.key)
 export type AdminRole = "owner" | "staff"
 export type AdminProfile = { role: AdminRole; permissions: string[]; full_name: string | null }
 
+/** Screens folded into another section share its permission. */
+const ALIASES: Record<string, string> = {
+  "/admin/agenda": "turnos",
+  "/admin/movimientos": "finanzas",
+  "/admin/campanas": "recontactar",
+}
+
 export function sectionForPath(pathname: string): string | null {
   if (pathname === USERS_SECTION.href || pathname.startsWith(`${USERS_SECTION.href}/`)) return USERS_SECTION.key
+  for (const [href, key] of Object.entries(ALIASES)) {
+    if (pathname === href || pathname.startsWith(`${href}/`)) return key
+  }
   for (const s of SECTIONS) {
     if (s.href === "/admin" ? pathname === "/admin" : pathname === s.href || pathname.startsWith(`${s.href}/`)) {
       return s.key

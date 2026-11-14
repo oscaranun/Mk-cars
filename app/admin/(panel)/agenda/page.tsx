@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { BlockDateForm, WeekGrid, type AgendaItem } from "@/components/admin/agenda-week"
+import { TurnosViews } from "@/components/admin/turnos-views"
 import { PageHeader, secondaryButtonClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
 import { addDays, argentinaParts, isValidDate, startOfArgentinaDay, todayArgentina } from "@/lib/admin/format"
@@ -73,7 +74,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   return (
     <>
       <PageHeader
-        title="Agenda"
+        title="Turnos"
         description="Turnos de la semana. Los pendientes aparecen con borde punteado."
         actions={
           <>
@@ -89,6 +90,8 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
           </>
         }
       />
+
+      <TurnosViews current="semana" />
 
       <WeekGrid days={days} today={today} items={items} blocked={blockedMap} />
 

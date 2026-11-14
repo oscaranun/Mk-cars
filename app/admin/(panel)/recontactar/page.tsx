@@ -95,6 +95,9 @@ export default async function RecontactPage({ searchParams }: { searchParams: Pr
   return (
     <>
       <PageHeader
+        actions={
+          <TextLink href="/admin/campanas">Campañas y cupones</TextLink>
+        }
         title="Recontactar"
         description="Clientes con seguimiento pendiente: postergaron, no contrataron pero aceptaron seguimiento, o pidieron que los contactemos más adelante."
       />

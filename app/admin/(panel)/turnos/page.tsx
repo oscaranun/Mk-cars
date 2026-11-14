@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { CalendarDays, ChevronRight, Plus } from "lucide-react"
+import { ChevronRight, Plus } from "lucide-react"
+import { TurnosViews } from "@/components/admin/turnos-views"
 import { Badge, EmptyState, PageHeader, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
 import { formatDateTime, money } from "@/lib/admin/format"
@@ -76,10 +77,6 @@ export default async function TurnosPage({ searchParams }: { searchParams: Searc
         description="Tocá un turno para abrir su ficha: estado, vehículos, pagos y notas en un solo lugar."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Link href="/admin/turnos/calendario" className={secondaryButtonClass}>
-              <CalendarDays className="size-4" aria-hidden="true" />
-              Calendario
-            </Link>
             <Link
               href="/admin/turnos/nuevo"
               className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
@@ -90,6 +87,8 @@ export default async function TurnosPage({ searchParams }: { searchParams: Searc
           </div>
         }
       />
+
+      <TurnosViews current="lista" />
 
       <div className="flex flex-col gap-3">
         <form method="get" className="flex gap-2">

@@ -6,6 +6,7 @@ import { saveTransferSettings } from "@/app/admin/(panel)/offer-actions"
 import { parsePrices } from "@/lib/prices"
 import { ActionForm } from "@/components/admin/action-form"
 import { DeletedNotice } from "@/components/admin/deleted-notice"
+import { TurnosViews } from "@/components/admin/turnos-views"
 import {
   Badge,
   Card,
@@ -151,6 +152,8 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
           </div>
         }
       />
+
+      <TurnosViews current="mes" />
 
       {params.eliminada === "1" && <DeletedNotice />}
 

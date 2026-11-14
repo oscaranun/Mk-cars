@@ -5,7 +5,6 @@ import { ArrowLeft, CalendarPlus, MessageCircle } from "lucide-react"
 import { addVehicle, deleteVehicle, splitInquiryToNewClient, updateClient, updateVehicle } from "@/app/admin/(panel)/crm-actions"
 import { addPackage, usePackageWash } from "@/app/admin/(panel)/pro-actions"
 import { ActionForm } from "@/components/admin/action-form"
-import { ClientAppointmentPricing, type PricingAppointment, type PricingLine } from "@/components/admin/client-appointment-pricing"
 import { ClientDangerZone } from "@/components/admin/client-danger-zone"
 import { ReviewSection } from "@/components/admin/review-section"
 import { Badge, Card, DetailRow, EmptyState, Field, SectionTitle, TextLink, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
@@ -93,10 +92,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     .returns<ClientDetail>()
   if (!client) notFound()
 
-  const [{ data: packageRows }, { data: settings }, { data: taskRows }] = await Promise.all([
+  const [{ data: packageRows }, { data: settings }] = await Promise.all([
     supabase.from("client_packages").select("id, name, total_washes, used_washes, price, expires_on, created_at").eq("client_id", id).order("created_at", { ascending: false }),
     supabase.from("settings").select("loyalty_every").eq("id", 1).maybeSingle(),
-    supabase.from("admin_tasks").select("id, title, due_on").eq("client_id", id).is("done_at", null).order("due_on"),
   ])
   const packages = packageRows ?? []
   const loyaltyEvery = settings?.loyalty_every ?? 6
@@ -109,27 +107,6 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const openAppointments = appointments
     .filter((a) => ["solicitado", "reprogramado", "esperando_cliente", "confirmado", "realizado"].includes(a.status))
     .slice(0, 6)
-  const { data: lineRows } = openAppointments.length
-    ? await supabase
-        .from("appointment_vehicles")
-        .select("appointment_id, position, category, price_applied, needs_review, vehicle_id, vehicles(brand, model, category, category_label)")
-        .in("appointment_id", openAppointments.map((a) => a.id))
-        .order("position")
-        .returns<PricingLine[]>()
-    : { data: [] as PricingLine[] }
-  const pricingAppointments: PricingAppointment[] = openAppointments.map((a) => {
-    const lines = (lineRows ?? []).filter((l) => l.appointment_id === a.id)
-    return {
-      id: a.id,
-      service: a.service,
-      status: a.status,
-      start: a.confirmed_start ?? a.requested_start,
-      payment_status: a.payment_status,
-      amount_paid: a.amount_paid,
-      final_price: a.adjusted_price ?? a.agreed_price,
-      lines,
-    }
-  })
   const services = byDateDesc(client.services, (s) => s.performed_at)
   const payments = byDateDesc(
     services.flatMap((s) => s.payments.map((p) => ({ ...p, wash: s.wash_type }))),
@@ -334,15 +311,44 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
       <section id="precios" className="scroll-mt-24">
         <Card className="flex flex-col gap-4">
-          <SectionTitle>Precios y cobro por turno</SectionTitle>
+          <SectionTitle>Turnos activos</SectionTitle>
           <p className="text-sm text-muted-foreground text-pretty">
-            Cargá el precio del trabajo de cada vehículo, quitá los que se agregaron de más y confirmá el pago cuando el turno esté realizado.
+            Tocá un turno para abrir su ficha: estado, vehículos, precio y pagos se editan ahí.
           </p>
-          <ClientAppointmentPricing clientId={client.id} appointments={pricingAppointments} vehicles={client.vehicles} />
+          {openAppointments.length === 0 ? (
+            <EmptyState>Sin turnos activos.</EmptyState>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {openAppointments.map((a) => {
+                const start = a.confirmed_start ?? a.requested_start
+                const price = a.adjusted_price ?? a.agreed_price
+                return (
+                  <li key={a.id}>
+                    <Link
+                      href={`/admin/turnos/${a.id}`}
+                      className="flex min-h-11 flex-col gap-1 rounded-2xl bg-surface px-4 py-3 text-sm transition hover:bg-sky"
+                    >
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">{a.service}</span>
+                        <Badge tone={appointmentTone(a.status)}>{APPOINTMENT_STATUS[a.status] ?? a.status}</Badge>
+                        <Badge tone={paymentTone(a.payment_status ?? "pendiente")}>
+                          {PAYMENT_STATUS[a.payment_status ?? "pendiente"] ?? a.payment_status}
+                        </Badge>
+                      </span>
+                      <span className="text-muted-foreground tabular-nums">
+                        {start ? formatDateTime(start) : "Sin fecha"}
+                        {price ? ` · ${money(Number(price))}` : ""}
+                      </span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </Card>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card className="flex flex-col gap-3">
           <SectionTitle aside={nextIsFree && <Badge tone="success">Próximo gratis</Badge>}>Fidelidad</SectionTitle>
           <p className="text-sm text-muted-foreground">
@@ -409,22 +415,6 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               </Field>
             </ActionForm>
           </details>
-        </Card>
-
-        <Card className="flex flex-col gap-3">
-          <SectionTitle aside={<TextLink href={`/admin/tareas?cliente=${client.id}`}>Nueva</TextLink>}>Tareas</SectionTitle>
-          {(taskRows ?? []).length === 0 ? (
-            <EmptyState>Sin tareas pendientes.</EmptyState>
-          ) : (
-            <ul className="flex flex-col gap-2 text-sm">
-              {(taskRows ?? []).map((t) => (
-                <li key={t.id} className="flex justify-between gap-2 rounded-2xl bg-surface px-4 py-3">
-                  <span>{t.title}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">{formatDate(t.due_on)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
         </Card>
       </div>
 

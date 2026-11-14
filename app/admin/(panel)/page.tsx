@@ -73,9 +73,6 @@ export default async function AdminTodayPage() {
             <h2 id="hoy-tareas" className="text-sm font-semibold">
               Tareas para hoy ({dueTasks.length})
             </h2>
-            <Link href="/admin/tareas" className="text-sm text-primary underline-offset-4 hover:underline">
-              Ver tareas
-            </Link>
           </div>
           <ul className="mt-2 flex flex-col gap-1 text-sm">
             {dueTasks.map((t) => (
