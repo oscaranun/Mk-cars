@@ -69,16 +69,18 @@ export default async function AdminTodayPage() {
     <>
       <PageHeader
         title="Hoy"
-        titleAside={<BookingLinkButton />}
         description={`${longDate(new Date(now).toISOString())} · actualizado ${formatDateTime(new Date(now))}`}
         actions={
-          <Link
-            href="/admin/turnos/nuevo"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Nuevo turno
-          </Link>
+          <div className="flex w-full items-center justify-between gap-2 sm:w-auto">
+            <Link
+              href="/admin/turnos/nuevo"
+              className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              Nuevo turno
+            </Link>
+            <BookingLinkButton />
+          </div>
         }
       />
 

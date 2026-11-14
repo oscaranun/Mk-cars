@@ -75,17 +75,17 @@ export default async function TurnosPage({ searchParams }: { searchParams: Searc
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Turnos"
-        titleAside={<BookingLinkButton />}
         description="Tocá un turno para abrir su ficha: estado, vehículos, pagos y notas en un solo lugar."
         actions={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex w-full items-center justify-between gap-2 sm:w-auto">
             <Link
               href="/admin/turnos/nuevo"
-              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+              className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
             >
               <Plus className="size-4" aria-hidden="true" />
               Nuevo turno
             </Link>
+            <BookingLinkButton />
           </div>
         }
       />
