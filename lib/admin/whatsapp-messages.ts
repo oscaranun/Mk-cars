@@ -77,6 +77,47 @@ export function buildConfirmationMessage(d: BookingMessageData, start: string) {
   ].join("\n")
 }
 
+export type StatusMessageData = {
+  firstName: string
+  date: string
+  time: string
+  address: string
+  service: string
+  vehicles: string[]
+  price: number | null
+}
+
+function shortDate(date: string) {
+  const s = new Date(`${date}T12:00:00Z`).toLocaleDateString("es-AR", {
+    timeZone: "UTC",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  })
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+export function buildStatusMessage(kind: "confirmado" | "reprogramado", d: StatusMessageData) {
+  const when = `${shortDate(d.date)} a las ${d.time} hs`
+  const intro =
+    kind === "confirmado"
+      ? [`Hola ${d.firstName}! MK Cars confirma tu turno.`, "", `📅 ${when}`]
+      : [`Hola ${d.firstName}! MK Cars reprogramó tu turno.`, "", `📅 Nueva fecha: ${when}`]
+
+  return [
+    ...intro,
+    ...[
+      d.address && `📍 Domicilio: ${d.address}`,
+      ...vehicleLines(d.vehicles).map((line, i) => (i === 0 ? `🚗 ${line}` : line)),
+      d.service && `🧽 Servicio: ${d.service}`,
+      `💵 Precio acordado: ${priceText(d.price)}`,
+    ].filter(Boolean),
+    "",
+    ...(kind === "reprogramado" ? ["Respondé este mensaje para confirmar el nuevo horario.", ""] : []),
+    "Gracias por confiar en MK Cars 😃",
+  ].join("\n")
+}
+
 export function buildProposalMessage(d: BookingMessageData, original: string | null, proposed: string) {
   const originalBlock = original
     ? ["El horario que solicitaste originalmente era:", "", `${longDate(original)} a las ${hour(original)}.`, ""]
