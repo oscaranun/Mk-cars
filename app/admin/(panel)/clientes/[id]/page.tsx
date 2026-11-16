@@ -9,7 +9,8 @@ import { ClientDangerZone } from "@/components/admin/client-danger-zone"
 import { ReviewSection } from "@/components/admin/review-section"
 import { Badge, Card, DetailRow, EmptyState, Field, SectionTitle, TextLink, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
-import { formatDate, formatDateTime, formatWhatsapp, money, whatsappLink } from "@/lib/admin/format"
+import { WhatsappAction } from "@/components/admin/whatsapp-action"
+import { formatDate, formatDateTime, formatWhatsapp, money } from "@/lib/admin/format"
 import { WHATSAPP_DEFAULT_PREFIX } from "@/lib/booking"
 import {
   APPOINTMENT_STATUS,
@@ -147,10 +148,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               <CalendarPlus className="size-4" aria-hidden="true" />
               Nuevo turno
             </Link>
-            <a href={whatsappLink(client.whatsapp)} target="_blank" rel="noopener noreferrer" className={secondaryButtonClass}>
+            <WhatsappAction phone={client.whatsapp} className={secondaryButtonClass}>
               <MessageCircle className="size-4 text-whatsapp" aria-hidden="true" />
               Escribir por WhatsApp
-            </a>
+            </WhatsappAction>
           </div>
         </div>
       </div>

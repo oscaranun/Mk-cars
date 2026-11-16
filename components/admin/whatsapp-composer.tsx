@@ -2,16 +2,16 @@
 
 import { useId, useState } from "react"
 import { MessageCircle } from "lucide-react"
-import { fieldClass, primaryButtonClass } from "@/components/admin/ui"
+import { fieldClass, primaryButtonClass, secondaryButtonClass } from "@/components/admin/ui"
+import { WhatsappAction } from "@/components/admin/whatsapp-action"
 
 type Props = { phone: string; initialMessage: string; label: string }
 
-/** Opens wa.me with an editable draft. Opening the chat never counts as sent. */
+/** Opens WhatsApp with an editable draft. Opening the chat never counts as sent. */
 export function WhatsappComposer({ phone, initialMessage, label }: Props) {
   const [message, setMessage] = useState(initialMessage)
   const id = useId()
-  const digits = phone.replace(/\D/g, "")
-  const href = `https://wa.me/${digits}?text=${encodeURIComponent(message.trim())}`
+  const disabled = !phone.replace(/\D/g, "") || !message.trim()
 
   return (
     <div className="flex flex-col gap-3">
@@ -27,16 +27,18 @@ export function WhatsappComposer({ phone, initialMessage, label }: Props) {
           className={`${fieldClass} py-2.5 text-base leading-relaxed md:text-sm`}
         />
       </div>
-      <a
-        href={digits ? href : undefined}
-        aria-disabled={!digits || !message.trim()}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`${primaryButtonClass} w-full sm:w-fit ${!digits || !message.trim() ? "pointer-events-none opacity-60" : ""}`}
-      >
-        <MessageCircle className="size-4" aria-hidden="true" />
-        {label}
-      </a>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <WhatsappAction
+          phone={phone}
+          message={message}
+          disabled={disabled}
+          className={`${primaryButtonClass} w-full sm:w-fit ${disabled ? "pointer-events-none opacity-60" : ""}`}
+          copyClassName={`${secondaryButtonClass} w-full sm:w-fit`}
+        >
+          <MessageCircle className="size-4" aria-hidden="true" />
+          {label}
+        </WhatsappAction>
+      </div>
       <p className="text-xs text-muted-foreground text-pretty">
         Se abre WhatsApp con el mensaje listo, pero no se envía solo. El CRM no lo registra hasta que toques {'"Marcar como enviado"'}.
       </p>

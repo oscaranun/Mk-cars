@@ -5,7 +5,8 @@ import { requireAdmin } from "@/lib/admin/auth"
 import { createCoupon, updateCoupon } from "@/app/admin/(panel)/pro-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { Badge, Card, EmptyState, Field, PageHeader, SectionTitle, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
-import { formatDate, money, todayArgentina, whatsappLink } from "@/lib/admin/format"
+import { WhatsappAction } from "@/components/admin/whatsapp-action"
+import { formatDate, money, todayArgentina } from "@/lib/admin/format"
 
 export const metadata: Metadata = { title: "Campañas y cupones" }
 
@@ -89,10 +90,12 @@ export default async function CampanasPage({ searchParams }: { searchParams: Pro
                   </Link>
                   <p className="text-xs text-muted-foreground">Último lavado: {formatDate(lastWash.get(c.id)!)}</p>
                 </div>
-                <a href={`${whatsappLink(c.whatsapp!)}?text=${encodeURIComponent(build(c.full_name))}`} target="_blank" rel="noreferrer" className={secondaryButtonClass}>
-                  <MessageCircle className="size-4 text-emerald-400" aria-hidden="true" />
-                  Enviar
-                </a>
+                <div className="flex flex-wrap gap-2">
+                  <WhatsappAction phone={c.whatsapp} message={build(c.full_name)} className={secondaryButtonClass}>
+                    <MessageCircle className="size-4 text-emerald-400" aria-hidden="true" />
+                    Enviar
+                  </WhatsappAction>
+                </div>
               </li>
             ))}
           </ul>

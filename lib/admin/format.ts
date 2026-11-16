@@ -77,6 +77,7 @@ export function resolveRange(params: { desde?: string; hasta?: string }, default
   return { from, to, fromISO: startOfArgentinaDay(from), toISO: startOfArgentinaDay(addDays(to, 1)) }
 }
 
+/** @deprecated Use WhatsappAction or whatsappHref from lib/whatsapp. */
 export function whatsappLink(number: string | null | undefined) {
   return `https://wa.me/${(number ?? "").replace(/\D/g, "")}`
 }

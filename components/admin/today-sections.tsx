@@ -4,7 +4,8 @@ import { ArrowRight, Clock, MapPin, MessageCircle } from "lucide-react"
 import { manageAppointment } from "@/app/admin/(panel)/crm-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { Badge, Card, EmptyState, SectionTitle, primaryButtonClass, secondaryButtonClass } from "@/components/admin/ui"
-import { formatDateTime, formatTime, money, whatsappLink } from "@/lib/admin/format"
+import { WhatsappAction } from "@/components/admin/whatsapp-action"
+import { formatDateTime, formatTime, money } from "@/lib/admin/format"
 import { APPOINTMENT_STATUS, INQUIRY_STATUS, appointmentTone, inquiryTone } from "@/lib/admin/labels"
 import { cn } from "@/lib/utils"
 
@@ -99,15 +100,15 @@ function Section({
 
 function WhatsappButton({ phone, name }: { phone: string; name: string }) {
   return (
-    <a
-      href={`${whatsappLink(phone)}?text=${encodeURIComponent(`Hola ${name}, te escribimos de MK Cars.`)}`}
-      target="_blank"
-      rel="noopener noreferrer"
+    <WhatsappAction
+      phone={phone}
+      message={`Hola ${name}, te escribimos de MK Cars.`}
       className={cn(secondaryButtonClass, smallButton)}
+      copyClassName={cn(secondaryButtonClass, smallButton)}
     >
       <MessageCircle className="size-4 text-emerald-300" aria-hidden="true" />
       WhatsApp
-    </a>
+    </WhatsappAction>
   )
 }
 

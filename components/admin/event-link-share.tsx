@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Check, Copy, ExternalLink, MessageCircle } from "lucide-react"
 import { secondaryButtonClass } from "@/components/admin/ui"
+import { WhatsappAction } from "@/components/admin/whatsapp-action"
 
 export function EventLinkShare({ link, message }: { link: string; message: string }) {
   const [copied, setCopied] = useState(false)
@@ -11,15 +12,10 @@ export function EventLinkShare({ link, message }: { link: string; message: strin
     <div className="flex flex-col gap-2">
       <p className="break-all rounded-2xl bg-surface px-4 py-3 font-mono text-xs">{link}</p>
       <div className="flex flex-wrap gap-2">
-        <a
-          href={`https://wa.me/?text=${encodeURIComponent(`${message}\n${link}`)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={secondaryButtonClass}
-        >
+        <WhatsappAction message={`${message}\n${link}`} className={secondaryButtonClass}>
           <MessageCircle className="size-4 text-emerald-400" aria-hidden="true" />
           Compartir por WhatsApp
-        </a>
+        </WhatsappAction>
         <button
           type="button"
           onClick={async () => {
