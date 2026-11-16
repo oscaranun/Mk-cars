@@ -28,9 +28,6 @@ export function reviewTone(status: string) {
   return "neutral" as const
 }
 
-/** Short branded link that redirects to the Google review form (see app/calificanos/route.ts). */
-export const REVIEW_SHORT_URL = "https://www.mkcars.com.ar/calificanos"
-
 export function buildReviewMessage(fullName: string) {
   const firstName = fullName.trim().split(/\s+/)[0] ?? ""
   return `¡Gracias ${firstName} por elegir MK Cars! 🚗✨
@@ -38,7 +35,7 @@ Esperamos que disfrutes tu auto impecable.
 
 Tu opinión es muy importante para nosotros. ¿Nos regalás 1 minuto?
 
-⭐⭐⭐⭐⭐ Calificanos 👉 ${REVIEW_SHORT_URL}
+⭐⭐⭐⭐⭐ Calificanos 👉 ${GOOGLE_REVIEW_URL}
 
 Si algo no salió como esperabas, respondé este mensaje y lo solucionamos.`
 }
