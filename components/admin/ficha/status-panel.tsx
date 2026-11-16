@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { setTurnoStatus } from "@/app/admin/(panel)/ficha-actions"
 import type { ActionState } from "@/app/admin/(panel)/crm-actions"
+import { setClientReview } from "@/app/admin/(panel)/review-actions"
+import { buildReviewMessage } from "@/lib/admin/reviews"
 import { ActionForm } from "@/components/admin/action-form"
 import { Field, fieldClass } from "@/components/admin/ui"
 import { WhatsappComposer } from "@/components/admin/whatsapp-composer"
@@ -22,19 +24,33 @@ type Props = {
   appointmentId: string
   current: string
   phone: string
+  clientId: string
+  clientName: string
   start: { date: string; time: string } | null
   messageBase: MessageBase
 }
 
-type Draft = { key: number; kind: "confirmado" | "reprogramado"; text: string }
+type Draft = { key: number; kind: "confirmado" | "reprogramado" | "realizado"; text: string }
 
-export function StatusPanel({ appointmentId, current, phone, start, messageBase }: Props) {
+const DRAFT_TITLE: Record<Draft["kind"], string> = {
+  confirmado: "Mensaje de confirmación",
+  reprogramado: "Mensaje de reprogramación",
+  realizado: "Pedile una reseña en Google",
+}
+
+export function StatusPanel({ appointmentId, current, phone, clientId, clientName, start, messageBase }: Props) {
   const [status, setStatus] = useState(current === "esperando_cliente" ? "solicitado" : current)
   const [draft, setDraft] = useState<Draft | null>(null)
+  const [reviewOpened, setReviewOpened] = useState(false)
 
   async function submit(prev: ActionState, data: FormData): Promise<ActionState> {
     const result = await setTurnoStatus(prev, data)
     const kind = String(data.get("status"))
+    setReviewOpened(false)
+    if (result.ok && kind === "realizado") {
+      setDraft({ key: Date.now(), kind, text: buildReviewMessage(clientName) })
+      return result
+    }
     if (!result.ok || (kind !== "confirmado" && kind !== "reprogramado")) {
       setDraft(null)
       return result
@@ -101,13 +117,27 @@ export function StatusPanel({ appointmentId, current, phone, start, messageBase 
           aria-label="Mensaje para el cliente"
           className="flex flex-col gap-3 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-4"
         >
-          <h3 className="text-sm font-semibold">
-            {draft.kind === "confirmado" ? "Mensaje de confirmación" : "Mensaje de reprogramación"}
-          </h3>
+          <h3 className="text-sm font-semibold">{DRAFT_TITLE[draft.kind]}</h3>
           {phone ? (
-            <WhatsappComposer key={draft.key} phone={phone} initialMessage={draft.text} label="Enviar por WhatsApp" />
+            <WhatsappComposer
+              key={draft.key}
+              phone={phone}
+              initialMessage={draft.text}
+              rows={draft.kind === "realizado" ? 9 : 12}
+              label={draft.kind === "realizado" ? "Enviar reseña por WhatsApp" : "Enviar por WhatsApp"}
+              onOpen={draft.kind === "realizado" ? () => setReviewOpened(true) : undefined}
+            />
           ) : (
             <p className="text-sm text-muted-foreground">El cliente no tiene WhatsApp cargado.</p>
+          )}
+          {draft.kind === "realizado" && reviewOpened && (
+            <div className="flex flex-col gap-2 border-t border-emerald-400/30 pt-3">
+              <p className="text-sm">¿Le enviaste el mensaje? Registralo para no pedirla dos veces.</p>
+              <ActionForm action={setClientReview} submitLabel="Marcar reseña como solicitada" inline>
+                <input type="hidden" name="client_id" value={clientId} />
+                <input type="hidden" name="review_action" value="solicitada" />
+              </ActionForm>
+            </div>
           )}
         </section>
       )}
