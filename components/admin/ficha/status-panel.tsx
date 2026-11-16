@@ -118,18 +118,14 @@ export function StatusPanel({ appointmentId, current, phone, clientId, clientNam
           className="flex flex-col gap-3 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-4"
         >
           <h3 className="text-sm font-semibold">{DRAFT_TITLE[draft.kind]}</h3>
-          {phone ? (
-            <WhatsappComposer
-              key={draft.key}
-              phone={phone}
-              initialMessage={draft.text}
-              rows={draft.kind === "realizado" ? 9 : 12}
-              label={draft.kind === "realizado" ? "Enviar reseña por WhatsApp" : "Enviar por WhatsApp"}
-              onOpen={draft.kind === "realizado" ? () => setReviewOpened(true) : undefined}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">El cliente no tiene WhatsApp cargado.</p>
-          )}
+          <WhatsappComposer
+            key={draft.key}
+            phone={phone ?? ""}
+            initialMessage={draft.text}
+            rows={draft.kind === "realizado" ? 9 : 12}
+            label={draft.kind === "realizado" ? "Enviar reseña por WhatsApp" : "Enviar por WhatsApp"}
+            onOpen={draft.kind === "realizado" ? () => setReviewOpened(true) : undefined}
+          />
           {draft.kind === "realizado" && reviewOpened && (
             <div className="flex flex-col gap-2 border-t border-emerald-400/30 pt-3">
               <p className="text-sm">¿Le enviaste el mensaje? Registralo para no pedirla dos veces.</p>
