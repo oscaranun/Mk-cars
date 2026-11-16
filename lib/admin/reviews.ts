@@ -30,14 +30,12 @@ export function reviewTone(status: string) {
 
 export function buildReviewMessage(fullName: string) {
   const firstName = fullName.trim().split(/\s+/)[0] ?? ""
-  return `Hola, ${firstName}! Gracias por confiar en MK Cars para el lavado de tu auto.
+  return `¡Gracias ${firstName} por elegir MK Cars! 🚗✨
+Esperamos que disfrutes tu auto impecable.
 
-Nos encantaría conocer tu experiencia. Tu opinión nos ayuda muchísimo a seguir creciendo.
+Tu opinión es muy importante para nosotros. ¿Nos regalás 1 minuto?
 
-Podés dejarnos tu reseña en Google acá:
+⭐⭐⭐⭐⭐ Calificanos 👉 ${GOOGLE_REVIEW_URL}
 
-⭐ ${GOOGLE_REVIEW_URL}
-
-Muchas gracias!
-MK Cars — Car Wash Premium`
+Si algo no salió como esperabas, respondé este mensaje y lo solucionamos.`
 }

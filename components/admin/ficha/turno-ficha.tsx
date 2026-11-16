@@ -66,6 +66,8 @@ export function TurnoFicha({ ficha }: { ficha: Ficha }) {
               appointmentId={ficha.id}
               current={ficha.status}
               phone={ficha.client.whatsapp ?? ""}
+              clientId={ficha.client.id}
+              clientName={ficha.contactName || ficha.client.fullName}
               start={when}
               messageBase={{
                 firstName: (ficha.contactName || ficha.client.fullName).trim().split(/\s+/)[0] ?? "",

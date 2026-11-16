@@ -5,10 +5,10 @@ import { MessageCircle } from "lucide-react"
 import { fieldClass, primaryButtonClass, secondaryButtonClass } from "@/components/admin/ui"
 import { WhatsappAction } from "@/components/admin/whatsapp-action"
 
-type Props = { phone: string; initialMessage: string; label: string }
+type Props = { phone: string; initialMessage: string; label: string; rows?: number; onOpen?: () => void }
 
 /** Opens WhatsApp with an editable draft. Opening the chat never counts as sent. */
-export function WhatsappComposer({ phone, initialMessage, label }: Props) {
+export function WhatsappComposer({ phone, initialMessage, label, rows = 12, onOpen }: Props) {
   const [message, setMessage] = useState(initialMessage)
   const id = useId()
   const disabled = !phone.replace(/\D/g, "") || !message.trim()
@@ -23,7 +23,7 @@ export function WhatsappComposer({ phone, initialMessage, label }: Props) {
           id={id}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          rows={12}
+          rows={rows}
           className={`${fieldClass} py-2.5 text-base leading-relaxed md:text-sm`}
         />
       </div>
@@ -32,6 +32,7 @@ export function WhatsappComposer({ phone, initialMessage, label }: Props) {
           phone={phone}
           message={message}
           disabled={disabled}
+          onOpen={onOpen}
           className={`${primaryButtonClass} w-full sm:w-fit ${disabled ? "pointer-events-none opacity-60" : ""}`}
           copyClassName={`${secondaryButtonClass} w-full sm:w-fit`}
         >
