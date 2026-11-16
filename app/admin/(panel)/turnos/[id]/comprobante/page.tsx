@@ -6,7 +6,8 @@ import { requireAdmin } from "@/lib/admin/auth"
 import { AppointmentPhotos } from "@/components/admin/appointment-photos"
 import { PrintButton } from "@/components/admin/print-button"
 import { Card, secondaryButtonClass } from "@/components/admin/ui"
-import { formatDate, formatDateTime, money, whatsappLink } from "@/lib/admin/format"
+import { WhatsappAction } from "@/components/admin/whatsapp-action"
+import { formatDate, formatDateTime, money } from "@/lib/admin/format"
 import { PAYMENT_METHOD, VEHICLE_CATEGORY } from "@/lib/admin/labels"
 
 export const metadata: Metadata = { title: "Comprobante" }
@@ -78,10 +79,10 @@ export default async function ComprobantePage({ params }: { params: Promise<{ id
         </Link>
         <div className="flex flex-wrap gap-2">
           {a.clients?.whatsapp && (
-            <a href={`${whatsappLink(a.clients.whatsapp)}?text=${encodeURIComponent(message)}`} target="_blank" rel="noreferrer" className={secondaryButtonClass}>
+            <WhatsappAction phone={a.clients.whatsapp} message={message} className={secondaryButtonClass}>
               <MessageCircle className="size-4 text-emerald-400" aria-hidden="true" />
               Enviar por WhatsApp
-            </a>
+            </WhatsappAction>
           )}
           <PrintButton />
         </div>

@@ -9,8 +9,8 @@ import {
   isValidDate,
   money,
   todayArgentina,
-  whatsappLink,
 } from "@/lib/admin/format"
+import { WhatsappAction } from "@/components/admin/whatsapp-action"
 import { REQUEST_STATUS, WEEKDAYS, type Zone } from "@/lib/zones/types"
 import { APPOINTMENT_STATUS } from "@/lib/admin/labels"
 import { ActionForm } from "@/components/admin/action-form"
@@ -134,9 +134,9 @@ function RequestCard({
         )}
       </dl>
       <div className="flex flex-wrap gap-3">
-        <a href={whatsappLink(p.whatsapp)} target="_blank" rel="noopener noreferrer" className={secondaryButtonClass}>
+        <WhatsappAction phone={p.whatsapp} className={secondaryButtonClass}>
           WhatsApp
-        </a>
+        </WhatsappAction>
         <a
           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.address)}`}
           target="_blank"
@@ -514,9 +514,7 @@ export default async function ServiceAgenda({
                   <div className="flex flex-col gap-2">
                     <Link href={`/admin/turnos/${a.id}`}>Gestionar turno</Link>
                     {a.clients && (
-                      <a href={whatsappLink(a.clients.whatsapp)} target="_blank" rel="noopener noreferrer">
-                        WhatsApp
-                      </a>
+                      <WhatsappAction phone={a.clients.whatsapp}>WhatsApp</WhatsappAction>
                     )}
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.address)}`}

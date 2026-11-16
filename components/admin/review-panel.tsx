@@ -5,6 +5,7 @@ import { AlertTriangle, Check, Copy, Link2, MessageCircle, RotateCcw, Star } fro
 import { setClientReview } from "@/app/admin/(panel)/review-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { Badge, Card, Field, SectionTitle, fieldClass, primaryButtonClass, secondaryButtonClass } from "@/components/admin/ui"
+import { WhatsappAction } from "@/components/admin/whatsapp-action"
 import { formatDateTime } from "@/lib/admin/format"
 import { GOOGLE_REVIEW_URL, REVIEW_STATUS, buildReviewMessage, reviewTone, type ClientReview } from "@/lib/admin/reviews"
 
@@ -17,7 +18,6 @@ export function ReviewPanel({ client }: { client: ClientReview }) {
   const [message, setMessage] = useState(defaultMessage)
   const isEmpty = message.trim().length === 0
   const isEdited = message !== defaultMessage
-  const digits = client.whatsapp.replace(/\D/g, "")
   const messageId = `review-message-${client.id}`
   const alreadyRequested = Boolean(client.review_requested_at)
   const received = client.review_status === "recibida"
@@ -59,23 +59,17 @@ export function ReviewPanel({ client }: { client: ClientReview }) {
       )}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        <a
-          href={isEmpty ? undefined : `https://wa.me/${digits}?text=${encodeURIComponent(message)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-disabled={isEmpty}
-          onClick={(event) => {
-            if (isEmpty) {
-              event.preventDefault()
-              return
-            }
-            setUsed(true)
-          }}
+        <WhatsappAction
+          phone={client.whatsapp}
+          message={message}
+          disabled={isEmpty}
+          showCopy={false}
+          onOpen={() => setUsed(true)}
           className={`${primaryButtonClass} w-full sm:w-fit ${isEmpty ? "pointer-events-none opacity-50" : ""}`}
         >
           <MessageCircle className="size-4" aria-hidden="true" />
           Enviar por WhatsApp
-        </a>
+        </WhatsappAction>
         <button
           type="button"
           onClick={() => copy("message")}

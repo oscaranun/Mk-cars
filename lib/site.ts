@@ -1,3 +1,5 @@
+import { waMeUrl } from "@/lib/whatsapp"
+
 export const WHATSAPP_NUMBER = "5492615099230"
 export const WHATSAPP_DISPLAY = "+54 9 2615 09-9230"
 
@@ -17,7 +19,7 @@ export const SERVICE_HOURS = { open: "7:00", close: "20:00" }
 export const TIME_SLOTS = Array.from({ length: 14 }, (_, i) => `${i + 7}:00`)
 
 export function whatsappUrl(message: string) {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
+  return waMeUrl(WHATSAPP_NUMBER, message)
 }
 
 export const DEFAULT_WHATSAPP_MESSAGE = "Hola MK Cars, quiero reservar un lavado a domicilio."

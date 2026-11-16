@@ -9,7 +9,8 @@ import {
 } from "@/app/admin/(panel)/ficha-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { Badge, Card, Field, SectionTitle, dangerButtonClass, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
-import { argentinaParts, formatDateTime, formatWhatsapp, money, whatsappLink } from "@/lib/admin/format"
+import { WhatsappAction } from "@/components/admin/whatsapp-action"
+import { argentinaParts, formatDateTime, formatWhatsapp, money } from "@/lib/admin/format"
 import {
   APPOINTMENT_STATUS,
   PAYMENT_METHOD,
@@ -44,15 +45,13 @@ export function TurnoFicha({ ficha }: { ficha: Ficha }) {
           </p>
         </div>
         {ficha.client.whatsapp && (
-          <a
-            href={whatsappLink(ficha.client.whatsapp)}
-            target="_blank"
-            rel="noreferrer"
+          <WhatsappAction
+            phone={ficha.client.whatsapp}
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 text-sm font-medium text-white transition hover:bg-emerald-500"
           >
             <MessageCircle className="size-4" aria-hidden="true" />
             WhatsApp
-          </a>
+          </WhatsappAction>
         )}
       </header>
 
