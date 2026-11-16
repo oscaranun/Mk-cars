@@ -63,7 +63,23 @@ export function TurnoFicha({ ficha }: { ficha: Ficha }) {
             {ficha.cancelReason && ficha.status === "cancelado" && (
               <p className="text-sm text-muted-foreground">Motivo: {ficha.cancelReason}</p>
             )}
-            <StatusPanel appointmentId={ficha.id} current={ficha.status} />
+            <StatusPanel
+              appointmentId={ficha.id}
+              current={ficha.status}
+              phone={ficha.client.whatsapp ?? ""}
+              start={when}
+              messageBase={{
+                firstName: (ficha.contactName || ficha.client.fullName).trim().split(/\s+/)[0] ?? "",
+                address: ficha.address,
+                service: ficha.service,
+                vehicles: ficha.vehicles.map((v) =>
+                  [vehicleCategoryLabel(v.category, v.categoryLabel), [v.brand, v.model].filter(Boolean).join(" ")]
+                    .filter(Boolean)
+                    .join(" · "),
+                ),
+                price: ficha.finalPrice,
+              }}
+            />
           </Card>
 
           <Card className="flex flex-col gap-4">
