@@ -18,6 +18,8 @@ Todas las fuentes se paginan hasta completar el historial, incluso si PostgREST 
 
 Se usan fechas de Argentina. El historial termina en el día actual, sin un límite retrospectivo ni un máximo de 24 meses. Los registros futuros no se convierten en movimientos históricos. La cantidad de lavados y el ticket usan la fecha del trabajo; el flujo de caja usa las fechas reales de cobro y gasto. Un trabajo pendiente de cobro no se incorpora como efectivo recibido.
 
+Los lavados anotados solamente como otros ingresos manuales se incluyen en la caja, pero no permiten inferir una cantidad de vehículos ni el ticket de los trabajos realizados. Para esas métricas debe existir el trabajo correspondiente; el informe advierte esta limitación cuando hay otros ingresos.
+
 La clasificación de gastos compara exactamente el concepto normalizado, primero con la descripción y luego con la categoría. Los conceptos nuevos sin correspondencia siguen incluidos como otros gastos operativos. Las reglas se editan en la misma pantalla. Las comisiones sin registro separado se muestran como **Sin registro separado**, sin imputarles un porcentaje estimado en meses reales. Los aportes de socios no inflan el resultado operativo ni la recuperación de inversión.
 
 ## Modelo de 24 meses

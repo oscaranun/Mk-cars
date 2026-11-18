@@ -276,6 +276,10 @@ export function buildCashflow(input: Config, data: Dataset, today: string): Repo
     totals.feesRecorded ||= row.feesRecorded
   }
   finish(totals)
+  if (totals.otherIncome > 0)
+    warnings.push(
+      "Los otros ingresos manuales se incluyen en la caja, pero no agregan lavados ni facturación por servicios: no tienen una cantidad de vehículos registrada. Para contar un lavado, cargá el trabajo realizado.",
+    )
   if (totals.receipts > 0 && !totals.workerRecorded)
     warnings.push(
       "No hay comisiones / honorarios de operarios clasificados por separado. El porcentaje del modelo no se descuenta de la caja real.",
