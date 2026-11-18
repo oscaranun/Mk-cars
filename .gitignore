@@ -3,3 +3,5 @@ node_modules
 .next-check
 next-env.d.ts
 .env*.local
+# Los importes financieros del Excel se cargan en Supabase, nunca en bundles o Git.
+/lib/cashflow/workbook-model.json

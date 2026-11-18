@@ -1,0 +1,207 @@
+{
+  "config": {
+    "schemaVersion": 1,
+    "startMonth": null,
+    "openingCash": 0,
+    "scenario": "objective",
+    "operatingDays": 22.0,
+    "firstMonthOperatingDays": 22.0,
+    "vehiclesPerDay": 7.0,
+    "capacityPerDay": 7.0,
+    "ticket": 30000.0,
+    "workerPercent": 18.0,
+    "paymentPercent": 1.5,
+    "incomeInflation": 0.0,
+    "costInflation": 0.0,
+    "volumeGrowth": 0.0,
+    "distributionPercent": 0.0,
+    "conservativePerDay": 4.0,
+    "moderatePerDay": 5.5,
+    "partners": [
+      {
+        "name": "Socio A",
+        "percent": 50
+      },
+      {
+        "name": "Socio B",
+        "percent": 50
+      }
+    ],
+    "fixedCosts": [
+      {
+        "id": "fixed-a",
+        "label": "Gasto fijo ficticio A",
+        "amount": 10000
+      },
+      {
+        "id": "fixed-b",
+        "label": "Gasto fijo ficticio B",
+        "amount": 20000
+      }
+    ],
+    "consumables": [
+      {
+        "id": "product-a",
+        "label": "Insumo ficticio A",
+        "amount": 500
+      },
+      {
+        "id": "product-b",
+        "label": "Insumo ficticio B",
+        "amount": 700
+      }
+    ],
+    "investments": [
+      {
+        "id": "asset-a",
+        "label": "Activo ficticio A",
+        "amount": 200000,
+        "kind": "Activo",
+        "note": "Dato ficticio",
+        "paidBy": "Socio A",
+        "expenseId": null,
+        "depreciate": true,
+        "lifeMonths": 60,
+        "residual": 20000
+      },
+      {
+        "id": "asset-b",
+        "label": "Activo ficticio B",
+        "amount": 100000,
+        "kind": "Activo",
+        "note": "Dato ficticio",
+        "paidBy": "Socio B",
+        "expenseId": null,
+        "depreciate": true,
+        "lifeMonths": 24,
+        "residual": 0
+      }
+    ],
+    "inventory": [
+      {
+        "id": "inventory-a",
+        "label": "Producto ficticio A",
+        "quantity": 2,
+        "unitPrice": 1500
+      },
+      {
+        "id": "inventory-b",
+        "label": "Producto ficticio B",
+        "quantity": 1,
+        "unitPrice": 5000
+      }
+    ],
+    "rules": [
+      {
+        "direction": "expense",
+        "value": "productos",
+        "bucket": "materials"
+      },
+      {
+        "direction": "expense",
+        "value": "Comisión operario",
+        "bucket": "worker"
+      },
+      {
+        "direction": "expense",
+        "value": "Comisiones operarios",
+        "bucket": "worker"
+      },
+      {
+        "direction": "expense",
+        "value": "Honorarios Cristian",
+        "bucket": "worker"
+      },
+      {
+        "direction": "expense",
+        "value": "Honorarios Rodrigo",
+        "bucket": "worker"
+      },
+      {
+        "direction": "expense",
+        "value": "Comisión medios de pago",
+        "bucket": "fees"
+      },
+      {
+        "direction": "expense",
+        "value": "Comisiones Mercado Pago",
+        "bucket": "fees"
+      },
+      {
+        "direction": "expense",
+        "value": "combustible",
+        "bucket": "fixed"
+      },
+      {
+        "direction": "expense",
+        "value": "mantenimiento",
+        "bucket": "fixed"
+      },
+      {
+        "direction": "expense",
+        "value": "publicidad",
+        "bucket": "fixed"
+      },
+      {
+        "direction": "expense",
+        "value": "Seguro Partner",
+        "bucket": "fixed"
+      },
+      {
+        "direction": "expense",
+        "value": "Software y telefonía",
+        "bucket": "fixed"
+      },
+      {
+        "direction": "expense",
+        "value": "Inversión inicial",
+        "bucket": "investment"
+      },
+      {
+        "direction": "expense",
+        "value": "Compra de activos",
+        "bucket": "investment"
+      },
+      {
+        "direction": "expense",
+        "value": "Retiro de socios",
+        "bucket": "withdrawal"
+      },
+      {
+        "direction": "income",
+        "value": "Aporte de socios",
+        "bucket": "capital"
+      },
+      {
+        "direction": "income",
+        "value": "Aporte de capital",
+        "bucket": "capital"
+      },
+      {
+        "direction": "income",
+        "value": "Préstamo",
+        "bucket": "capital"
+      }
+    ]
+  },
+  "source": {
+    "fileName": "Modelo sintético de prueba",
+    "originalInvestment": 300000,
+    "originalInventory": 8000,
+    "originalMonthlyCash": 3504300,
+    "originalMonth24": 83803200,
+    "originalDepreciation": 7166.666666666667,
+    "originalWashes": 154,
+    "originalRevenue": 4620000,
+    "originalVariable": 1085700,
+    "originalFixed": 30000,
+    "scenarioCash": {
+      "conservative": 1989600,
+      "moderate": 2746950,
+      "objective": 3504300
+    }
+  },
+  "observations": [
+    "Modelo sintético: no contiene datos financieros reales."
+  ]
+}

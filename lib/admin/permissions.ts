@@ -20,6 +20,7 @@ export const SECTIONS: readonly Section[] = [
   { key: "eventos", href: "/admin/eventos", label: "Flyers de eventos", group: "clientes" },
   { key: "clientes", href: "/admin/clientes", label: "Clientes", group: "clientes" },
   { key: "estadisticas", href: "/admin/estadisticas", label: "Estadísticas", group: "analisis" },
+  { key: "flujo-de-fondos", href: "/admin/flujo-de-fondos", label: "Flujo de fondos", group: "analisis" },
   { key: "configuracion", href: "/admin/configuracion", label: "Ajustes", group: "config" },
   { key: "actividad", href: "/admin/actividad", label: "Historial de cambios", hidden: true },
   { key: "precios", href: "/admin/precios", label: "Lista de precios", hidden: true },

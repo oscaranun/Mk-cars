@@ -48,6 +48,7 @@ const ICONS: Record<string, LucideIcon> = {
   "gastos-fijos": Repeat,
   cierre: ClipboardCheck,
   estadisticas: BarChart3,
+  "flujo-de-fondos": ArrowLeftRight,
   configuracion: Settings2,
   actividad: History,
   usuarios: ShieldCheck,
