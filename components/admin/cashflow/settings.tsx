@@ -39,7 +39,7 @@ export function Numeric({
     </label>
   )
 }
-function Text({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+export function Text({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   const id = useId()
   return (
     <label htmlFor={id} className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground">
@@ -138,7 +138,6 @@ export function CashflowSettings({ config, setConfig, data, disabled }: Props) {
     ["moderatePerDay", "Lavados por día · moderado", 0, 100],
     ["capacityPerDay", "Capacidad máxima por día", 0, 100],
     ["ticket", "Ticket promedio proyectado", 0, 1e9],
-    ["workerPercent", "Comisión operarios proyectada (%)", 0, 100],
     ["paymentPercent", "Comisión de cobro proyectada (%)", 0, 100],
     ["incomeInflation", "Inflación mensual de ingresos (%)", -50, 50],
     ["costInflation", "Inflación mensual de costos (%)", -50, 50],
@@ -177,6 +176,7 @@ export function CashflowSettings({ config, setConfig, data, disabled }: Props) {
           />
         ))}
       </div>
+      <EmployeesEditor config={config} setConfig={setConfig} />
       {costs("fixedCosts", "Gastos fijos proyectados")}
       {costs("consumables", "Productos y costos por lavado")}
       <details className="rounded-2xl border border-border p-4">
@@ -379,6 +379,67 @@ export function CashflowSettings({ config, setConfig, data, disabled }: Props) {
           ))}
         </div>
       </details>
+    </fieldset>
+  )
+}
+
+export function EmployeesEditor({ config, setConfig }: Pick<Props, "config" | "setConfig">) {
+  const total = config.employees.reduce((s, e) => s + (Number.isFinite(e.percent) ? e.percent : 0), 0)
+  const patch = (index: number, value: Partial<Config["employees"][number]>) =>
+    setConfig((c) => ({ ...c, employees: c.employees.map((e, i) => (i === index ? { ...e, ...value } : e)) }))
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-border p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="font-semibold">Empleados y comisiones</h3>
+        <span className="text-sm text-muted-foreground">
+          Total sobre lo facturado: <strong className="text-foreground">{total.toLocaleString("es-AR")}%</strong>
+        </span>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Cada empleado cobra su porcentaje sobre el total facturado. Se usa para proyectar el costo de personal.
+      </p>
+      {config.employees.map((employee, index) => (
+        <div key={employee.id} className="grid items-end gap-2 sm:grid-cols-[1fr_160px_auto]">
+          <Text label={`Empleado ${index + 1}`} value={employee.name} onChange={(name) => patch(index, { name })} />
+          <Numeric
+            label="Comisión (%)"
+            value={employee.percent}
+            max={100}
+            onChange={(percent) => patch(index, { percent })}
+          />
+          <button
+            type="button"
+            className={secondaryButtonClass}
+            aria-label={`Quitar ${employee.name}`}
+            onClick={() => setConfig((c) => ({ ...c, employees: c.employees.filter((_, i) => i !== index) }))}
+          >
+            Quitar
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        className={`${secondaryButtonClass} w-fit`}
+        onClick={() =>
+          setConfig((c) => ({
+            ...c,
+            employees: [
+              ...c.employees,
+              { id: crypto.randomUUID(), name: `Empleado ${c.employees.length + 1}`, percent: 15 },
+            ],
+          }))
+        }
+      >
+        Agregar empleado
+      </button>
+    </div>
+  )
+}
+
+export function RulesEditor({ config, setConfig, data, disabled }: Props) {
+  const set = <K extends keyof Config>(key: K, value: Config[K]) => setConfig((c) => ({ ...c, [key]: value }))
+  return (
+    <fieldset disabled={disabled} className="min-w-0 disabled:opacity-70">
       <details className="rounded-2xl border border-border p-4">
         <summary className="cursor-pointer font-semibold">Clasificar comisiones, gastos y aportes reales</summary>
         <p className="mt-3 text-sm text-muted-foreground">

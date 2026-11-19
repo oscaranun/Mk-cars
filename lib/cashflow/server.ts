@@ -71,12 +71,12 @@ export async function loadCashflowData(supabase: SupabaseClient, today: string):
       timestamp: true,
       active: true,
     }),
-    readAll<CashExpense>(supabase, "expenses", "id,amount,spent_on,category,description,subconcept,voided_at,is_demo", {
+    readAll<CashExpense>(supabase, "expenses", "id,amount,spent_on,category,description,subconcept,notes,voided_at,is_demo", {
       ...options,
       date: "spent_on",
       active: true,
     }),
-    readAll<CashIncome>(supabase, "other_incomes", "id,amount,received_on,concept,is_demo", {
+    readAll<CashIncome>(supabase, "other_incomes", "id,amount,received_on,concept,subconcept,notes,is_demo", {
       ...options,
       date: "received_on",
     }).catch((error: unknown) => {

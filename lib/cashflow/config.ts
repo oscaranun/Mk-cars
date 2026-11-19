@@ -1,4 +1,4 @@
-import type { Config, Bucket } from "./types"
+import type { ActualSetup, Adjustment, Bucket, Config, RealInvestment, RecurringLine } from "./types"
 
 export const BUCKET_LABELS: Record<Bucket, string> = {
   materials: "Productos y consumibles",
@@ -19,6 +19,76 @@ export const normalizeConcept = (value: string) =>
     .toLowerCase()
     .replace(/\s+/g, " ")
 
+export const EXPENSE_BUCKETS: Bucket[] = ["worker", "materials", "fees", "fixed", "operating", "investment", "withdrawal"]
+export const INCOME_BUCKETS: Bucket[] = ["other_income", "capital"]
+export const DEFAULT_EMPLOYEES: Config["employees"] = [
+  { id: "employee-1", name: "Empleado 1 · Rodrigo Aguilera", percent: 15 },
+  { id: "employee-2", name: "Empleado 2 · Cristian Antúnez", percent: 15 },
+]
+export const defaultActual = (): ActualSetup => ({
+  startMonth: null,
+  openingCash: 0,
+  investments: [],
+  recurring: [],
+  adjustments: [],
+  excluded: [],
+  horizon: 6,
+  autoProject: true,
+})
+const MONTH = /^(19|20|21)\d{2}-(0[1-9]|1[0-2])$/
+const DAY = /^(19|20|21)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/
+
+function validateActual(
+  a: ActualSetup,
+  number: (value: unknown, label: string, min?: number, max?: number) => void,
+  text: (value: unknown, label: string, max?: number) => void,
+  list: (value: unknown, label: string, max?: number) => unknown[],
+) {
+  if (!a || typeof a !== "object" || Array.isArray(a)) throw Error("Revisá el flujo real.")
+  if (a.startMonth !== null && (typeof a.startMonth !== "string" || !MONTH.test(a.startMonth)))
+    throw Error("Revisá el mes de inicio real.")
+  number(a.openingCash, "el saldo inicial real", -1e12)
+  number(a.horizon, "los meses a proyectar", 0, 24)
+  if (!Number.isInteger(a.horizon)) throw Error("Los meses a proyectar deben ser enteros.")
+  if (typeof a.autoProject !== "boolean") throw Error("Revisá la proyección automática.")
+  const ids = new Set<string>()
+  const identity = (row: { id?: unknown; label?: unknown }, label: string) => {
+    if (!row || typeof row !== "object") throw Error(`Revisá ${label}.`)
+    text(row.id, "el identificador", 80)
+    text(row.label, label)
+    if (!row.id || !(row.label as string).trim() || ids.has(row.id as string))
+      throw Error(`Cada fila de ${label} necesita un nombre.`)
+    ids.add(row.id as string)
+  }
+  for (const row of list(a.investments, "la inversión real", 300) as RealInvestment[]) {
+    identity(row, "la inversión real")
+    number(row.amount, "el importe de la inversión real")
+    if (typeof row.date !== "string" || !DAY.test(row.date)) throw Error(`Revisá la fecha de “${row.label}”.`)
+    text(row.paidBy, "quién aportó")
+    text(row.note, "la nota", 2000)
+  }
+  for (const row of list(a.recurring, "los recurrentes", 300) as RecurringLine[]) {
+    identity(row, "los recurrentes")
+    if (!(row.bucket in BUCKET_LABELS)) throw Error("Revisá la sección del recurrente.")
+    number(row.amount, "el importe recurrente")
+    if (typeof row.startMonth !== "string" || !MONTH.test(row.startMonth))
+      throw Error(`Revisá el mes inicial de “${row.label}”.`)
+    if (row.endMonth !== null && (typeof row.endMonth !== "string" || !MONTH.test(row.endMonth) || row.endMonth < row.startMonth))
+      throw Error(`Revisá el mes final de “${row.label}”.`)
+    text(row.note, "la nota", 2000)
+  }
+  for (const row of list(a.adjustments, "los ajustes", 500) as Adjustment[]) {
+    identity(row, "los ajustes")
+    if (!(row.bucket in BUCKET_LABELS)) throw Error("Revisá la sección del ajuste.")
+    number(row.amount, "el importe del ajuste")
+    if (typeof row.month !== "string" || !MONTH.test(row.month)) throw Error(`Revisá el mes de “${row.label}”.`)
+    text(row.note, "la nota", 2000)
+  }
+  const excluded = list(a.excluded, "los movimientos excluidos", 5000)
+  if (excluded.some((id) => typeof id !== "string" || id.length > 80) || new Set(excluded).size !== excluded.length)
+    throw Error("Revisá los movimientos excluidos.")
+}
+
 /** Validate on both save and load; a malformed configuration must never produce a financial total. */
 export function validateConfig(input: unknown): Config {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw Error("La configuración no es válida.")
@@ -35,6 +105,22 @@ export function validateConfig(input: unknown): Config {
     return value
   }
   if (c.schemaVersion !== 1) throw Error("Versión de configuración no compatible.")
+  if (c.employees === undefined) c.employees = structuredClone(DEFAULT_EMPLOYEES)
+  if (c.actual === undefined) c.actual = defaultActual()
+  const employeeIds = new Set<string>()
+  let employeeTotal = 0
+  for (const row of list(c.employees, "los empleados", 20)) {
+    if (!row || typeof row !== "object") throw Error("Revisá los empleados.")
+    text(row.id, "el identificador", 80)
+    text(row.name, "el nombre del empleado", 120)
+    if (!row.id || !row.name.trim() || employeeIds.has(row.id)) throw Error("Cada empleado necesita un nombre.")
+    employeeIds.add(row.id)
+    number(row.percent, "la comisión del empleado", 0, 100)
+    employeeTotal += row.percent
+  }
+  // The legacy single percentage stays in sync so older readers project the same labor cost.
+  c.workerPercent = Math.round(employeeTotal * 10000) / 10000
+  validateActual(c.actual, number, text, list)
   if (!["objective", "conservative", "moderate"].includes(c.scenario)) throw Error("Elegí un escenario válido.")
   if (c.startMonth !== null && !/^(19|20|21)\d{2}-(0[1-9]|1[0-2])$/.test(c.startMonth))
     throw Error("Revisá el mes inicial.")
