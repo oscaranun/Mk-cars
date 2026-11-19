@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Pencil, Search, X } from "lucide-react"
+import { Pencil, Plus, Search, X } from "lucide-react"
 import { deleteFinanceConcept, deleteFinanceEntry, saveFinanceConcept } from "@/app/admin/(panel)/ficha-actions"
 import { ActionForm } from "@/components/admin/action-form"
 import { FinanceEditForm } from "@/components/admin/ficha/finance-edit-form"
@@ -299,15 +299,17 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
         )}
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
-        <div className="flex flex-col gap-5">
-          <Card className="flex flex-col gap-4">
-            <SectionTitle>Cargar movimiento</SectionTitle>
-            <FinanceForm concepts={conceptList} today={today} />
-          </Card>
-
-          <Card className="flex flex-col gap-4">
-            <SectionTitle>Predeterminados</SectionTitle>
+      <Card className="flex flex-col gap-4">
+        <SectionTitle>Cargar movimiento</SectionTitle>
+        <FinanceForm concepts={conceptList} today={today} />
+        <details className="group border-t border-border pt-3">
+          <summary className="ml-auto flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-muted-foreground hover:bg-surface hover:text-foreground [&::-webkit-details-marker]:hidden">
+            <Plus className="size-3.5 transition-transform group-open:rotate-45" aria-hidden="true" />
+            <span className="group-open:hidden">Agregar conceptos</span>
+            <span className="hidden group-open:inline">Cerrar conceptos</span>
+          </summary>
+          <div className="mt-3 flex flex-col gap-4 rounded-xl border border-border p-4">
+            <h3 className="text-sm font-semibold">Predeterminados</h3>
             {(
               [
                 ["gasto", "Conceptos de gasto"],
@@ -356,76 +358,76 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
               </label>
               <input id="c-name" name="name" required placeholder="Nuevo nombre" className={`${fieldClass} min-w-0 flex-1`} />
             </ActionForm>
-          </Card>
-        </div>
+          </div>
+        </details>
+      </Card>
 
-        <Card className="flex flex-col gap-4">
-          <SectionTitle>
-            Movimientos {periodLabel} ({movements.length}
-            {filtered ? ` de ${all.length}` : ""})
-          </SectionTitle>
-          {movements.length === 0 ? (
-            <EmptyState>{filtered ? "No hay movimientos con esos filtros." : "No hay movimientos en este período."}</EmptyState>
-          ) : (
-            <ul className="flex flex-col divide-y divide-border">
-              {movements.map((m) => (
-                <li key={m.key} className="py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate text-sm font-medium">
-                        {m.concept}
-                        {m.subconcept ? (
-                          <span className="text-muted-foreground"> · {m.subconcept}</span>
-                        ) : (
-                          <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs text-amber-300">sin subconcepto</span>
-                        )}
-                      </span>
-                      {m.notes && <span className="truncate text-xs text-muted-foreground">{m.notes}</span>}
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(m.date)}
-                        {m.method ? ` · ${PAYMENT_METHOD[m.method] ?? m.method}` : ""}
-                        {m.source === "turno" ? " · automático" : ""}
-                      </span>
-                    </div>
-                    <span className={`text-sm font-semibold tabular-nums ${m.type === "gasto" ? "text-red-200" : "text-emerald-300"}`}>
-                      {m.type === "gasto" ? "−" : "+"}
-                      {money(m.amount)}
+      <Card className="flex flex-col gap-4">
+        <SectionTitle>
+          Movimientos {periodLabel} ({movements.length}
+          {filtered ? ` de ${all.length}` : ""})
+        </SectionTitle>
+        {movements.length === 0 ? (
+          <EmptyState>{filtered ? "No hay movimientos con esos filtros." : "No hay movimientos en este período."}</EmptyState>
+        ) : (
+          <ul className="flex flex-col divide-y divide-border">
+            {movements.map((m) => (
+              <li key={m.key} className="py-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-sm font-medium">
+                      {m.concept}
+                      {m.subconcept ? (
+                        <span className="text-muted-foreground"> · {m.subconcept}</span>
+                      ) : (
+                        <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs text-amber-300">sin subconcepto</span>
+                      )}
                     </span>
-                    {m.source === "manual" && (
-                      <ActionForm
-                        action={deleteFinanceEntry}
-                        inline
-                        confirmText="¿Borrar este movimiento?"
-                        submitLabel={
-                          <>
-                            <X className="size-4" aria-hidden="true" />
-                            <span className="sr-only">Borrar</span>
-                          </>
-                        }
-                        submitClassName="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-red-500/20 hover:text-red-200"
-                      >
-                        <input type="hidden" name="id" value={m.id} />
-                        <input type="hidden" name="kind" value={m.type} />
-                      </ActionForm>
-                    )}
+                    {m.notes && <span className="truncate text-xs text-muted-foreground">{m.notes}</span>}
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(m.date)}
+                      {m.method ? ` · ${PAYMENT_METHOD[m.method] ?? m.method}` : ""}
+                      {m.source === "turno" ? " · automático" : ""}
+                    </span>
                   </div>
+                  <span className={`text-sm font-semibold tabular-nums ${m.type === "gasto" ? "text-red-200" : "text-emerald-300"}`}>
+                    {m.type === "gasto" ? "−" : "+"}
+                    {money(m.amount)}
+                  </span>
                   {m.source === "manual" && (
-                    <details className="mt-2">
-                      <summary className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 text-xs text-electric">
-                        <Pencil className="size-3.5" aria-hidden="true" />
-                        Editar concepto
-                      </summary>
-                      <div className="mt-3 rounded-xl border border-border p-3">
-                        <FinanceEditForm entry={m} concepts={conceptList} today={today} />
-                      </div>
-                    </details>
+                    <ActionForm
+                      action={deleteFinanceEntry}
+                      inline
+                      confirmText="¿Borrar este movimiento?"
+                      submitLabel={
+                        <>
+                          <X className="size-4" aria-hidden="true" />
+                          <span className="sr-only">Borrar</span>
+                        </>
+                      }
+                      submitClassName="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-red-500/20 hover:text-red-200"
+                    >
+                      <input type="hidden" name="id" value={m.id} />
+                      <input type="hidden" name="kind" value={m.type} />
+                    </ActionForm>
                   )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
+                </div>
+                {m.source === "manual" && (
+                  <details className="mt-2">
+                    <summary className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 text-xs text-electric">
+                      <Pencil className="size-3.5" aria-hidden="true" />
+                      Editar concepto
+                    </summary>
+                    <div className="mt-3 rounded-xl border border-border p-3">
+                      <FinanceEditForm entry={m} concepts={conceptList} today={today} />
+                    </div>
+                  </details>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
     </div>
   )
 }
