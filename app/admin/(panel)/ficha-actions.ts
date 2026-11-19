@@ -389,6 +389,9 @@ export async function addFinanceEntry(_prev: ActionState, data: FormData): Promi
   const choice = text(data, "concept", 60)
   const concept = choice === "__nuevo" ? text(data, "new_concept", 60) : choice
   if (concept.length < 2) return fail("Elegí o escribí el concepto.")
+  const subChoice = text(data, "subconcept", 60)
+  const subconcept = subChoice === "__nuevo" ? text(data, "new_subconcept", 60) : subChoice
+  if (subconcept.length < 2) return fail("Elegí o escribí el subconcepto (ej: Honorarios, Adelanto, Combustible).")
   const value = amount(data, "amount")
   if (!value || value <= 0) return fail("Ingresá un importe mayor a cero.")
   const method = text(data, "method", 20) || "efectivo"
@@ -406,22 +409,65 @@ export async function addFinanceEntry(_prev: ActionState, data: FormData): Promi
       amount: value,
       method,
       description: concept,
+      subconcept,
       notes,
     })
     if (error) return dbError(error, "No se pudo guardar el gasto.")
   } else {
     const { error } = await supabase
       .from("other_incomes")
-      .insert({ received_on: date, concept, amount: value, method, notes })
+      .insert({ received_on: date, concept, subconcept, amount: value, method, notes })
     if (error) return dbError(error, "No se pudo guardar el ingreso.")
   }
 
+  const presets: { kind: string; name: string }[] = []
+  if (choice === "__nuevo" && data.get("save_preset") === "on") presets.push({ kind, name: concept })
+  if (subChoice === "__nuevo" && data.get("save_sub_preset") === "on") presets.push({ kind: "subconcepto", name: subconcept })
   let saved = ""
-  if (choice === "__nuevo" && data.get("save_preset") === "on") {
-    const { error } = await supabase.from("finance_concepts").insert({ kind, name: concept })
-    saved = error ? (error.code === "23505" ? " (ya existía como predeterminado)" : "") : ` y "${concept}" quedó como predeterminado`
+  for (const preset of presets) {
+    const { error } = await supabase.from("finance_concepts").insert(preset)
+    if (!error) saved += ` · "${preset.name}" quedó como predeterminado`
   }
   return done(`${kind === "gasto" ? "Gasto" : "Ingreso"} cargado${saved}.`)
+}
+
+export async function updateFinanceEntry(_prev: ActionState, data: FormData): Promise<ActionState> {
+  const supabase = await getAdminClient()
+  if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
+  const id = text(data, "id", 36)
+  if (!UUID_RE.test(id)) return fail("Movimiento inválido.")
+  const kind = text(data, "kind", 10)
+  if (kind !== "ingreso" && kind !== "gasto") return fail("Movimiento inválido.")
+  const concept = text(data, "concept", 60)
+  if (concept.length < 2) return fail("Elegí el concepto.")
+  const subconcept = text(data, "subconcept", 60)
+  if (subconcept.length < 2) return fail("Elegí el subconcepto.")
+  const value = amount(data, "amount")
+  if (!value || value <= 0) return fail("Ingresá un importe mayor a cero.")
+  const date = text(data, "date", 10)
+  if (!isValidDate(date) || date > todayArgentina()) return fail("La fecha no es válida.")
+  const notes = text(data, "notes", 500) || null
+
+  const { error } =
+    kind === "gasto"
+      ? await supabase
+          .from("expenses")
+          .update({
+            description: concept,
+            subconcept,
+            amount: value,
+            spent_on: date,
+            notes,
+            category: EXPENSE_CATEGORY[concept.toLowerCase()] ? concept.toLowerCase() : "otro",
+          })
+          .eq("id", id)
+          .is("voided_at", null)
+      : await supabase
+          .from("other_incomes")
+          .update({ concept, subconcept, amount: value, received_on: date, notes })
+          .eq("id", id)
+  if (error) return dbError(error, "No se pudo guardar el cambio.")
+  return done("Movimiento actualizado.")
 }
 
 export async function deleteFinanceEntry(_prev: ActionState, data: FormData): Promise<ActionState> {
@@ -443,7 +489,7 @@ export async function saveFinanceConcept(_prev: ActionState, data: FormData): Pr
   if (!supabase) return fail("Sesión vencida. Volvé a ingresar.")
   const kind = text(data, "kind", 10)
   const name = text(data, "name", 60)
-  if (kind !== "ingreso" && kind !== "gasto") return fail("Elegí ingreso o gasto.")
+  if (kind !== "ingreso" && kind !== "gasto" && kind !== "subconcepto") return fail("Elegí el tipo.")
   if (name.length < 2) return fail("Escribí el nombre.")
   const { error } = await supabase.from("finance_concepts").insert({ kind, name })
   if (error) return error.code === "23505" ? fail("Ese concepto ya existe.") : dbError(error, "No se pudo guardar.")
