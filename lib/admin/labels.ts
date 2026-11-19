@@ -51,6 +51,7 @@ export const PAYMENT_STATUS: Record<string, string> = {
   pendiente: "Pendiente",
   parcial: "Pago parcial",
   cobrado: "Cobrado",
+  pagado: "Pagado",
 }
 
 export const PAYMENT_METHOD: Record<string, string> = {
@@ -110,7 +111,7 @@ export function inquiryTone(status: string): Tone {
 }
 
 export function paymentTone(status: string): Tone {
-  if (status === "cobrado") return "success"
+  if (status === "cobrado" || status === "pagado") return "success"
   if (status === "parcial") return "info"
   return "warning"
 }

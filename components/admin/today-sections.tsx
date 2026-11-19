@@ -6,7 +6,14 @@ import { ActionForm } from "@/components/admin/action-form"
 import { Badge, Card, EmptyState, SectionTitle, primaryButtonClass, secondaryButtonClass } from "@/components/admin/ui"
 import { WhatsappAction } from "@/components/admin/whatsapp-action"
 import { formatDateTime, formatTime, money } from "@/lib/admin/format"
-import { APPOINTMENT_STATUS, INQUIRY_STATUS, appointmentTone, inquiryTone } from "@/lib/admin/labels"
+import {
+  APPOINTMENT_STATUS,
+  INQUIRY_STATUS,
+  PAYMENT_STATUS,
+  appointmentTone,
+  inquiryTone,
+  paymentTone,
+} from "@/lib/admin/labels"
 import { cn } from "@/lib/utils"
 
 type ClientRef = { full_name: string; whatsapp: string } | null
@@ -30,6 +37,7 @@ export type AgendaAppt = {
   address: string
   service: string
   status: string
+  payment_status: string | null
   contact_name?: string | null
   clients: ClientRef
 }
@@ -195,6 +203,7 @@ export function AgendaSection({ items }: { items: AgendaAppt[] }) {
         <ol className="flex flex-col gap-2">
           {items.map((a) => {
             const end = new Date(new Date(a.confirmed_start).getTime() + a.duration_minutes * 60000)
+            const paymentStatus = a.payment_status ?? "pendiente"
             return (
               <li key={a.id}>
                 <Card className="flex gap-4 p-4">
@@ -203,11 +212,14 @@ export function AgendaSection({ items }: { items: AgendaAppt[] }) {
                     <span className="text-xs text-muted-foreground">{formatTime(end)}</span>
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <Link href={`/admin/turnos/${a.id}`} className="truncate font-medium hover:underline">
-                        {a.contact_name ?? a.clients?.full_name ?? "Cliente"}
-                      </Link>
+                    <Link href={`/admin/turnos/${a.id}`} className="truncate font-medium hover:underline">
+                      {a.contact_name ?? a.clients?.full_name ?? "Cliente"}
+                    </Link>
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <Badge tone={appointmentTone(a.status)}>{APPOINTMENT_STATUS[a.status] ?? a.status}</Badge>
+                      <Badge tone={paymentTone(paymentStatus)}>
+                        {paymentStatus === "pendiente" ? "Pago pendiente" : (PAYMENT_STATUS[paymentStatus] ?? paymentStatus)}
+                      </Badge>
                     </div>
                     <span className="text-sm text-muted-foreground">{a.service}</span>
                     <a
