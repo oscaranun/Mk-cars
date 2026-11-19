@@ -35,7 +35,9 @@ export default async function AdminTodayPage() {
       .returns<PendingAppt[]>(),
     supabase
       .from("appointments")
-      .select("id, confirmed_start, duration_minutes, address, service, status, contact_name, clients(full_name, whatsapp)")
+      .select(
+        "id, confirmed_start, duration_minutes, address, service, status, payment_status, contact_name, clients(full_name, whatsapp)",
+      )
       .in("status", ["confirmado", "realizado"])
       .gte("confirmed_start", startOfArgentinaDay(today))
       .lt("confirmed_start", startOfArgentinaDay(addDays(today, 1)))
