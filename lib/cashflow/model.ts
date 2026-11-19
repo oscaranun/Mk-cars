@@ -74,8 +74,17 @@ function amount(value: number | string) {
     throw Error("Hay un importe inválido en los movimientos. No se calculó un saldo parcial.")
   return roundCash(n)
 }
-export function expenseBucket(expense: Pick<CashExpense, "category" | "description">, config: Config) {
+export function expenseBucket(
+  expense: Pick<CashExpense, "category" | "description" | "subconcept">,
+  config: Config,
+) {
+  // The subconcept wins so "Rodrigo Aguilera · Combustible" counts as fuel, not as labor.
   return (
+    (expense.subconcept
+      ? config.rules.find(
+          (r) => r.direction === "expense" && normalizeConcept(r.value) === normalizeConcept(expense.subconcept || ""),
+        )?.bucket
+      : undefined) ??
     config.rules.find(
       (r) => r.direction === "expense" && normalizeConcept(r.value) === normalizeConcept(expense.description || ""),
     )?.bucket ??

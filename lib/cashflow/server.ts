@@ -71,7 +71,7 @@ export async function loadCashflowData(supabase: SupabaseClient, today: string):
       timestamp: true,
       active: true,
     }),
-    readAll<CashExpense>(supabase, "expenses", "id,amount,spent_on,category,description,voided_at,is_demo", {
+    readAll<CashExpense>(supabase, "expenses", "id,amount,spent_on,category,description,subconcept,voided_at,is_demo", {
       ...options,
       date: "spent_on",
       active: true,

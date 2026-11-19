@@ -60,6 +60,7 @@ export type CashExpense = {
   spent_on: string
   category: string
   description: string | null
+  subconcept?: string | null
   voided_at: string | null
   is_demo: boolean
 }

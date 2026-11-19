@@ -7,12 +7,14 @@ import { Field, fieldClass } from "@/components/admin/ui"
 import { PAYMENT_METHOD } from "@/lib/admin/labels"
 import { cn } from "@/lib/utils"
 
-type Concept = { id: string; kind: "ingreso" | "gasto"; name: string }
+export type FinanceConcept = { id: string; kind: "ingreso" | "gasto" | "subconcepto"; name: string }
 
-export function FinanceForm({ concepts, today }: { concepts: Concept[]; today: string }) {
+export function FinanceForm({ concepts, today }: { concepts: FinanceConcept[]; today: string }) {
   const [kind, setKind] = useState<"gasto" | "ingreso">("gasto")
   const [concept, setConcept] = useState("")
+  const [subconcept, setSubconcept] = useState("")
   const options = concepts.filter((c) => c.kind === kind)
+  const subOptions = concepts.filter((c) => c.kind === "subconcepto")
 
   return (
     <ActionForm action={addFinanceEntry} submitLabel={kind === "gasto" ? "Cargar gasto" : "Cargar ingreso"} resetOnSuccess>
@@ -63,22 +65,53 @@ export function FinanceForm({ concepts, today }: { concepts: Concept[]; today: s
             <option value="__nuevo">Otro (escribir)…</option>
           </select>
         </Field>
-        <Field label="Importe ($)" htmlFor="f-amount">
-          <input id="f-amount" name="amount" inputMode="numeric" required className={fieldClass} placeholder="15000" />
+        <Field label="Subconcepto" htmlFor="f-sub">
+          <select
+            id="f-sub"
+            name="subconcept"
+            required
+            value={subconcept}
+            onChange={(e) => setSubconcept(e.target.value)}
+            className={fieldClass}
+          >
+            <option value="" disabled>
+              Elegí…
+            </option>
+            {subOptions.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+            <option value="__nuevo">Otro (escribir)…</option>
+          </select>
         </Field>
 
         {concept === "__nuevo" && (
           <div className="flex flex-col gap-2 sm:col-span-2">
-            <Field label="¿Qué es?" htmlFor="f-new">
+            <Field label="Nuevo concepto" htmlFor="f-new">
               <input id="f-new" name="new_concept" required className={fieldClass} placeholder="Ej: Seguro de la camioneta" />
             </Field>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="save_preset" className="size-4 accent-[var(--color-primary)]" />
-              Guardarlo como predeterminado para la próxima
+              <input type="checkbox" name="save_preset" defaultChecked className="size-4 accent-[var(--color-primary)]" />
+              Guardarlo como concepto predeterminado
+            </label>
+          </div>
+        )}
+        {subconcept === "__nuevo" && (
+          <div className="flex flex-col gap-2 sm:col-span-2">
+            <Field label="Nuevo subconcepto" htmlFor="f-new-sub">
+              <input id="f-new-sub" name="new_subconcept" required className={fieldClass} placeholder="Ej: Viáticos" />
+            </Field>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="save_sub_preset" defaultChecked className="size-4 accent-[var(--color-primary)]" />
+              Guardarlo como subconcepto predeterminado
             </label>
           </div>
         )}
 
+        <Field label="Importe ($)" htmlFor="f-amount">
+          <input id="f-amount" name="amount" inputMode="numeric" required className={fieldClass} placeholder="15000" />
+        </Field>
         <Field label="Medio" htmlFor="f-method">
           <select id="f-method" name="method" defaultValue="efectivo" className={fieldClass}>
             {Object.entries(PAYMENT_METHOD).map(([value, label]) => (
@@ -91,8 +124,8 @@ export function FinanceForm({ concepts, today }: { concepts: Concept[]; today: s
         <Field label="Fecha" htmlFor="f-date">
           <input id="f-date" name="date" type="date" defaultValue={today} max={today} className={fieldClass} />
         </Field>
-        <Field label="Detalle (opcional)" htmlFor="f-notes" className="sm:col-span-2">
-          <input id="f-notes" name="notes" className={fieldClass} />
+        <Field label="Detalle (opcional)" htmlFor="f-notes">
+          <input id="f-notes" name="notes" className={fieldClass} placeholder="Ej: se le dio dinero para combustible" />
         </Field>
       </div>
     </ActionForm>
