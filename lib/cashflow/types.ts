@@ -43,6 +43,38 @@ export type Config = {
   investments: Investment[]
   inventory: { id: string; label: string; quantity: number; unitPrice: number }[]
   rules: Rule[]
+  employees: Employee[]
+  actual: ActualSetup
+}
+export type Employee = { id: string; name: string; percent: number }
+export type RealInvestment = {
+  id: string
+  label: string
+  amount: number
+  date: string
+  paidBy: string
+  note: string
+}
+/** Recurring and one-off lines use a bucket so they land in the same section as real movements. */
+export type RecurringLine = {
+  id: string
+  label: string
+  bucket: Bucket
+  amount: number
+  startMonth: string
+  endMonth: string | null
+  note: string
+}
+export type Adjustment = { id: string; month: string; label: string; bucket: Bucket; amount: number; note: string }
+export type ActualSetup = {
+  startMonth: string | null
+  openingCash: number
+  investments: RealInvestment[]
+  recurring: RecurringLine[]
+  adjustments: Adjustment[]
+  excluded: string[]
+  horizon: number
+  autoProject: boolean
 }
 export type CashPayment = {
   id: string
@@ -61,10 +93,19 @@ export type CashExpense = {
   category: string
   description: string | null
   subconcept?: string | null
+  notes?: string | null
   voided_at: string | null
   is_demo: boolean
 }
-export type CashIncome = { id: string; amount: number | string; received_on: string; concept: string; is_demo: boolean }
+export type CashIncome = {
+  id: string
+  amount: number | string
+  received_on: string
+  concept: string
+  subconcept?: string | null
+  notes?: string | null
+  is_demo: boolean
+}
 export type CashService = {
   id: string
   appointment_id: string | null
