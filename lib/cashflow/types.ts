@@ -54,6 +54,7 @@ export type RealInvestment = {
   date: string
   paidBy: string
   note: string
+  estimated: boolean
 }
 /** Recurring and one-off lines use a bucket so they land in the same section as real movements. */
 export type RecurringLine = {

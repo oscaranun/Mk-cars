@@ -66,6 +66,8 @@ function validateActual(
     if (typeof row.date !== "string" || !DAY.test(row.date)) throw Error(`Revisá la fecha de “${row.label}”.`)
     text(row.paidBy, "quién aportó")
     text(row.note, "la nota", 2000)
+    if (row.estimated === undefined) row.estimated = false
+    if (typeof row.estimated !== "boolean") throw Error(`Revisá si “${row.label}” es estimado.`)
   }
   for (const row of list(a.recurring, "los recurrentes", 300) as RecurringLine[]) {
     identity(row, "los recurrentes")

@@ -88,6 +88,10 @@ export function CashflowMaster({ config, setConfig, data, disabled, today, money
     setConfig((c) => ({ ...c, actual: { ...c.actual, [key]: c.actual[key].filter((_, i) => i !== index) } }))
   const currentMonth = today.slice(0, 7)
   const investmentTotal = actual.investments.reduce((s, r) => s + (Number.isFinite(r.amount) ? r.amount : 0), 0)
+  const estimatedTotal = actual.investments
+    .filter((r) => r.estimated)
+    .reduce((s, r) => s + (Number.isFinite(r.amount) ? r.amount : 0), 0)
+  const pendingCount = actual.investments.filter((r) => !(r.amount > 0)).length
   const concepts = [
     ...new Set([
       ...data.expenses.filter((e) => !e.voided_at && !e.is_demo).map((e) => e.description?.trim() || e.category),
@@ -96,16 +100,15 @@ export function CashflowMaster({ config, setConfig, data, disabled, today, money
   ].sort((a, b) => a.localeCompare(b))
   const copyFromModel = () =>
     setActual({
-      investments: config.investments
-        .filter((row) => row.amount !== null && row.amount > 0)
-        .map((row) => ({
-          id: crypto.randomUUID(),
-          label: row.label,
-          amount: row.amount ?? 0,
-          date: `${actual.startMonth ?? config.startMonth ?? currentMonth}-01`,
-          paidBy: row.paidBy,
-          note: row.note,
-        })),
+      investments: config.investments.map((row) => ({
+        id: crypto.randomUUID(),
+        label: row.label,
+        amount: row.amount ?? 0,
+        date: `${actual.startMonth ?? config.startMonth ?? currentMonth}-01`,
+        paidBy: row.paidBy,
+        note: row.note,
+        estimated: row.amount === null || !/^confirmado$/i.test(row.note.trim()),
+      })),
     })
 
   return (
@@ -156,8 +159,16 @@ export function CashflowMaster({ config, setConfig, data, disabled, today, money
 
       <Block
         title="Inversión inicial real"
-        description="Lo que efectivamente se invirtió. Se descuenta del flujo en su fecha y es la base para calcular el recupero."
-        aside={<span className="text-sm font-semibold tabular-nums">Total {money(investmentTotal)}</span>}
+        description="Lo que efectivamente se invirtió. Podés corregir el concepto, el importe y la fecha, agregar o quitar filas. Marcá “Estimado” las cifras que todavía no están confirmadas. Se descuenta del flujo en su fecha y es la base para calcular el recupero."
+        aside={
+          <div className="flex flex-col items-end text-sm tabular-nums">
+            <span className="font-semibold">Total {money(investmentTotal)}</span>
+            <span className="text-xs text-muted-foreground">
+              Confirmado {money(investmentTotal - estimatedTotal)} · Estimado {money(estimatedTotal)}
+              {pendingCount > 0 && ` · ${pendingCount} sin importe`}
+            </span>
+          </div>
+        }
       >
         {actual.investments.length === 0 && (
           <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
@@ -171,7 +182,7 @@ export function CashflowMaster({ config, setConfig, data, disabled, today, money
           {actual.investments.map((row, index) => (
             <li
               key={row.id}
-              className="grid items-end gap-2 rounded-2xl border border-border/70 p-3 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_2fr_auto]"
+              className={`grid items-end gap-2 rounded-2xl border p-3 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_auto_2fr_auto] ${row.estimated || !(row.amount > 0) ? "border-amber-400/50 bg-amber-400/5" : "border-border/70"}`}
             >
               <Text label="Concepto" value={row.label} onChange={(label) => patchRow("investments", index, { label })} />
               <Numeric label="Importe" value={row.amount} onChange={(amount) => patchRow("investments", index, { amount })} />
@@ -185,6 +196,14 @@ export function CashflowMaster({ config, setConfig, data, disabled, today, money
                 />
               </label>
               <Text label="Aportó" value={row.paidBy} onChange={(paidBy) => patchRow("investments", index, { paidBy })} />
+              <label className="flex items-center gap-2 pb-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={row.estimated}
+                  onChange={(e) => patchRow("investments", index, { estimated: e.target.checked })}
+                />
+                Estimado
+              </label>
               <Text label="Nota" value={row.note} onChange={(note) => patchRow("investments", index, { note })} />
               <button
                 type="button"
@@ -204,7 +223,15 @@ export function CashflowMaster({ config, setConfig, data, disabled, today, money
             setActual({
               investments: [
                 ...actual.investments,
-                { id: crypto.randomUUID(), label: "Nueva inversión", amount: 0, date: today, paidBy: "", note: "" },
+                {
+                  id: crypto.randomUUID(),
+                  label: "Nueva inversión",
+                  amount: 0,
+                  date: today,
+                  paidBy: "",
+                  note: "",
+                  estimated: true,
+                },
               ],
             })
           }
