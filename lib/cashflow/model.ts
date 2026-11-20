@@ -94,7 +94,21 @@ export function expenseBucket(
     "operating"
   )
 }
-export function projection(config: Config, index: number): Amounts {
+/** Each employee earns max(commission, guaranteed minimum) while the minimum is in force for that month. */
+export function laborCost(config: Config, sales: number, month: string | null) {
+  const employees = config.employees.map((e) => {
+    const commission = roundCash((sales * e.percent) / 100)
+    const guaranteed = month !== null && e.minimum > 0 && (!e.minimumUntil || month <= e.minimumUntil)
+    const complement = guaranteed ? roundCash(Math.max(0, e.minimum - commission)) : 0
+    return { id: e.id, name: e.name, percent: e.percent, minimum: guaranteed ? e.minimum : 0, commission, complement }
+  })
+  return {
+    employees,
+    commission: roundCash(employees.reduce((s, e) => s + e.commission, 0)),
+    complement: roundCash(employees.reduce((s, e) => s + e.complement, 0)),
+  }
+}
+export function projection(config: Config, index: number, month: string | null = null): Amounts {
   const a = emptyAmounts()
   if (index < 0 || index >= 24) return a
   const days = index === 0 ? config.firstMonthOperatingDays : config.operatingDays
@@ -110,7 +124,10 @@ export function projection(config: Config, index: number): Amounts {
   const ticket = config.ticket * (1 + config.incomeInflation / 100) ** index
   a.billed = roundCash(a.washes * ticket)
   a.serviceReceipts = a.billed
-  a.worker = roundCash((a.billed * config.workerPercent) / 100)
+  const labor = laborCost(config, a.billed, month)
+  a.worker = config.employees.length
+    ? roundCash(labor.commission + labor.complement)
+    : roundCash((a.billed * config.workerPercent) / 100)
   a.fees = roundCash((a.billed * config.paymentPercent) / 100)
   a.materials = roundCash(
     a.washes * config.consumables.reduce((s, c) => s + (c.amount ?? 0), 0) * (1 + config.costInflation / 100) ** index,
@@ -319,7 +336,7 @@ export function buildCashflow(input: Config, data: Dataset, today: string): Repo
     recovery = -investmentTotal
   for (let month = first; month <= last; month = addMonth(month, 1)) {
     const index = monthDistance(startMonth, month)
-    const forecast = projection(config, index),
+    const forecast = projection(config, index, month),
       actual = actuals.get(month) ?? emptyAmounts()
     const source = month < currentMonth ? "real" : month === currentMonth ? "partial" : "forecast"
     const selected = source === "forecast" ? forecast : actual
@@ -355,7 +372,7 @@ export function buildCashflow(input: Config, data: Dataset, today: string): Repo
     unlinkedInvestment,
     inventoryTotal: roundCash(config.inventory.reduce((s, r) => s + r.quantity * r.unitPrice, 0)),
     depreciation: roundCash(depreciation),
-    baselineMonth: projection(config, 0),
+    baselineMonth: projection(config, 0, startMonth),
     breakEvenWashes:
       unitMargin > 0 ? Math.ceil(config.fixedCosts.reduce((s, c) => s + (c.amount ?? 0), 0) / unitMargin) : null,
     modelPaybackMonth,

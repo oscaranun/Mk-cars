@@ -383,6 +383,30 @@ export function CashflowSettings({ config, setConfig, data, disabled }: Props) {
   )
 }
 
+function MonthInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: string | null
+  onChange: (value: string | null) => void
+}) {
+  const id = useId()
+  return (
+    <label htmlFor={id} className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground">
+      {label}
+      <input
+        id={id}
+        type="month"
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value || null)}
+        className={fieldClass}
+      />
+    </label>
+  )
+}
+
 export function EmployeesEditor({ config, setConfig }: Pick<Props, "config" | "setConfig">) {
   const total = config.employees.reduce((s, e) => s + (Number.isFinite(e.percent) ? e.percent : 0), 0)
   const patch = (index: number, value: Partial<Config["employees"][number]>) =>
@@ -396,16 +420,32 @@ export function EmployeesEditor({ config, setConfig }: Pick<Props, "config" | "s
         </span>
       </div>
       <p className="text-sm text-muted-foreground">
-        Cada empleado cobra su porcentaje sobre el total facturado. Se usa para proyectar el costo de personal.
+        Cada empleado cobra su porcentaje sobre el total facturado. Si tiene un mínimo garantizado, mientras rija
+        cobra lo que sea mayor y la diferencia se proyecta como &ldquo;Complemento mínimo garantizado&rdquo;, un costo
+        que sale de la rentabilidad del negocio.
       </p>
       {config.employees.map((employee, index) => (
-        <div key={employee.id} className="grid items-end gap-2 sm:grid-cols-[1fr_160px_auto]">
+        <div
+          key={employee.id}
+          className="grid items-end gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_120px_160px_150px_auto]"
+        >
           <Text label={`Empleado ${index + 1}`} value={employee.name} onChange={(name) => patch(index, { name })} />
           <Numeric
             label="Comisión (%)"
             value={employee.percent}
             max={100}
             onChange={(percent) => patch(index, { percent })}
+          />
+          <Numeric
+            label="Mínimo mensual ($)"
+            value={employee.minimum}
+            step="1"
+            onChange={(minimum) => patch(index, { minimum })}
+          />
+          <MonthInput
+            label="Mínimo hasta"
+            value={employee.minimumUntil}
+            onChange={(minimumUntil) => patch(index, { minimumUntil })}
           />
           <button
             type="button"
@@ -425,7 +465,13 @@ export function EmployeesEditor({ config, setConfig }: Pick<Props, "config" | "s
             ...c,
             employees: [
               ...c.employees,
-              { id: crypto.randomUUID(), name: `Empleado ${c.employees.length + 1}`, percent: 15 },
+              {
+                id: crypto.randomUUID(),
+                name: `Empleado ${c.employees.length + 1}`,
+                percent: 15,
+                minimum: 0,
+                minimumUntil: null,
+              },
             ],
           }))
         }

@@ -6,6 +6,7 @@ import { ChevronRight } from "lucide-react"
 import type { RealFlow } from "@/lib/cashflow/real"
 import type { Config } from "@/lib/cashflow/types"
 import { Stat, fieldClass, secondaryButtonClass, primaryButtonClass } from "@/components/admin/ui"
+import { LaborGuarantee } from "./labor-guarantee"
 import { BreakdownBars, DailyChart, IncomeExpenseChart, PaybackChart, shortMonth } from "./real-charts"
 
 const whole = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 })
@@ -202,6 +203,8 @@ export function RealFlowTab({
           hint="Saldo inicial + flujo neto, incluida la inversión"
         />
       </dl>
+
+      <LaborGuarantee labor={flow.labor} />
 
       <IncomeExpenseChart months={flow.months} totals={flow.totals} selected={selected} onSelect={setSelected} />
       <PaybackChart months={flow.months} totals={flow.totals} investment={flow.investmentTotal} />

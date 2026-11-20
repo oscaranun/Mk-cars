@@ -46,7 +46,8 @@ export type Config = {
   employees: Employee[]
   actual: ActualSetup
 }
-export type Employee = { id: string; name: string; percent: number }
+/** `minimum` is a guaranteed monthly floor; the business pays the gap when the commission falls short. */
+export type Employee = { id: string; name: string; percent: number; minimum: number; minimumUntil: string | null }
 export type RealInvestment = {
   id: string
   label: string
