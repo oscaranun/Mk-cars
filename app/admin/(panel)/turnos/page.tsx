@@ -1,10 +1,13 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ChevronRight, Plus } from "lucide-react"
+import { AlertTriangle, ChevronRight, Plus } from "lucide-react"
 import { BookingLinkButton } from "@/components/admin/booking-link-button"
+import { DeletedNotice } from "@/components/admin/deleted-notice"
+import { DuplicateDeleteButton } from "@/components/admin/duplicate-notice"
 import { TurnosViews } from "@/components/admin/turnos-views"
 import { Badge, EmptyState, PageHeader, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
+import { findDuplicateIds } from "@/lib/admin/duplicates"
 import { formatDateTime, money } from "@/lib/admin/format"
 import { APPOINTMENT_STATUS, PAYMENT_STATUS, appointmentTone, paymentTone } from "@/lib/admin/labels"
 import { cn } from "@/lib/utils"
@@ -19,6 +22,7 @@ type Row = {
   requested_start: string | null
   confirmed_start: string | null
   agreed_price: number | null
+  client_id: string | null
   contact_name: string | null
   client: { full_name: string; whatsapp: string | null } | null
 }
@@ -32,18 +36,18 @@ const FILTERS = [
   { key: "cancelado", label: "Cancelados" },
 ] as const
 
-type SearchParams = Promise<{ estado?: string; q?: string }>
+type SearchParams = Promise<{ estado?: string; q?: string; eliminada?: string }>
 
 export default async function TurnosPage({ searchParams }: { searchParams: SearchParams }) {
   const { supabase } = await requireAdmin()
-  const { estado = "", q = "" } = await searchParams
+  const { estado = "", q = "", eliminada } = await searchParams
   const status = FILTERS.some((f) => f.key === estado) ? estado : ""
   const search = q.trim().slice(0, 60)
 
   let query = supabase
     .from("appointments")
     .select(
-      "id, status, payment_status, service, requested_start, confirmed_start, agreed_price, contact_name, client:clients!inner(full_name, whatsapp, is_demo)",
+      "id, status, payment_status, service, requested_start, confirmed_start, agreed_price, client_id, contact_name, client:clients!inner(full_name, whatsapp, is_demo)",
     )
     .eq("client.is_demo", false)
     .order("requested_start", { ascending: false, nullsFirst: false })
@@ -53,8 +57,10 @@ export default async function TurnosPage({ searchParams }: { searchParams: Searc
 
   const needle = search.toLowerCase()
   const now = Date.now()
-  const rows = (data ?? [])
-    .map((r) => ({ ...r, start: r.confirmed_start ?? r.requested_start }))
+  const all = (data ?? []).map((r) => ({ ...r, start: r.confirmed_start ?? r.requested_start }))
+  const duplicateIds = findDuplicateIds(all)
+  const rows = all
+    .map((r) => ({ ...r, duplicate: duplicateIds.has(r.id) }))
     .filter(
       (r) =>
         !needle ||
@@ -92,6 +98,19 @@ export default async function TurnosPage({ searchParams }: { searchParams: Searc
 
       <TurnosViews current="lista" />
 
+      {eliminada === "1" && <DeletedNotice />}
+      {duplicateIds.size > 0 && (
+        <p
+          role="alert"
+          className="flex items-start gap-2 rounded-2xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100"
+        >
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-300" aria-hidden="true" />
+          <span className="text-pretty">
+            Hay {duplicateIds.size} turnos marcados como duplicados: mismo cliente, mismo día y horario. Eliminá el que sobra desde la lista.
+          </span>
+        </p>
+      )}
+
       <div className="flex flex-col gap-3">
         <form method="get" className="flex gap-2">
           {status && <input type="hidden" name="estado" value={status} />}
@@ -128,7 +147,7 @@ export default async function TurnosPage({ searchParams }: { searchParams: Searc
   )
 }
 
-function TurnoList({ title, rows }: { title: string; rows: (Row & { start: string | null })[] }) {
+function TurnoList({ title, rows }: { title: string; rows: (Row & { start: string | null; duplicate: boolean })[] }) {
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
@@ -137,11 +156,12 @@ function TurnoList({ title, rows }: { title: string; rows: (Row & { start: strin
       ) : (
         <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-3xl border border-border bg-card">
           {rows.map((r) => (
-            <li key={r.id}>
+            <li key={r.id} className={r.duplicate ? "bg-amber-400/5" : undefined}>
               <Link href={`/admin/turnos/${r.id}`} className="flex items-center gap-3 p-4 transition hover:bg-surface/60">
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{r.contact_name || r.client?.full_name}</span>
+                    {r.duplicate && <Badge tone="warning">Duplicado</Badge>}
                     <Badge tone={appointmentTone(r.status)}>{APPOINTMENT_STATUS[r.status] ?? r.status}</Badge>
                     <Badge tone={paymentTone(r.payment_status ?? "pendiente")}>
                       {PAYMENT_STATUS[r.payment_status ?? "pendiente"] ?? r.payment_status}
@@ -154,6 +174,12 @@ function TurnoList({ title, rows }: { title: string; rows: (Row & { start: strin
                 </div>
                 <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               </Link>
+              {r.duplicate && (
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-amber-300/20 px-4 py-2">
+                  <span className="text-xs text-amber-200">Mismo cliente y horario que otro turno</span>
+                  <DuplicateDeleteButton appointmentId={r.id} />
+                </div>
+              )}
             </li>
           ))}
         </ul>
