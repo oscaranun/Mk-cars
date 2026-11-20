@@ -1,4 +1,4 @@
-import { addMonth, argentinaDate, expenseBucket, roundCash } from "./model"
+import { addMonth, argentinaDate, expenseBucket, laborCost, roundCash } from "./model"
 import { normalizeConcept, validateConfig } from "./config"
 import type { Bucket, Config, Dataset } from "./types"
 
@@ -73,7 +73,9 @@ export type MonthTotals = {
   cumulative: number
   recovered: number
 }
+export type LaborMonth = { month: string; estimated: boolean; sales: number } & ReturnType<typeof laborCost>
 export type RealFlow = {
+  labor: LaborMonth[]
   months: MonthInfo[]
   sections: FlowSection[]
   totals: Record<string, MonthTotals>
@@ -276,6 +278,56 @@ export function buildRealFlow(input: Config, data: Dataset, today: string): Real
       }
     }
 
+  // Labor is a percentage of sales plus the guaranteed-minimum top-up, so it replaces the averaged labor projection.
+  const salesFor = (month: string) =>
+    roundCash([...lines.values()].filter((l) => l.section === "sales").reduce((s, l) => s + (l.values[month] ?? 0), 0))
+  const addChild = (line: ReturnType<typeof lineFor>, label: string, month: string, value: number) => {
+    const key = normalizeConcept(label)
+    let child = line.childMap.get(key)
+    if (!child) {
+      child = { label, values: {}, total: 0 }
+      line.childMap.set(key, child)
+    }
+    child.values[month] = roundCash((child.values[month] ?? 0) + value)
+  }
+  const employeeLine = (name: string) => {
+    const target = normalizeConcept(name)
+    return (
+      [...lines.values()].find((l) => l.section === "worker" && target.includes(normalizeConcept(l.label))) ??
+      lineFor("worker", name.replace(/^empleado\s*\d+\s*·\s*/i, "").trim() || name)
+    )
+  }
+  const labor: LaborMonth[] = []
+  if (config.employees.length) {
+    for (const line of lines.values())
+      if (line.section === "worker")
+        for (const month of futureMonths)
+          if (line.projected[month] && !recurringKeys.get(line.key)?.has(month)) {
+            delete line.values[month]
+            delete line.projected[month]
+          }
+    const ledgerSales = active.filter((m) => m.ledger && m.section === "sales").reduce((s, m) => s + m.amount, 0)
+    const remainingDays = daysInMonth(currentMonth) - Number(today.slice(8, 10))
+    const currentSales = roundCash(
+      salesFor(currentMonth) + (daysElapsed ? (ledgerSales / daysElapsed) * remainingDays : 0),
+    )
+    labor.push({ month: currentMonth, estimated: true, sales: currentSales, ...laborCost(config, currentSales, currentMonth) })
+    for (const month of futureMonths) {
+      const sales = salesFor(month)
+      const cost = laborCost(config, sales, month)
+      labor.push({ month, estimated: false, sales, ...cost })
+      config.employees.forEach((employee, i) => {
+        const e = cost.employees[i]
+        if (!e.commission && !e.complement) return
+        const line = employeeLine(employee.name)
+        line.values[month] = roundCash((line.values[month] ?? 0) + e.commission + e.complement)
+        line.projected[month] = true
+        addChild(line, `Comisión ${e.percent.toLocaleString("es-AR")}% (proyectada)`, month, e.commission)
+        if (e.complement) addChild(line, "Complemento mínimo garantizado (proyectado)", month, e.complement)
+      })
+    }
+  }
+
   const sections: FlowSection[] = [...INCOME_SECTIONS, ...EXPENSE_SECTIONS].map((key) => {
     const sectionLines = [...lines.values()]
       .filter((l) => l.section === key)
@@ -361,6 +413,7 @@ export function buildRealFlow(input: Config, data: Dataset, today: string): Real
     paybackMonth = date.toISOString().slice(0, 7)
   }
   return {
+    labor,
     months,
     sections,
     totals,

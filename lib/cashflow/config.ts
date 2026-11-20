@@ -22,8 +22,8 @@ export const normalizeConcept = (value: string) =>
 export const EXPENSE_BUCKETS: Bucket[] = ["worker", "materials", "fees", "fixed", "operating", "investment", "withdrawal"]
 export const INCOME_BUCKETS: Bucket[] = ["other_income", "capital"]
 export const DEFAULT_EMPLOYEES: Config["employees"] = [
-  { id: "employee-1", name: "Empleado 1 · Rodrigo Aguilera", percent: 15 },
-  { id: "employee-2", name: "Empleado 2 · Cristian Antúnez", percent: 15 },
+  { id: "employee-1", name: "Empleado 1 · Rodrigo Aguilera", percent: 15, minimum: 800_000, minimumUntil: "2027-01" },
+  { id: "employee-2", name: "Empleado 2 · Cristian Antúnez", percent: 15, minimum: 800_000, minimumUntil: "2027-01" },
 ]
 export const defaultActual = (): ActualSetup => ({
   startMonth: null,
@@ -118,6 +118,15 @@ export function validateConfig(input: unknown): Config {
     if (!row.id || !row.name.trim() || employeeIds.has(row.id)) throw Error("Cada empleado necesita un nombre.")
     employeeIds.add(row.id)
     number(row.percent, "la comisión del empleado", 0, 100)
+    // Saved before the guaranteed minimum existed: both washers were agreed $800.000 through January 2027.
+    if (row.minimum === undefined) {
+      row.minimum = 800_000
+      row.minimumUntil = "2027-01"
+    }
+    if (row.minimumUntil === undefined) row.minimumUntil = null
+    number(row.minimum, "el mínimo garantizado", 0, 1e10)
+    if (row.minimumUntil !== null && (typeof row.minimumUntil !== "string" || !MONTH.test(row.minimumUntil)))
+      throw Error(`Revisá hasta cuándo rige el mínimo de “${row.name}”.`)
     employeeTotal += row.percent
   }
   // The legacy single percentage stays in sync so older readers project the same labor cost.
