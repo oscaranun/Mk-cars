@@ -93,7 +93,7 @@ export async function quickSetTurnStatus(_prev: ActionState, data: FormData): Pr
   const { supabase, current } = loaded
 
   if (current.status === status) return { ok: true, message: "Sin cambios." }
-  if (current.status === "realizado" && status !== "cancelado") {
+  if (current.status === "realizado" && status !== "cancelado" && status !== "solicitado") {
     return fail('El lavado ya está realizado. Para volver atrás cambiá el "Servicio" a pendiente.')
   }
 
