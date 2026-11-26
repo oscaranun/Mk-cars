@@ -6,6 +6,7 @@ import { TurnoFicha } from "@/components/admin/ficha/turno-ficha"
 import { requireAdmin } from "@/lib/admin/auth"
 import { getTurnoFicha } from "@/lib/admin/turno-ficha"
 import { DuplicateNotice } from "@/components/admin/duplicate-notice"
+import { AppointmentDelete } from "@/components/admin/appointment-delete"
 import { findDuplicatesOf } from "@/lib/admin/duplicates"
 
 export const metadata: Metadata = { title: "Ficha del turno" }
@@ -39,6 +40,7 @@ export default async function TurnoPage({ params }: { params: Promise<{ id: stri
       </div>
       {duplicates.length > 0 && <DuplicateNotice appointmentId={ficha.id} matches={duplicates} />}
       <TurnoFicha ficha={ficha} />
+      <AppointmentDelete supabase={supabase} appointmentId={ficha.id} />
     </div>
   )
 }
