@@ -3,7 +3,7 @@ import Link from "next/link"
 import { AlertTriangle, ChevronRight, Plus } from "lucide-react"
 import { BookingLinkButton } from "@/components/admin/booking-link-button"
 import { DeletedNotice } from "@/components/admin/deleted-notice"
-import { DuplicateDeleteButton } from "@/components/admin/duplicate-notice"
+import { DuplicateDeleteButton, ManualDuplicateDeleteButton } from "@/components/admin/duplicate-notice"
 import { TurnosViews } from "@/components/admin/turnos-views"
 import { Badge, EmptyState, PageHeader, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
@@ -157,7 +157,8 @@ function TurnoList({ title, rows }: { title: string; rows: (Row & { start: strin
         <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-3xl border border-border bg-card">
           {rows.map((r) => (
             <li key={r.id} className={r.duplicate ? "bg-amber-400/5" : undefined}>
-              <Link href={`/admin/turnos/${r.id}`} className="flex items-center gap-3 p-4 transition hover:bg-surface/60">
+              <div className="flex items-center">
+              <Link href={`/admin/turnos/${r.id}`} className="flex min-w-0 flex-1 items-center gap-3 p-4 transition hover:bg-surface/60">
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{r.contact_name || r.client?.full_name}</span>
@@ -174,6 +175,12 @@ function TurnoList({ title, rows }: { title: string; rows: (Row & { start: strin
                 </div>
                 <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               </Link>
+              {!r.duplicate && (r.payment_status ?? "pendiente") === "pendiente" && (
+                <div className="pr-2">
+                  <ManualDuplicateDeleteButton appointmentId={r.id} clientName={r.contact_name || r.client?.full_name || "este cliente"} />
+                </div>
+              )}
+              </div>
               {r.duplicate && (
                 <div className="flex flex-wrap items-center justify-between gap-2 border-t border-amber-300/20 px-4 py-2">
                   <span className="text-xs text-amber-200">Mismo cliente y horario que otro turno</span>
