@@ -9,6 +9,8 @@ type Preview =
       blocked: false
       appointment: number
       appointment_vehicles: number
+      services?: number
+      voided_payments?: number
       inquiry: boolean
       vehicles: number
       client: boolean
@@ -29,6 +31,8 @@ export async function AppointmentDelete({ supabase, appointmentId }: { supabase:
   if (preview && !preview.blocked) {
     items.push("El turno")
     if (preview.appointment_vehicles) items.push(plural(preview.appointment_vehicles, "vehículo asignado al turno", "vehículos asignados al turno"))
+    if (preview.services) items.push(plural(preview.services, "servicio registrado del turno", "servicios registrados del turno"))
+    if (preview.voided_payments) items.push(plural(preview.voided_payments, "pago anulado (ya no suma en caja)", "pagos anulados (ya no suman en caja)"))
     if (preview.inquiry) items.push("La consulta vinculada")
     if (preview.vehicles) items.push(plural(preview.vehicles, "vehículo del cliente (sin otros usos)", "vehículos del cliente (sin otros usos)"))
     if (preview.client) items.push("El cliente (no tiene otras reservas, consultas ni servicios)")
@@ -43,7 +47,7 @@ export async function AppointmentDelete({ supabase, appointmentId }: { supabase:
         <h2 className="text-sm font-semibold">Zona de peligro</h2>
         <p className="text-sm text-muted-foreground text-pretty">
           {preview?.blocked
-            ? `No se puede eliminar: la reserva tiene ${plural(preview.services, "servicio realizado", "servicios realizados")} y ${plural(preview.payments, "pago registrado", "pagos registrados")}, que deben conservarse.`
+            ? `Este turno tiene ${plural(preview.payments, "pago activo", "pagos activos")}. Si se cargó por error, primero tocá "Anular pagos" en la sección Pagos y después vas a poder eliminarlo.`
             : !preview
               ? "No se pudo verificar qué registros se eliminarían. Recargá la página."
               : "Borra la reserva y sus datos vinculados. No se puede deshacer."}
