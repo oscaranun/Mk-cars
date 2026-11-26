@@ -1,5 +1,6 @@
 import type { Amounts, CashExpense, Config, Dataset, Month, Report } from "./types"
 import { normalizeConcept, validateConfig } from "./config"
+import { INVESTMENT_EXPENSE_CATEGORIES } from "@/lib/admin/labels"
 
 export const roundCash = (value: number) => {
   const cents = Math.round(value * 100)
@@ -78,6 +79,7 @@ export function expenseBucket(
   expense: Pick<CashExpense, "category" | "description" | "subconcept">,
   config: Config,
 ) {
+  if (INVESTMENT_EXPENSE_CATEGORIES.has(expense.category)) return "investment" as const
   // The subconcept wins so "Rodrigo Aguilera · Combustible" counts as fuel, not as labor.
   return (
     (expense.subconcept

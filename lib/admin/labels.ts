@@ -66,8 +66,12 @@ export const EXPENSE_CATEGORY: Record<string, string> = {
   combustible: "Combustible",
   mantenimiento: "Mantenimiento",
   publicidad: "Publicidad",
+  inversion_equipamiento: "Inversión en equipamiento – Reposición extraordinaria",
   otro: "Otro",
 }
+
+/** Cash out that is capital spending, not an operating cost: excluded from operating expenses and results. */
+export const INVESTMENT_EXPENSE_CATEGORIES = new Set(["inversion_equipamiento"])
 
 export const VEHICLE_CATEGORY: Record<string, string> = {
   auto: "Auto",

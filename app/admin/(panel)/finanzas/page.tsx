@@ -7,7 +7,7 @@ import { FinanceForm, type FinanceConcept } from "@/components/admin/ficha/finan
 import { Card, EmptyState, PageHeader, SectionTitle, Stat, fieldClass, secondaryButtonClass } from "@/components/admin/ui"
 import { requireAdmin } from "@/lib/admin/auth"
 import { formatDate, isValidDate, money, startOfArgentinaDay, todayArgentina } from "@/lib/admin/format"
-import { PAYMENT_METHOD } from "@/lib/admin/labels"
+import { INVESTMENT_EXPENSE_CATEGORIES, PAYMENT_METHOD } from "@/lib/admin/labels"
 
 export const metadata = { title: "Finanzas" }
 
@@ -141,7 +141,13 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
 
   const filtered = Boolean(q || tipo || conceptFilter || subFilter)
   const income = movements.filter((m) => m.type === "ingreso").reduce((s, m) => s + m.amount, 0)
-  const spent = movements.filter((m) => m.type === "gasto").reduce((s, m) => s + m.amount, 0)
+  const investmentIds = new Set(
+    (expenses.data ?? []).filter((e) => INVESTMENT_EXPENSE_CATEGORIES.has(e.category)).map((e) => e.id),
+  )
+  const invested = movements
+    .filter((m) => m.type === "gasto" && investmentIds.has(m.id))
+    .reduce((s, m) => s + m.amount, 0)
+  const spent = movements.filter((m) => m.type === "gasto").reduce((s, m) => s + m.amount, 0) - invested
   const conceptList = (concepts.data ?? []) as FinanceConcept[]
   const pendingSub = all.filter((m) => m.source === "manual" && !m.subconcept).length
 
@@ -259,10 +265,17 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
           </div>
         </form>
 
-        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <dl className={`grid grid-cols-1 gap-3 ${invested > 0 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
           <Stat label={`Ingresos ${periodLabel}${filtered ? " (filtrado)" : ""}`} value={money(income)} />
-          <Stat label={`Gastos ${periodLabel}${filtered ? " (filtrado)" : ""}`} value={money(spent)} />
-          <Stat label="Resultado" value={money(income - spent)} />
+          <Stat label={`Gastos operativos ${periodLabel}${filtered ? " (filtrado)" : ""}`} value={money(spent)} />
+          <Stat label="Resultado operativo" value={money(income - spent)} />
+          {invested > 0 && (
+            <Stat
+              label="Inversiones en equipamiento"
+              value={money(invested)}
+              hint={`Salida de caja. Saldo de caja: ${money(income - spent - invested)}`}
+            />
+          )}
         </dl>
 
         {breakdown.length > 0 && (
