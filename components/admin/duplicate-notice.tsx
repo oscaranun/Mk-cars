@@ -38,6 +38,23 @@ export function DuplicateNotice({ appointmentId, matches }: { appointmentId: str
   )
 }
 
+/** Icon-only trash button for turnos the automatic check misses (e.g. a second name in one of the entries). */
+export function ManualDuplicateDeleteButton({ appointmentId, clientName }: { appointmentId: string; clientName: string }) {
+  return (
+    <ConfirmAction
+      action={deleteAppointmentPermanently}
+      fields={{ id: appointmentId }}
+      triggerLabel={`Eliminar turno de ${clientName} cargado dos veces`}
+      iconOnly
+      triggerClassName="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-red-500/10 hover:text-red-400"
+      title={`¿Eliminar este turno de ${clientName}?`}
+      description="Usalo solo si este turno se cargó dos veces por error. Se borra este turno y sus datos vinculados; el otro turno se conserva. No se puede deshacer. Si el turno ya tiene servicios o pagos registrados, no se elimina."
+      confirmLabel="Sí, eliminar turno"
+      redirectTo="/admin/turnos"
+    />
+  )
+}
+
 export function DuplicateDeleteButton({ appointmentId, label = "Eliminar duplicado" }: { appointmentId: string; label?: string }) {
   return (
     <ConfirmAction

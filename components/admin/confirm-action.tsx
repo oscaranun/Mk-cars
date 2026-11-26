@@ -12,6 +12,7 @@ type Props = {
   fields: Record<string, string>
   triggerLabel: string
   triggerClassName?: string
+  iconOnly?: boolean
   title: string
   description: string
   children?: ReactNode
@@ -28,6 +29,7 @@ export function ConfirmAction({
   fields,
   triggerLabel,
   triggerClassName,
+  iconOnly,
   title,
   description,
   children,
@@ -57,7 +59,7 @@ export function ConfirmAction({
         className={triggerClassName ?? dangerTextButtonClass}
       >
         <Trash2 className="size-4" aria-hidden="true" />
-        {triggerLabel}
+        {iconOnly ? <span className="sr-only">{triggerLabel}</span> : triggerLabel}
       </button>
 
       <dialog
