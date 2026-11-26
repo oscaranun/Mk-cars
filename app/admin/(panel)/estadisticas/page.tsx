@@ -3,7 +3,13 @@ import { Card, EmptyState, Field, FilterBar, PageHeader, SectionTitle, Stat, fie
 import { requireAdmin } from "@/lib/admin/auth"
 import { activePayments } from "@/lib/admin/payments"
 import { money, resolveRange } from "@/lib/admin/format"
-import { CONVERTED_INQUIRY_STATUSES, INQUIRY_STATUS, PAYMENT_METHOD, VEHICLE_CATEGORY } from "@/lib/admin/labels"
+import {
+  CONVERTED_INQUIRY_STATUSES,
+  INQUIRY_STATUS,
+  INVESTMENT_EXPENSE_CATEGORIES,
+  PAYMENT_METHOD,
+  VEHICLE_CATEGORY,
+} from "@/lib/admin/labels"
 
 export const metadata: Metadata = { title: "Estadísticas" }
 
@@ -41,7 +47,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
     }),
     supabase.from("services").select("client_id").limit(10000),
     supabase.from("services").select("final_price, amount_paid").neq("payment_status", "cobrado").limit(5000),
-    supabase.from("expenses").select("amount").gte("spent_on", range.from).lte("spent_on", range.to).limit(5000),
+    supabase.from("expenses").select("amount, category").is("voided_at", null).gte("spent_on", range.from).lte("spent_on", range.to).limit(5000),
     activePayments((excludeVoided) => {
       const q = supabase.from("payments").select("amount").gte("paid_at", prevFromISO).lt("paid_at", range.fromISO).limit(5000)
       return excludeVoided ? q.is("voided_at", null) : q
@@ -68,7 +74,11 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
   const byStatus = countBy(inq, (i) => INQUIRY_STATUS[i.commercial_status] ?? i.commercial_status)
   const byVehicle = countBy(svc, (s) => (s.vehicle_category ? VEHICLE_CATEGORY[s.vehicle_category] : null))
   const byWash = countBy(svc, (s) => s.wash_type)
-  const spent = (expenses.data ?? []).reduce((sum, e) => sum + Number(e.amount), 0)
+  const expenseRows = expenses.data ?? []
+  const invested = expenseRows
+    .filter((e) => INVESTMENT_EXPENSE_CATEGORIES.has(e.category))
+    .reduce((sum, e) => sum + Number(e.amount), 0)
+  const spent = expenseRows.reduce((sum, e) => sum + Number(e.amount), 0) - invested
   const profit = collected - spent
   const prevCollected = (prevPayments.data ?? []).reduce((sum, p) => sum + Number(p.amount), 0)
   const prevWashes = prevServices.count ?? 0
@@ -111,8 +121,11 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
         <Stat label="Ticket promedio" value={money(avgTicket)} hint="Precio final por lavado" />
         <Stat label="Saldo pendiente" value={money(pendingBalance)} hint="Total actual" />
         <Stat label="Clientes recurrentes" value={recurring} hint={`de ${withWashes} con al menos un lavado`} />
-        <Stat label="Gastos" value={money(spent)} hint="Egresos del período" />
-        <Stat label="Ganancia" value={money(profit)} hint="Cobrado menos gastos" />
+        <Stat label="Gastos operativos" value={money(spent)} hint="Sin inversiones en equipamiento" />
+        <Stat label="Ganancia operativa" value={money(profit)} hint="Cobrado menos gastos operativos" />
+        {invested > 0 && (
+          <Stat label="Inversiones en equipamiento" value={money(invested)} hint="Salida de caja, no resta a la ganancia" />
+        )}
         <Stat label="Cobrado vs anterior" value={money(collected)} hint={delta(collected, prevCollected)} />
         <Stat label="Lavados vs anterior" value={svc.length} hint={delta(svc.length, prevWashes)} />
       </dl>
